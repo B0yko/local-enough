@@ -519,6 +519,295 @@ def build_extraction(seed: int, out_dir: Path) -> DatasetCard:
     return card
 
 
+# --------------------------------------------------------------------------------------
+# pii_redaction
+# --------------------------------------------------------------------------------------
+
+FULL_MONTHS = [
+    "January", "February", "March", "April", "May", "June", "July", "August",
+    "September", "October", "November", "December",
+]
+PII_TYPES = ["PERSON", "EMAIL", "PHONE", "IBAN", "ADDRESS", "DATE_OF_BIRTH"]
+PII_CATEGORIES = ["support_ticket", "hr_note", "invoice_dispute", "call_note"]
+
+CATEGORY_TYPE_WEIGHTS: dict[str, dict[str, float]] = {
+    "support_ticket": {"PERSON": 0.25, "EMAIL": 0.25, "PHONE": 0.20, "ADDRESS": 0.15, "IBAN": 0.05, "DATE_OF_BIRTH": 0.10},
+    "hr_note": {"PERSON": 0.30, "DATE_OF_BIRTH": 0.25, "ADDRESS": 0.20, "PHONE": 0.10, "EMAIL": 0.10, "IBAN": 0.05},
+    "invoice_dispute": {"PERSON": 0.20, "EMAIL": 0.15, "PHONE": 0.10, "IBAN": 0.35, "ADDRESS": 0.15, "DATE_OF_BIRTH": 0.05},
+    "call_note": {"PERSON": 0.35, "PHONE": 0.35, "EMAIL": 0.15, "ADDRESS": 0.10, "IBAN": 0.03, "DATE_OF_BIRTH": 0.02},
+}
+
+SUPPORT_ISSUES = [
+    "Delayed delivery", "Damaged item on arrival", "Login access issue", "Billing discrepancy",
+    "Missing invoice", "Product setup help",
+]
+HR_TOPICS = [
+    "Onboarding checklist", "Leave request follow-up", "Benefits enrolment", "Reference check",
+    "Payroll correction",
+]
+CALL_TOPICS = [
+    "Inbound enquiry", "Follow-up call", "Renewal discussion", "Complaint handling",
+    "Technical support call",
+]
+PII_OPENINGS = {
+    "support_ticket": lambda rng: f"Subject: {rng.choice(SUPPORT_ISSUES)}\nTicket #{rng.randint(10000, 99999)}\n\n",
+    "hr_note": lambda rng: f"HR file note - {rng.choice(HR_TOPICS)}\n\n",
+    "invoice_dispute": lambda rng: f"Invoice dispute - INV-{rng.randint(2000, 9999)}\n\n",
+    "call_note": lambda rng: f"Call notes - {rng.choice(CALL_TOPICS)}\n\n",
+}
+PII_FILLERS: dict[str, list[str]] = {
+    "support_ticket": [
+        "Customer says the issue started last week.",
+        "Priority has been set to medium.",
+        "Awaiting customer confirmation before closing.",
+        "Escalated to tier two support.",
+    ],
+    "hr_note": [
+        "Documented for the personnel file.",
+        "No further action required at this time.",
+        "Manager has been informed.",
+        "Follow-up scheduled for next review cycle.",
+    ],
+    "invoice_dispute": [
+        "Amount in dispute is under review.",
+        "Finance team has been copied.",
+        "Customer disputes the line item total.",
+        "Credit note may be required.",
+    ],
+    "call_note": [
+        "Call lasted about ten minutes.",
+        "Customer sounded satisfied with the outcome.",
+        "No further callback requested.",
+        "Logged for quality assurance.",
+    ],
+}
+
+TYPE_TEMPLATES: dict[str, list[str]] = {
+    "PERSON": [
+        "Reported by {v}.", "{v} called in about this.", "Please loop in {v} from the account team.",
+        "Contact: {v}.",
+    ],
+    "EMAIL": [
+        "You can reach the customer at {v}.", "Please cc {v} on all correspondence.",
+        "Confirmation was sent to {v}.", "Reply-to address on file: {v}.",
+    ],
+    "PHONE": [
+        "Callback number: {v}.", "The customer's direct line is {v}.", "We tried reaching {v} twice.",
+        "Preferred contact number: {v}.",
+    ],
+    "IBAN": [
+        "Refund account: {v}.", "Please process the reimbursement to {v}.", "Bank details on file: {v}.",
+        "Payment should be returned to {v}.",
+    ],
+    "ADDRESS": [
+        "Shipping address: {v}.", "The site visit is scheduled at {v}.", "Correspondence address: {v}.",
+        "Please update our records to {v}.",
+    ],
+    "DATE_OF_BIRTH": [
+        "Date of birth: {v}.", "Identity verified against DOB {v}.", "Born on {v} per the HR file.",
+        "DOB on record: {v}.",
+    ],
+}
+HARD_NEGATIVE_TEMPLATES: dict[str, list[str]] = {
+    "company": [
+        "This relates to our contract with {v}.", "The escalation was raised by {v}.",
+        "{v} is the account in question.",
+    ],
+    "product": ["The issue concerns the {v} module.", "This ticket is about {v}.", "{v} usage triggered the alert."],
+    "order_id": ["Reference: {v}.", "Related order: {v}.", "See also {v}."],
+    "non_birth_date": ["Ticket opened on {v}.", "Last contacted on {v}.", "Renewal is due {v}."],
+    "switchboard": ["Company switchboard: {v}.", "Main office line: {v}.", "General enquiries: {v}."],
+}
+
+
+def format_date_of_birth(rng: random.Random, d: date) -> str:
+    style = rng.choice(["dmy_words", "dmy_slash", "mdy_words"])
+    if style == "dmy_words":
+        return f"{d.day} {FULL_MONTHS[d.month - 1]} {d.year}"
+    if style == "dmy_slash":
+        return f"{d.day:02d}/{d.month:02d}/{d.year}"
+    return f"{FULL_MONTHS[d.month - 1]} {d.day}, {d.year}"
+
+
+IBAN_STRUCTURE: dict[str, list[tuple[int, str]]] = {
+    "GB": [(4, "alpha"), (14, "digit")],
+    "IE": [(4, "alpha"), (14, "digit")],
+    "DE": [(18, "digit")],
+    "FR": [(23, "digit")],
+    "NL": [(4, "alpha"), (10, "digit")],
+    "ES": [(20, "digit")],
+}
+
+
+def _iban_check_digits(country: str, bban: str) -> str:
+    rearranged = bban + country + "00"
+    numeric = "".join(str(int(ch, 36)) if ch.isalpha() else ch for ch in rearranged)
+    remainder = int(numeric) % 97
+    return f"{98 - remainder:02d}"
+
+
+def generate_iban(rng: random.Random) -> str:
+    country = rng.choice(list(IBAN_STRUCTURE))
+    bban = ""
+    for length, kind in IBAN_STRUCTURE[country]:
+        if kind == "alpha":
+            bban += "".join(rng.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ") for _ in range(length))
+        else:
+            bban += "".join(str(rng.randint(0, 9)) for _ in range(length))
+    return f"{country}{_iban_check_digits(country, bban)}{bban}"
+
+
+def pii_person_value(rng: random.Random) -> str:
+    first, last = make_person_name(rng)
+    return f"{first} {last}"
+
+
+def pii_email_value(rng: random.Random) -> str:
+    first, last = make_person_name(rng)
+    tld = rng.choice(["com", "org", "net"])
+    sub = rng.choice(["", "webmail.", "mail."])
+    return f"{first.lower()}.{last.lower()}@{sub}example.{tld}"
+
+
+def pii_phone_value(rng: random.Random) -> str:
+    return phone_for_country(rng, rng.choice(["GB", "US", "CA"]))[0]
+
+
+def pii_address_value(rng: random.Random) -> str:
+    country = rng.choice(["GB", "US", "CA"])
+    street, city = address_line(rng, country)
+    return f"{street}, {city}, {postcode_for(rng, country)}"
+
+
+def pii_dob_value(rng: random.Random) -> str:
+    d = date(rng.randint(1950, 2005), rng.randint(1, 12), rng.randint(1, 28))
+    return format_date_of_birth(rng, d)
+
+
+PII_VALUE_FN = {
+    "PERSON": pii_person_value,
+    "EMAIL": pii_email_value,
+    "PHONE": pii_phone_value,
+    "IBAN": lambda rng: generate_iban(rng),
+    "ADDRESS": pii_address_value,
+    "DATE_OF_BIRTH": pii_dob_value,
+}
+HARD_NEGATIVE_VALUE_FN = {
+    "company": lambda rng: make_company_name(rng, rng.choice(SECTORS), rng.choice(["GB", "US", "CA"])),
+    "product": lambda rng: rng.choice(PRODUCT_LINES),
+    "order_id": lambda rng: rng.choice([f"ORD-{rng.randint(10000, 99999)}", f"INV-{rng.randint(1000, 9999)}"]),
+    "non_birth_date": lambda rng: format_date_of_birth(
+        rng, date(rng.randint(2024, 2026), rng.randint(1, 12), rng.randint(1, 28))
+    ),
+    "switchboard": lambda rng: phone_for_country(rng, rng.choice(["GB", "US", "CA"]))[0],
+}
+
+
+class DocBuilder:
+    """Assembles a document while tracking exact char offsets for embedded gold spans."""
+
+    def __init__(self) -> None:
+        self._buf: list[str] = []
+        self._spans: list[dict[str, Any]] = []
+
+    def _pos(self) -> int:
+        return sum(len(s) for s in self._buf)
+
+    def write(self, text: str, type_: str | None = None) -> None:
+        start = self._pos()
+        self._buf.append(text)
+        if type_ is not None:
+            self._spans.append({"start": start, "end": start + len(text), "type": type_, "value": text})
+
+    def build(self) -> tuple[str, list[dict[str, Any]]]:
+        text = "".join(self._buf).rstrip()
+        spans = []
+        for s in sorted(self._spans, key=lambda s: s["start"]):
+            assert text[s["start"] : s["end"]] == s["value"], f"span offset mismatch: {s}"
+            spans.append({"start": s["start"], "end": s["end"], "type": s["type"]})
+        return text, spans
+
+
+def write_templated(db: DocBuilder, template: str, value: str, type_: str | None) -> None:
+    pre, _, post = template.partition("{v}")
+    db.write(pre)
+    db.write(value, type_)
+    db.write(post)
+
+
+def build_pii_item(rng: random.Random, item_id: str) -> dict[str, Any]:
+    category = rng.choice(PII_CATEGORIES)
+    no_pii = rng.random() < 0.15
+    n_spans = 0 if no_pii else rng.choices([1, 2, 3, 4, 5, 6], weights=[30, 25, 20, 13, 8, 4])[0]
+    weights = CATEGORY_TYPE_WEIGHTS[category]
+    gold_types = rng.choices(list(weights), weights=list(weights.values()), k=n_spans)
+
+    db = DocBuilder()
+    db.write(PII_OPENINGS[category](rng))
+
+    actions: list[Any] = []
+    for t in gold_types:
+        value = PII_VALUE_FN[t](rng)
+        tmpl = rng.choice(TYPE_TEMPLATES[t])
+        actions.append((tmpl, value, t))
+
+    hard_kinds = rng.sample(list(HARD_NEGATIVE_VALUE_FN), k=rng.randint(1, 3))
+    for hk in hard_kinds:
+        value = HARD_NEGATIVE_VALUE_FN[hk](rng)
+        tmpl = rng.choice(HARD_NEGATIVE_TEMPLATES[hk])
+        actions.append((tmpl, value, None))
+
+    fillers = [(filler, None, None) for filler in rng.sample(PII_FILLERS[category], k=rng.randint(1, 2))]
+
+    ordered: list[tuple[str, str | None, str | None]] = actions + fillers
+    rng.shuffle(ordered)
+    for tmpl, value, type_ in ordered:
+        if value is None:
+            db.write(tmpl)
+        else:
+            write_templated(db, tmpl, value, type_)
+        db.write(" ")
+
+    text, spans = db.build()
+    return {"id": item_id, "text": text, "spans": spans}
+
+
+def build_pii(seed: int, out_dir: Path) -> DatasetCard:
+    rng = random.Random(f"pii_redaction:{seed}")
+    calib = [build_pii_item(rng, f"pii-calib-{i:04d}") for i in range(100)]
+    test = [build_pii_item(rng, f"pii-test-{i:04d}") for i in range(200)]
+
+    task_dir = out_dir / "pii_redaction"
+    write_jsonl(task_dir / "calib.jsonl", calib)
+    write_jsonl(task_dir / "test.jsonl", test)
+
+    distinct_templates = (
+        sum(len(v) for v in TYPE_TEMPLATES.values())
+        + sum(len(v) for v in HARD_NEGATIVE_TEMPLATES.values())
+        + sum(len(v) for v in PII_FILLERS.values())
+        + len(SUPPORT_ISSUES) + len(HR_TOPICS) + len(CALL_TOPICS)
+    )
+    card = DatasetCard(
+        source="synthetic",
+        licence="Apache-2.0",
+        seed=seed,
+        metric="f2",
+        distinct_templates=distinct_templates,
+        notes="Support tickets, HR notes, invoice disputes and call notes with 0-6 PII spans; ~15% PII-free.",
+    )
+    spec = TaskSpec(
+        name="pii_redaction",
+        kind="pii_redaction",
+        description="Redact personal data from business notes.",
+        calib="calib.jsonl",
+        test="test.jsonl",
+        pii_types=PII_TYPES,
+        card=card,
+    )
+    write_yaml_task(task_dir / "task.yaml", spec)
+    return card
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seed", type=int, default=7)
@@ -529,6 +818,8 @@ def main(argv: list[str] | None = None) -> int:
     args.out.mkdir(parents=True, exist_ok=True)
     build_extraction(args.seed, args.out)
     print("extraction: ok")
+    build_pii(args.seed, args.out)
+    print("pii_redaction: ok")
     return 0
 
 
