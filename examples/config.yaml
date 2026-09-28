@@ -22,36 +22,39 @@ models:
       revision: 8b403126fc14f14cfc99bb4cfa72ecbc129ea677
       port: 8082
 
-  # Four cloud models, one per role. Model ids are to be confirmed against
-  # GET https://openrouter.ai/api/v1/models on the run date before the full run (ADR 7).
+  # Four cloud models, one per role, confirmed against GET https://openrouter.ai/api/v1/models on
+  # 2026-09-28 and recorded in docs/adr/0007-model-lineup.md before the full run.
   - id: frontier
     kind: cloud
     role: frontier
     base_url: https://openrouter.ai/api/v1
     api_key_env: OPENROUTER_API_KEY
     model: x-ai/grok-4.7
-
+    # Reasoning is mandatory on this endpoint: lowest effort, reasoning tokens are billed and recorded.
+    reasoning: {effort: minimal}
+    reasoning_allowance_tokens: 128
   - id: small-closed
     kind: cloud
     role: small-closed
     base_url: https://openrouter.ai/api/v1
     api_key_env: OPENROUTER_API_KEY
-    model: google/gemini-3.8-flash
-
+    model: openai/gpt-5.4-nano
+    reasoning: {effort: none}
   - id: open-large
     kind: cloud
     role: open-large
     base_url: https://openrouter.ai/api/v1
     api_key_env: OPENROUTER_API_KEY
     model: deepseek/deepseek-v3.2
-
+    # Providers differ in price and quantisation: pin fp8 providers, no silent fallback.
+    provider: {order: [gmicloud, novita], allow_fallbacks: false, quantizations: [fp8]}
   - id: open-same-family
     kind: cloud
     role: open-same-family
     base_url: https://openrouter.ai/api/v1
     api_key_env: OPENROUTER_API_KEY
     model: qwen/qwen3-235b-a22b-2507
-
+    provider: {order: [gmicloud, novita], allow_fallbacks: false, quantizations: [fp8]}
   - id: tfidf-baseline
     kind: baseline
     task: classification
