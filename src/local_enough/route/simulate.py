@@ -158,10 +158,17 @@ def _walk_chain(
         escalated = True
 
     if served_by is None:
-        served_by = tp.best_quality_model_id
         gate_label = GATE_FAILED
-        served_parsed = fallback_parsed if fallback_parsed is not None else Parsed(ok=False, error="no_answer")
-        served_extra = fallback_extra
+        # Spec item 15: a task that isn't local-only serves the best-quality candidate's answer anyway when
+        # every candidate fails the gate; a local-only task's chain exhausting instead means the router
+        # would 503 (``local_only_unavailable``), so it must not be scored as if served -- mirrors server.py.
+        if tp.local_only:
+            served_parsed = Parsed(ok=False, error="local_only_unavailable")
+            served_extra = None
+        else:
+            served_by = tp.best_quality_model_id
+            served_parsed = fallback_parsed if fallback_parsed is not None else Parsed(ok=False, error="no_answer")
+            served_extra = fallback_extra
     assert served_parsed is not None  # every branch above sets it
 
     score = module.score(spec, item, served_parsed, served_extra)

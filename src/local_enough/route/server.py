@@ -249,7 +249,10 @@ async def _call_chain(
             break
         escalated = True
 
-    if served_model_id is None and fallback_parsed is not None:
+    # Spec item 15: this "serve the best-quality answer anyway" fallback is only for a task that isn't
+    # local-only. A local-only task whose chain is exhausted (every candidate errored or failed the gate,
+    # including a gate failure on the last fallback) must 503 instead -- never serve a degraded answer.
+    if served_model_id is None and fallback_parsed is not None and not tp.local_only:
         served_model_id = tp.best_quality_model_id
         served_parsed = fallback_parsed
         gate_label = "failed"

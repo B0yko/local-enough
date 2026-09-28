@@ -145,6 +145,66 @@ def test_simulate_without_gates_only_escalates_on_error_or_invalid_parse(tmp_pat
     assert abs(task_result.metric - 0.5) < 1e-9
 
 
+def test_simulate_local_only_gate_exhaustion_is_not_served(tmp_path):
+    """A local-only task whose chain is exhausted because every candidate fails the gate must not be
+    served with a degraded answer (spec item 15's "local-only exhaustion" -> 503 ``local_only_unavailable``
+    in server.py); simulate.py has to score the item the same way, not as if it were served."""
+    root = tmp_path / "cls"
+    root.mkdir()
+    spec = TaskSpec(name="classification", kind="classification", labels=["a", "b"], train="train.jsonl")
+    spec.root = root
+
+    train = [{"id": f"tr{i}", "text": f"apple report {i}", "label": "a"} for i in range(15)]
+    train += [{"id": f"tr{i}", "text": f"banana update {i}", "label": "b"} for i in range(15, 30)]
+    _write_jsonl(root / "train.jsonl", train)
+
+    calib = [{"id": f"c{i}", "text": f"apple calib {i}", "label": "a"} for i in range(10)]
+    calib += [{"id": f"c{i}", "text": f"banana calib {i}", "label": "b"} for i in range(10, 20)]
+    _write_jsonl(root / "calib.jsonl", calib)
+
+    _write_jsonl(root / "test.jsonl", [{"id": "t1", "text": "apple report one", "label": "a"}])
+
+    specs = {"classification": spec}
+    run = RunDir(tmp_path / "run")
+    run.write_json(
+        "config.json",
+        {"project": "p", "models": [{"id": "local-p", "kind": "local"}, {"id": "local-f", "kind": "local"}]},
+    )
+
+    base_calib = {"task": "classification", "split": "calib", "pass": "A", "latency_s": LATENCY_S, "valid": True}
+    calib_records = []
+    for item in calib:
+        for model_id in ("local-p", "local-f"):
+            calib_records.append({**base_calib, "model_id": model_id, "item_id": item["id"], "raw": item["label"]})
+    run.append_records(PREDICTIONS, calib_records)
+
+    base_test = {"task": "classification", "split": "test", "pass": "A", "latency_s": LATENCY_S, "valid": True}
+    # Both local candidates disagree with the TF-IDF baseline on t1 (gold "a") -> the gate fails on both.
+    test_records = [
+        {**base_test, "model_id": "local-p", "item_id": "t1", "raw": "b"},
+        {**base_test, "model_id": "local-f", "item_id": "t1", "raw": "b"},
+    ]
+    run.append_records(PREDICTIONS, test_records)
+
+    route_cfg = RouteConfig(
+        workload_mix={"classification": 1.0},
+        reference_monthly_volume=1000,
+        constraints=Constraints(data_must_stay_local=["classification"]),
+    )
+    plan = planner.build_plan(run, specs, route_cfg, gates=True)
+    tp = plan.tasks["classification"]
+    assert tp.status == "served" and tp.local_only  # candidates exist and meet the bar; the *request* fails
+
+    result = simulate.simulate(run, plan, specs, route_cfg, split="test", gates=True)
+    task_result = result.tasks["classification"]
+    assert task_result.n == 1
+    assert task_result.metric == 0.0  # not served -> scored as wrong, same as an unservable task
+    assert task_result.served_locally_rate == 0.0
+    item_result = task_result.items[0]
+    assert item_result.served_by is None
+    assert not item_result.score.valid
+
+
 def test_simulate_unservable_task_is_scored_as_wrong_with_no_calls(tmp_path):
     run, specs, route_cfg, _plan = _setup(tmp_path)
     # Both candidates are cloud models; declaring the task local-only leaves no survivor at all.

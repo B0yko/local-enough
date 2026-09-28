@@ -142,6 +142,33 @@ async def test_local_only_exhaustion_returns_503_and_never_calls_cloud(tmp_path)
 
 
 @pytest.mark.asyncio
+async def test_local_only_gate_failure_on_last_fallback_returns_503_not_a_degraded_answer(tmp_path):
+    """Spec item 15: the "serve the best-quality candidate's answer with gate: failed" fallback is only for
+    a task that *isn't* local-only. A local-only task whose gate fails on every candidate (not just an HTTP
+    error) must still 503 ``local_only_unavailable`` -- it must not silently return a gate-failing answer."""
+    tfidf = _tfidf()
+    primary = _ref("local-a", "local")
+    fallback = _ref("local-b", "local")
+    tp = _task_plan(local_only=True, primary=primary, fallbacks=[fallback], best_quality_model_id="local-b")
+    endpoints = {
+        "local-a": _endpoint("local-a", LOCAL_A, kind="local"),
+        "local-b": _endpoint("local-b", LOCAL_B, kind="local"),
+    }
+    app = create_app(_plan(tp), {"classification": _spec()}, endpoints, _gate_ctx(tfidf=tfidf), _ledger(tmp_path), None)
+
+    with respx.mock(assert_all_called=True) as mock:
+        # both answer with a valid, parseable label that disagrees with the baseline -> gate fails on both.
+        mock.post(f"{LOCAL_A}/chat/completions").mock(return_value=httpx.Response(200, json=_completion_body("b")))
+        mock.post(f"{LOCAL_B}/chat/completions").mock(return_value=httpx.Response(200, json=_completion_body("b")))
+        resp = await _post(
+            app, {"model": "local-enough/classification", "messages": [{"role": "user", "content": "apple report"}]}
+        )
+
+    assert resp.status_code == 503
+    assert resp.json()["error"]["code"] == "local_only_unavailable"
+
+
+@pytest.mark.asyncio
 async def test_gate_failure_escalates_to_the_agreeing_fallback(tmp_path):
     tfidf = _tfidf()
     primary = _ref("cloud-p", "cloud", usd=0.001)
