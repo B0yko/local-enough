@@ -53,6 +53,32 @@ jobs:
       - name: Check README tables against the committed reference run
         run: uv run python scripts/check_readme.py
 
-  # TODO(docker): build the router image and run the container smoke test (/healthz, /v1/models
-  # against fake backends) once the route package lands. Push to GHCR happens only on a version tag,
-  # in a separate release workflow with GITHUB_TOKEN, never here.
+  docker:
+    name: router image builds and serves
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the router image
+        run: docker build -t local-enough:ci .
+
+      - name: Start the router on the reference plan (dummy key, no backend is called)
+        run: |
+          docker run -d --name router -p 127.0.0.1:8000:8000 \
+            -e OPENROUTER_API_KEY=ci-dummy-key \
+            -v "$PWD/examples/docker/config.yaml:/config/config.yaml:ro" \
+            --add-host=host.docker.internal:host-gateway \
+            local-enough:ci
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8000/healthz && break; sleep 2; done
+
+      - name: /healthz returns 200 and /v1/models lists the task aliases
+        run: |
+          curl -fsS http://127.0.0.1:8000/healthz
+          curl -fsS http://127.0.0.1:8000/v1/models | tee models.json
+          python3 -c "import json; ids = {m['id'] for m in json.load(open('models.json'))['data']}; \
+          need = {f'local-enough/{t}' for t in ['classification', 'extraction', 'pii_redaction', 'summarisation', 'entity_matching']}; \
+          missing = need - ids; assert not missing, missing"
+
+      - name: Router logs
+        if: always()
+        run: docker logs router

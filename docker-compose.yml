@@ -1,0 +1,18 @@
+# One-command router on the reference plan: `docker compose up`.
+# Local models run on the host (see docs/docker.md); cloud fallbacks need OPENROUTER_API_KEY in your shell or .env.
+services:
+  router:
+    image: ghcr.io/b0yko/local-enough:0.1.0
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      LOCAL_ENOUGH_BUDGET_USD: ${LOCAL_ENOUGH_BUDGET_USD:-1}
+    volumes:
+      - ./examples/docker/config.yaml:/config/config.yaml:ro
+      - router-data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+volumes:
+  router-data:

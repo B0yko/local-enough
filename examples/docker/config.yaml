@@ -1,0 +1,89 @@
+# Router-in-Docker config: the reference lineup with the two local models reached on the host, four cloud
+# models (one per role) on OpenRouter, the three non-LLM baselines, and the summarisation judge.
+project: local-enough-router
+budget_usd: 5
+budget_warn_usd: 4
+local_models_max_gb: 4.0
+
+models:
+  # MLX cannot run inside a container on macOS: start mlx_lm.server on the host for each local model
+  # (see docs/docker.md) and point the router at it. With base_url the response model field is the model id.
+  - id: local-qwen3-4b
+    kind: local
+    base_url: http://host.docker.internal:8081/v1
+  - id: local-qwen2.5-1.5b
+    kind: local
+    base_url: http://host.docker.internal:8082/v1
+  # Four cloud models, one per role, confirmed against GET https://openrouter.ai/api/v1/models on
+  # 2026-09-28 and recorded in docs/adr/0007-model-lineup.md before the full run.
+  - id: frontier
+    kind: cloud
+    role: frontier
+    base_url: https://openrouter.ai/api/v1
+    api_key_env: OPENROUTER_API_KEY
+    model: x-ai/grok-4.7
+    # Reasoning is mandatory on this endpoint: lowest effort, reasoning tokens are billed and recorded.
+    reasoning: {effort: minimal}
+    reasoning_allowance_tokens: 128
+  - id: small-closed
+    kind: cloud
+    role: small-closed
+    base_url: https://openrouter.ai/api/v1
+    api_key_env: OPENROUTER_API_KEY
+    model: openai/gpt-5.4-nano
+    reasoning: {effort: none}
+  - id: open-large
+    kind: cloud
+    role: open-large
+    base_url: https://openrouter.ai/api/v1
+    api_key_env: OPENROUTER_API_KEY
+    model: deepseek/deepseek-v3.2
+    # Providers differ in price and quantisation: pin fp8 providers, no silent fallback.
+    provider: {order: [gmicloud, novita], allow_fallbacks: false, quantizations: [fp8]}
+  - id: open-same-family
+    kind: cloud
+    role: open-same-family
+    base_url: https://openrouter.ai/api/v1
+    api_key_env: OPENROUTER_API_KEY
+    model: qwen/qwen3-235b-a22b-2507
+    provider: {order: [gmicloud, novita], allow_fallbacks: false, quantizations: [fp8]}
+  - id: tfidf-baseline
+    kind: baseline
+    task: classification
+
+  - id: regex-baseline
+    kind: baseline
+    task: pii_redaction
+
+  - id: rapidfuzz-baseline
+    kind: baseline
+    task: entity_matching
+
+judge:
+  # Judges are never benchmarked models; calibration (local-enough judge calibrate) picks the winner.
+  candidates: [openai/gpt-4.1-mini, google/gemini-3.5-flash-lite]
+  base_url: https://openrouter.ai/api/v1
+  api_key_env: OPENROUTER_API_KEY
+
+hardware:
+  name: mac-studio-m4-max-128gb
+  # Measured machine: Mac Studio 2025, M4 Max 16C CPU / 40C GPU, 128 GB, 2 TB.
+  purchase_price_usd: 4099
+  price_label: list price
+  # US apple.com launch list price of this configuration ($1,999 base + $300 16C/40C chip +
+  # $1,200 128 GB + $600 2 TB), read from the archived configurator; the M4 Max model is no
+  # longer sold new.
+  price_source_url: https://web.archive.org/web/20250315063017/https://www.apple.com/shop/buy-mac/mac-studio/apple-m4-max-with-14-core-cpu-32-core-gpu-16-core-neural-engine-36gb-memory-512gb
+  price_date: "2025-03-15"
+  lifetime_years: 3
+  allocation: 1.0
+  busy_hours_per_day: 8
+  electricity_usd_per_kwh: 0.30
+  ops_usd_per_month: 0
+  power:
+    mode: configured
+    idle_watts: 6
+    incremental_watts: 139
+    # Apple: Mac Studio 2025 M4 Max idle 6 W, max 145 W (https://support.apple.com/en-us/102027);
+    # incremental = max - idle, an upper bound. Desktops have no battery telemetry, so
+    # power-probe reports "unavailable" here and the cost model uses these configured watts.
