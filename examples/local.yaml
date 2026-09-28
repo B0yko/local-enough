@@ -1,0 +1,48 @@
+# Local-only config: the smaller 1.5B model plus the three non-LLM baselines, no cloud calls.
+# Used by the quickstart's local step: models pull --models local.yaml, then bench against it.
+project: local-enough-local
+budget_usd: 1.0
+
+models:
+  - id: local-qwen2.5-1.5b
+    kind: local
+    launch:
+      runtime: mlx
+      repo: mlx-community/Qwen2.5-1.5B-Instruct-4bit
+      revision: 8b403126fc14f14cfc99bb4cfa72ecbc129ea677
+      port: 8082
+
+  - id: tfidf-baseline
+    kind: baseline
+    task: classification
+
+  - id: regex-baseline
+    kind: baseline
+    task: pii_redaction
+
+  - id: rapidfuzz-baseline
+    kind: baseline
+    task: entity_matching
+
+hardware:
+  name: mac-studio-m4-max-128gb
+  # Measured machine: Mac Studio 2025, M4 Max 16C CPU / 40C GPU, 128 GB, 2 TB.
+  purchase_price_usd: 4099
+  price_label: list price
+  # US apple.com launch list price of this configuration ($1,999 base + $300 16C/40C chip +
+  # $1,200 128 GB + $600 2 TB), read from the archived configurator; the M4 Max model is no
+  # longer sold new.
+  price_source_url: https://web.archive.org/web/20250315063017/https://www.apple.com/shop/buy-mac/mac-studio/apple-m4-max-with-14-core-cpu-32-core-gpu-16-core-neural-engine-36gb-memory-512gb
+  price_date: "2025-03-15"
+  lifetime_years: 3
+  allocation: 1.0
+  busy_hours_per_day: 8
+  electricity_usd_per_kwh: 0.30
+  ops_usd_per_month: 0
+  power:
+    mode: configured
+    idle_watts: 6
+    incremental_watts: 139
+    # Apple: Mac Studio 2025 M4 Max idle 6 W, max 145 W (https://support.apple.com/en-us/102027);
+    # incremental = max - idle, an upper bound. Desktops have no battery telemetry, so
+    # power-probe reports "unavailable" here and the cost model uses these configured watts.
