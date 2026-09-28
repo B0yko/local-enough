@@ -64,6 +64,21 @@ def _per_minute_tph(completions: list[dict[str, Any]]) -> list[float]:
     return [count * 60.0 for count in buckets]
 
 
+def soak_windows(per_minute_tph: list[float], minutes: float) -> tuple[float, float, float]:
+    """(first-5-minute tph, last-5-minute tph, last5 / first5) over the soak's full minutes only.
+
+    Requests still in flight at the deadline finish in a trailing partial minute; counting that bucket as a full
+    minute would make the last window look slower than it was.
+    """
+    full = int(minutes)
+    buckets = per_minute_tph[:full] if full > 0 else per_minute_tph
+    first = buckets[: min(5, len(buckets))]
+    last = buckets[-min(5, len(buckets)) :] if buckets else []
+    first5 = mean(first) if first else 0.0
+    last5 = mean(last) if last else 0.0
+    return first5, last5, (last5 / first5) if first5 > 0 else float("nan")
+
+
 Workload = tuple[dict[str, TaskSpec], dict[str, TaskKindModule], dict[str, list[Item]]]
 
 
@@ -212,11 +227,7 @@ async def run_soak(
         record_load_window(run_dir, f"soak:{model_id}", sampler)
 
     per_minute_tph = _per_minute_tph(completions)
-    first_window = per_minute_tph[: min(5, len(per_minute_tph))]
-    last_window = per_minute_tph[-min(5, len(per_minute_tph)) :] if per_minute_tph else []
-    first5_tph = mean(first_window) if first_window else 0.0
-    last5_tph = mean(last_window) if last_window else 0.0
-    throttle_factor = (last5_tph / first5_tph) if first5_tph > 0 else float("nan")
+    first5_tph, last5_tph, throttle_factor = soak_windows(per_minute_tph, minutes)
 
     run_dir.merge_json(
         "soak.json",

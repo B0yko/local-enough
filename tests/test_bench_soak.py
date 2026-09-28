@@ -89,3 +89,15 @@ async def test_soak_period_respects_mix_proportions() -> None:
     assert seq.count("b") == 30
     # deterministic for the same seed
     assert _period({"a": 0.7, "b": 0.3}, seed=7, length=100) == seq
+
+
+def test_soak_windows_ignore_the_trailing_partial_minute() -> None:
+    from local_enough.bench.soak import soak_windows
+
+    # 20 full minutes at 6,000 tasks/hour plus the requests that finished after the deadline (4 completions).
+    per_minute = [6000.0] * 20 + [240.0]
+    first5, last5, factor = soak_windows(per_minute, 20)
+    assert (first5, last5, factor) == (6000.0, 6000.0, 1.0)
+    # a real slowdown in the last full minutes still shows
+    slowed = [6000.0] * 15 + [4800.0] * 5 + [240.0]
+    assert soak_windows(slowed, 20)[2] == 0.8
