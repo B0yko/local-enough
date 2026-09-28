@@ -1,0 +1,12 @@
+local-enough
+Copyright 2026 Andrii Boiko
+
+This product includes the BANKING77 dataset (PolyAI), licensed under the
+Creative Commons Attribution 4.0 International licence (CC-BY-4.0):
+Casanueva, I., Temcinas, T., Gerz, D., Henderson, M., Vulic, I. (2020).
+Efficient Intent Detection with Dual Sentence Encoders. Proceedings of the
+2nd Workshop on NLP for ConvAI, ACL 2020.
+https://github.com/PolyAI-LDN/task-specific-datasets
+The bundled copy in src/local_enough/data/datasets/classification/ is a
+stratified subset of the original test split plus the full train split,
+unchanged apart from format conversion to JSONL.
