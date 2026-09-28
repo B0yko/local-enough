@@ -1,0 +1,10 @@
+{
+  "local-qwen2.5-1.5b": {
+    "mode": "unavailable",
+    "reason": "AppleSmartBattery is missing fields: InstantAmperage"
+  },
+  "local-qwen3-4b": {
+    "mode": "unavailable",
+    "reason": "AppleSmartBattery is missing fields: InstantAmperage"
+  }
+}

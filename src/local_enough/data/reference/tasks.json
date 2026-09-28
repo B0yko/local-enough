@@ -1,0 +1,43 @@
+{
+  "classification": {
+    "kind": "classification",
+    "sha256": {
+      "calib": "a9534e31acd82d77dcc1b0d1dbffd1fc5d8a6610056969fc0b627052b6fd563f",
+      "test": "6240fc47f038fa023b13f792786102daf8a972dd679fff2b12c7edf85292b260",
+      "train": "4fe790f646ad7160b02b919bacd3d106ef5dc80e9390291b16606516286c7db6"
+    },
+    "source": "bundled"
+  },
+  "entity_matching": {
+    "kind": "entity_matching",
+    "sha256": {
+      "calib": "011279d0c560bb5cb92cdeaad742aaff98d3ada3c1b0efa8f4f38a9c3ab15282",
+      "test": "2a9e52c37751a07ebdb6ebf14a13acf983ceb5db5b926a233fa6498de7a834e6"
+    },
+    "source": "bundled"
+  },
+  "extraction": {
+    "kind": "extraction",
+    "sha256": {
+      "calib": "6af2e9b8f9d74403bd02b2ae81d38484b7fe1f8d9e2206c7e2dd7ef939322cac",
+      "test": "bde1cfb77d7199b32b90008d17302a4adcce0bb5be8d845ef23cec6c571a419e"
+    },
+    "source": "bundled"
+  },
+  "pii_redaction": {
+    "kind": "pii_redaction",
+    "sha256": {
+      "calib": "6e1c7fdc098876b26a6ae10b204c0624608a1f7d78df0ea2894786347e468f09",
+      "test": "a9030b7625818064a364b690645f8115b45c83037457637feb9c69e911fdb6f4"
+    },
+    "source": "bundled"
+  },
+  "summarisation": {
+    "kind": "summarisation",
+    "sha256": {
+      "calib": "e545c940d10a17d1737cc724707b3c108e242f4f078b02dd6d6f9bb39822e7ef",
+      "test": "a5e804fd04e8c84912bf52fdcb6a992fe71c8dfc34940a100bf05e9d4cdb1dd9"
+    },
+    "source": "bundled"
+  }
+}

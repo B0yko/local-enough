@@ -1,0 +1,18 @@
+{
+  "local-qwen2.5-1.5b": {
+    "bytes": 880172064,
+    "bytes_new": 880172064,
+    "licence": "apache-2.0",
+    "pulled_at_utc": "2026-09-28T08:56:19Z",
+    "repo": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",
+    "revision_sha": "8b403126fc14f14cfc99bb4cfa72ecbc129ea677"
+  },
+  "local-qwen3-4b": {
+    "bytes": 2278972236,
+    "bytes_new": 2278972236,
+    "licence": "apache-2.0",
+    "pulled_at_utc": "2026-09-28T08:55:37Z",
+    "repo": "mlx-community/Qwen3-4B-Instruct-2507-4bit",
+    "revision_sha": "50d427756c6b1b2fe0c0a10f67fbda1fc8e82c1b"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "allow_below_bar_local": false,
+  "constraints": {
+    "data_must_stay_local": [
+      "pii_redaction"
+    ]
+  },
+  "expected_monthly_volume": {},
+  "latency_p95_max_s": {
+    "classification": 5.0,
+    "default": null
+  },
+  "quality_bar": {
+    "default": {
+      "absolute": null,
+      "relative_to_best": 0.95
+    },
+    "pii_redaction": {
+      "absolute": 0.95,
+      "relative_to_best": null
+    }
+  },
+  "reference_monthly_volume": 50000.0,
+  "timeouts_s": {
+    "cloud": 60.0,
+    "local": 60.0
+  },
+  "workload_mix": {
+    "classification": 0.3,
+    "entity_matching": 0.15,
+    "extraction": 0.25,
+    "pii_redaction": 0.2,
+    "summarisation": 0.1
+  }
+}

@@ -1,0 +1,1041 @@
+{
+  "candidates": {
+    "google/gemini-3.5-flash-lite": {
+      "calib": {
+        "balanced_accuracy": 0.9516129032258065,
+        "kappa": 0.8764415156507412,
+        "n": 200,
+        "tnr": 1.0,
+        "tpr": 0.9032258064516129
+      },
+      "cost_usd": 0.1696702,
+      "invalid_rate": 0.0
+    },
+    "openai/gpt-4.1-mini": {
+      "calib": {
+        "balanced_accuracy": 0.9530984719864176,
+        "kappa": 0.8858921161825725,
+        "n": 200,
+        "tnr": 0.9868421052631579,
+        "tpr": 0.9193548387096774
+      },
+      "cost_usd": 0.1117608,
+      "invalid_rate": 0.005
+    }
+  },
+  "created_utc": "2026-09-28T19:56:31Z",
+  "holdout": {
+    "balanced_accuracy": 0.9317135549872122,
+    "invalid_rate": 0.0,
+    "kappa": 0.8490945674044267,
+    "n": 200,
+    "per_item": [
+      {
+        "id": "jh-summarisation-holdout-0000-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0000-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0000-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0000-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0000-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0001-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0001-fact_dropped",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0001-wrong_number_or_date",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0001-wrong_owner",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0001-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0002-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0002-fact_dropped",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0002-wrong_number_or_date",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0002-wrong_owner",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0002-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0003-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0003-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0003-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0003-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0003-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0004-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0004-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0004-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0004-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0004-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0005-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0005-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0005-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0005-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0005-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0006-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0006-fact_dropped",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0006-wrong_number_or_date",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0006-wrong_owner",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0006-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0007-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0007-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0007-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0007-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0007-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0008-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0008-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0008-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0008-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0008-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0009-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0009-fact_dropped",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0009-wrong_number_or_date",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0009-wrong_owner",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0009-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0010-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0010-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0010-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0010-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0010-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0011-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0011-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0011-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0011-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0011-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0012-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0012-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0012-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0012-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0012-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0013-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0013-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0013-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0013-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0013-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0014-faithful",
+        "label_pass": true,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0014-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0014-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0014-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0014-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0015-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0015-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0015-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0015-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0015-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0016-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0016-fact_dropped",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0016-wrong_number_or_date",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0016-wrong_owner",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0016-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0017-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0017-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0017-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0017-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0017-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0018-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0018-fact_dropped",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0018-wrong_number_or_date",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0018-wrong_owner",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0018-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0019-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0019-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0019-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0019-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0019-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0020-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0020-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0020-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0020-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0020-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0021-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0021-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0021-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0021-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0021-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0022-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0022-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0022-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0022-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0022-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0023-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0023-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0023-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0023-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0023-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0024-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0024-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0024-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0024-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0024-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0025-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0025-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0025-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0025-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0025-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0026-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0026-fact_dropped",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0026-wrong_number_or_date",
+        "label_pass": false,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0026-wrong_owner",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0026-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0027-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0027-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0027-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0027-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0027-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0028-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0028-fact_dropped",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0028-wrong_number_or_date",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0028-wrong_owner",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0028-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0029-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0029-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0029-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0029-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0029-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0030-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0030-fact_dropped",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0030-wrong_number_or_date",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0030-wrong_owner",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0030-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0031-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0031-fact_dropped",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0031-wrong_number_or_date",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0031-wrong_owner",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0031-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0032-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0032-fact_dropped",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0032-wrong_number_or_date",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0032-wrong_owner",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0032-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0033-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0033-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0033-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0033-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0033-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0034-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0034-fact_dropped",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0034-wrong_number_or_date",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0034-wrong_owner",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0034-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0035-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0035-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0035-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0035-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0035-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0036-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0036-fact_dropped",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0036-wrong_number_or_date",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0036-wrong_owner",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0036-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0037-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0037-fact_dropped",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0037-wrong_number_or_date",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0037-wrong_owner",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0037-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0038-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0038-fact_dropped",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0038-wrong_number_or_date",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0038-wrong_owner",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0038-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0039-faithful",
+        "label_pass": true,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0039-fact_dropped",
+        "label_pass": false,
+        "predicted_pass": true
+      },
+      {
+        "id": "jh-summarisation-holdout-0039-wrong_number_or_date",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0039-wrong_owner",
+        "label_pass": false,
+        "predicted_pass": false
+      },
+      {
+        "id": "jh-summarisation-holdout-0039-invented_commitment",
+        "label_pass": false,
+        "predicted_pass": false
+      }
+    ],
+    "tnr": 0.9764705882352941,
+    "tpr": 0.8869565217391304
+  },
+  "judge_calib_n": 200,
+  "meets_target": true,
+  "selected": "openai/gpt-4.1-mini",
+  "target_balanced_accuracy": 0.9
+}

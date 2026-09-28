@@ -1,0 +1,24 @@
+{
+  "combined": {
+    "created_utc": "2026-09-28T19:37:44Z",
+    "method": "footprint (phys_footprint, includes Metal allocations)",
+    "models_bytes": {
+      "local-qwen2.5-1.5b": 1289748480,
+      "local-qwen3-4b": 3490709504
+    },
+    "ours_bytes": 5631901696,
+    "router_bytes": 851443712,
+    "system_used_before_bytes": 64593412096,
+    "system_used_bytes": 66968059904
+  },
+  "local-qwen2.5-1.5b": {
+    "disk_bytes": 880172064,
+    "method": "footprint",
+    "peak_bytes": 4713349120
+  },
+  "local-qwen3-4b": {
+    "disk_bytes": 2278972236,
+    "method": "footprint",
+    "peak_bytes": 13958643712
+  }
+}

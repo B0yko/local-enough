@@ -1,0 +1,44 @@
+{
+  "created_utc": "2026-09-28T20:53:56Z",
+  "decision_match_rate": 0.99,
+  "direct_p50_ms": null,
+  "local_only_cloud_calls": 0,
+  "mismatches": [
+    {
+      "item_id": "extraction-test-0090",
+      "reason": "router answered as 'x-ai/grok-4.7' (escalated=True), offline replay expected 'deepseek/deepseek-v3.2' (escalated=True)",
+      "task": "extraction"
+    }
+  ],
+  "n": 100,
+  "overhead_p50_ms": 5.77345905490256,
+  "per_task": {
+    "classification": {
+      "decision_match_rate": 1.0,
+      "n": 29,
+      "refused_503": 0
+    },
+    "entity_matching": {
+      "decision_match_rate": 1.0,
+      "n": 13,
+      "refused_503": 0
+    },
+    "extraction": {
+      "decision_match_rate": 0.9655172413793104,
+      "n": 29,
+      "refused_503": 0
+    },
+    "pii_redaction": {
+      "decision_match_rate": 1.0,
+      "n": 21,
+      "refused_503": 21
+    },
+    "summarisation": {
+      "decision_match_rate": 1.0,
+      "n": 8,
+      "refused_503": 0
+    }
+  },
+  "router_p50_ms": 1430.0587910693139,
+  "seed": 7
+}

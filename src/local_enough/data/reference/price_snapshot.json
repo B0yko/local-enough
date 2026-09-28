@@ -1,0 +1,140 @@
+{
+  "models": {
+    "frontier": {
+      "completion": 4.8e-06,
+      "input_cache_read": 4e-07,
+      "prompt": 1.6e-06,
+      "provider_model": "x-ai/grok-4.7",
+      "request": null,
+      "supported_parameters": [
+        "include_reasoning",
+        "logprobs",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_logprobs",
+        "top_p"
+      ]
+    },
+    "google/gemini-3.5-flash-lite": {
+      "completion": 2.5e-06,
+      "input_cache_read": 3e-08,
+      "prompt": 3e-07,
+      "provider_model": "google/gemini-3.5-flash-lite",
+      "request": null,
+      "supported_parameters": [
+        "include_reasoning",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ]
+    },
+    "open-large": {
+      "completion": 4.2e-07,
+      "input_cache_read": 2.8e-08,
+      "prompt": 2.8e-07,
+      "provider_model": "deepseek/deepseek-v3.2",
+      "request": null,
+      "supported_parameters": [
+        "frequency_penalty",
+        "include_reasoning",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "reasoning",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ]
+    },
+    "open-same-family": {
+      "completion": 3.5e-07,
+      "input_cache_read": 1.75e-08,
+      "prompt": 8.75e-08,
+      "provider_model": "qwen/qwen3-235b-a22b-2507",
+      "request": null,
+      "supported_parameters": [
+        "frequency_penalty",
+        "logit_bias",
+        "logprobs",
+        "max_tokens",
+        "min_p",
+        "presence_penalty",
+        "repetition_penalty",
+        "response_format",
+        "seed",
+        "stop",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_k",
+        "top_logprobs",
+        "top_p"
+      ]
+    },
+    "openai/gpt-4.1-mini": {
+      "completion": 1.6e-06,
+      "input_cache_read": 1e-07,
+      "prompt": 4e-07,
+      "provider_model": "openai/gpt-4.1-mini",
+      "request": null,
+      "supported_parameters": [
+        "max_completion_tokens",
+        "max_tokens",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "temperature",
+        "tool_choice",
+        "tools",
+        "top_p"
+      ]
+    },
+    "small-closed": {
+      "completion": 1.25e-06,
+      "input_cache_read": 2e-08,
+      "prompt": 2e-07,
+      "provider_model": "openai/gpt-5.4-nano",
+      "request": null,
+      "supported_parameters": [
+        "include_reasoning",
+        "max_completion_tokens",
+        "max_tokens",
+        "reasoning",
+        "reasoning_effort",
+        "response_format",
+        "seed",
+        "structured_outputs",
+        "tool_choice",
+        "tools"
+      ]
+    }
+  },
+  "source_url": "https://openrouter.ai/api/v1/models",
+  "taken_at_utc": "2026-09-28T19:54:48Z"
+}

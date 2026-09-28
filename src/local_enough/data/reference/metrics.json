@@ -1,0 +1,2208 @@
+{
+  "frontier": {
+    "classification": {
+      "calib": {
+        "ci": {
+          "accuracy": [
+            0.7337662337662337,
+            0.8636363636363636
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "macro_f1": [
+            0.6686868686868687,
+            0.8077320827320827
+          ],
+          "primary": [
+            0.7337662337662337,
+            0.8636363636363636
+          ]
+        },
+        "metrics": {
+          "accuracy": 0.7987012987012987,
+          "invalid_output_rate": 0.0,
+          "macro_f1": 0.78008658008658,
+          "primary": 0.7987012987012987
+        },
+        "n": 154
+      },
+      "test": {
+        "ci": {
+          "accuracy": [
+            0.8084415584415584,
+            0.8896103896103896
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "macro_f1": [
+            0.7792455480535976,
+            0.8625316875316875
+          ],
+          "primary": [
+            0.8084415584415584,
+            0.8896103896103896
+          ]
+        },
+        "metrics": {
+          "accuracy": 0.8506493506493507,
+          "invalid_output_rate": 0.0,
+          "macro_f1": 0.8382912902393422,
+          "primary": 0.8506493506493507
+        },
+        "n": 308
+      }
+    },
+    "entity_matching": {
+      "calib": {
+        "ci": {
+          "f1": [
+            1.0,
+            1.0
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "precision": [
+            1.0,
+            1.0
+          ],
+          "primary": [
+            1.0,
+            1.0
+          ],
+          "recall": [
+            1.0,
+            1.0
+          ]
+        },
+        "metrics": {
+          "f1": 1.0,
+          "invalid_output_rate": 0.0,
+          "precision": 1.0,
+          "primary": 1.0,
+          "recall": 1.0
+        },
+        "n": 100
+      },
+      "test": {
+        "ci": {
+          "f1": [
+            1.0,
+            1.0
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "precision": [
+            1.0,
+            1.0
+          ],
+          "primary": [
+            1.0,
+            1.0
+          ],
+          "recall": [
+            1.0,
+            1.0
+          ]
+        },
+        "metrics": {
+          "f1": 1.0,
+          "invalid_output_rate": 0.0,
+          "precision": 1.0,
+          "primary": 1.0,
+          "recall": 1.0
+        },
+        "n": 200
+      }
+    },
+    "extraction": {
+      "calib": {
+        "ci": {
+          "exact_match": [
+            0.87,
+            0.97
+          ],
+          "field_accuracy": [
+            0.9881818181818182,
+            0.9972727272727273
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "primary": [
+            0.9881818181818182,
+            0.9972727272727273
+          ]
+        },
+        "metrics": {
+          "exact_match": 0.93,
+          "field_accuracy": 0.9936363636363637,
+          "invalid_output_rate": 0.0,
+          "primary": 0.9936363636363637
+        },
+        "n": 100
+      },
+      "test": {
+        "ci": {
+          "exact_match": [
+            0.925,
+            0.98
+          ],
+          "field_accuracy": [
+            0.9931818181818182,
+            0.9981818181818182
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "primary": [
+            0.9931818181818182,
+            0.9981818181818182
+          ]
+        },
+        "metrics": {
+          "exact_match": 0.955,
+          "field_accuracy": 0.9959090909090909,
+          "invalid_output_rate": 0.0,
+          "primary": 0.9959090909090909
+        },
+        "n": 200
+      }
+    },
+    "pii_redaction": {
+      "calib": {
+        "ci": {
+          "f2": [
+            1.0,
+            1.0
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "leak_rate": [
+            0.0,
+            0.0
+          ],
+          "precision": [
+            1.0,
+            1.0
+          ],
+          "primary": [
+            1.0,
+            1.0
+          ],
+          "recall": [
+            1.0,
+            1.0
+          ],
+          "zero_leak_doc_rate": [
+            1.0,
+            1.0
+          ]
+        },
+        "metrics": {
+          "f2": 1.0,
+          "invalid_output_rate": 0.0,
+          "leak_rate": 0.0,
+          "precision": 1.0,
+          "primary": 1.0,
+          "recall": 1.0,
+          "zero_leak_doc_rate": 1.0
+        },
+        "n": 100
+      },
+      "test": {
+        "ci": {
+          "f2": [
+            1.0,
+            1.0
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "leak_rate": [
+            0.0,
+            0.0
+          ],
+          "precision": [
+            1.0,
+            1.0
+          ],
+          "primary": [
+            1.0,
+            1.0
+          ],
+          "recall": [
+            1.0,
+            1.0
+          ],
+          "zero_leak_doc_rate": [
+            1.0,
+            1.0
+          ]
+        },
+        "metrics": {
+          "f2": 1.0,
+          "invalid_output_rate": 0.0,
+          "leak_rate": 0.0,
+          "precision": 1.0,
+          "primary": 1.0,
+          "recall": 1.0,
+          "zero_leak_doc_rate": 1.0
+        },
+        "n": 200
+      }
+    },
+    "summarisation": {
+      "calib": {
+        "ci": {
+          "fact_recall": [
+            0.937799043062201,
+            0.9901960784313726
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "pass_rate": [
+            NaN,
+            NaN
+          ],
+          "primary": [
+            NaN,
+            NaN
+          ],
+          "within_word_limit": [
+            1.0,
+            1.0
+          ]
+        },
+        "metrics": {
+          "fact_recall": 0.9656862745098039,
+          "invalid_output_rate": 0.0,
+          "pass_rate": NaN,
+          "primary": NaN,
+          "within_word_limit": 1.0
+        },
+        "n": 40
+      },
+      "test": {
+        "ci": {
+          "fact_recall": [
+            0.9672544080604534,
+            0.9926289926289926
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "pass_rate": [
+            NaN,
+            NaN
+          ],
+          "primary": [
+            NaN,
+            NaN
+          ],
+          "within_word_limit": [
+            1.0,
+            1.0
+          ]
+        },
+        "metrics": {
+          "fact_recall": 0.9803921568627451,
+          "invalid_output_rate": 0.0,
+          "pass_rate": NaN,
+          "primary": NaN,
+          "within_word_limit": 1.0
+        },
+        "n": 80
+      }
+    }
+  },
+  "local-qwen2.5-1.5b": {
+    "classification": {
+      "calib": {
+        "ci": {
+          "accuracy": [
+            0.35064935064935066,
+            0.5064935064935064
+          ],
+          "invalid_output_rate": [
+            0.032467532467532464,
+            0.1038961038961039
+          ],
+          "macro_f1": [
+            0.28252518625652956,
+            0.4102693602693603
+          ],
+          "primary": [
+            0.35064935064935066,
+            0.5064935064935064
+          ]
+        },
+        "metrics": {
+          "accuracy": 0.42857142857142855,
+          "invalid_output_rate": 0.06493506493506493,
+          "macro_f1": 0.3776540919398062,
+          "primary": 0.42857142857142855
+        },
+        "n": 154
+      },
+      "test": {
+        "ci": {
+          "accuracy": [
+            0.37012987012987014,
+            0.4805194805194805
+          ],
+          "invalid_output_rate": [
+            0.012987012987012988,
+            0.05194805194805195
+          ],
+          "macro_f1": [
+            0.329622641932159,
+            0.42113876066540235
+          ],
+          "primary": [
+            0.37012987012987014,
+            0.4805194805194805
+          ]
+        },
+        "metrics": {
+          "accuracy": 0.4253246753246753,
+          "invalid_output_rate": 0.032467532467532464,
+          "macro_f1": 0.4031414960559345,
+          "primary": 0.4253246753246753
+        },
+        "n": 308
+      }
+    },
+    "entity_matching": {
+      "calib": {
+        "ci": {
+          "f1": [
+            0.9315068493150686,
+            1.0
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "precision": [
+            1.0,
+            1.0
+          ],
+          "primary": [
+            0.9315068493150686,
+            1.0
+          ],
+          "recall": [
+            0.8717948717948718,
+            1.0
+          ]
+        },
+        "metrics": {
+          "f1": 0.9743589743589743,
+          "invalid_output_rate": 0.0,
+          "precision": 1.0,
+          "primary": 0.9743589743589743,
+          "recall": 0.95
+        },
+        "n": 100
+      },
+      "test": {
+        "ci": {
+          "f1": [
+            0.8783783783783784,
+            0.9645390070921985
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "precision": [
+            1.0,
+            1.0
+          ],
+          "primary": [
+            0.8783783783783784,
+            0.9645390070921985
+          ],
+          "recall": [
+            0.7831325301204819,
+            0.9315068493150684
+          ]
+        },
+        "metrics": {
+          "f1": 0.9261744966442953,
+          "invalid_output_rate": 0.0,
+          "precision": 1.0,
+          "primary": 0.9261744966442953,
+          "recall": 0.8625
+        },
+        "n": 200
+      }
+    },
+    "extraction": {
+      "calib": {
+        "ci": {
+          "exact_match": [
+            0.11,
+            0.25
+          ],
+          "field_accuracy": [
+            0.8918181818181818,
+            0.9154545454545454
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "primary": [
+            0.8918181818181818,
+            0.9154545454545454
+          ]
+        },
+        "metrics": {
+          "exact_match": 0.18,
+          "field_accuracy": 0.9036363636363637,
+          "invalid_output_rate": 0.0,
+          "primary": 0.9036363636363637
+        },
+        "n": 100
+      },
+      "test": {
+        "ci": {
+          "exact_match": [
+            0.075,
+            0.165
+          ],
+          "field_accuracy": [
+            0.8859090909090909,
+            0.9018181818181819
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "primary": [
+            0.8859090909090909,
+            0.9018181818181819
+          ]
+        },
+        "metrics": {
+          "exact_match": 0.12,
+          "field_accuracy": 0.894090909090909,
+          "invalid_output_rate": 0.0,
+          "primary": 0.894090909090909
+        },
+        "n": 200
+      }
+    },
+    "pii_redaction": {
+      "calib": {
+        "ci": {
+          "f2": [
+            0.4061025134452859,
+            0.5453735994657566
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "leak_rate": [
+            0.4607843137254902,
+            0.6079295154185023
+          ],
+          "precision": [
+            0.44692737430167595,
+            0.6115107913669064
+          ],
+          "primary": [
+            0.4061025134452859,
+            0.5453735994657566
+          ],
+          "recall": [
+            0.3920704845814978,
+            0.5392156862745098
+          ],
+          "zero_leak_doc_rate": [
+            0.25,
+            0.45
+          ]
+        },
+        "metrics": {
+          "f2": 0.4788970855000605,
+          "invalid_output_rate": 0.0,
+          "leak_rate": 0.5330188679245282,
+          "precision": 0.5333333333333333,
+          "primary": 0.4788970855000605,
+          "recall": 0.4669811320754717,
+          "zero_leak_doc_rate": 0.35
+        },
+        "n": 100
+      },
+      "test": {
+        "ci": {
+          "f2": [
+            0.3824205213198734,
+            0.4791756737282029
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.015
+          ],
+          "leak_rate": [
+            0.5348837209302326,
+            0.6391304347826087
+          ],
+          "precision": [
+            0.4666666666666667,
+            0.5949367088607594
+          ],
+          "primary": [
+            0.3824205213198734,
+            0.4791756737282029
+          ],
+          "recall": [
+            0.36086956521739133,
+            0.46511627906976744
+          ],
+          "zero_leak_doc_rate": [
+            0.265,
+            0.39
+          ]
+        },
+        "metrics": {
+          "f2": 0.4337231276375054,
+          "invalid_output_rate": 0.005,
+          "leak_rate": 0.5852017937219731,
+          "precision": 0.5305466237942122,
+          "primary": 0.4337231276375054,
+          "recall": 0.4147982062780269,
+          "zero_leak_doc_rate": 0.33
+        },
+        "n": 200
+      }
+    },
+    "summarisation": {
+      "calib": {
+        "ci": {
+          "fact_recall": [
+            0.1890547263681592,
+            0.32857142857142857
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "pass_rate": [
+            NaN,
+            NaN
+          ],
+          "primary": [
+            NaN,
+            NaN
+          ],
+          "within_word_limit": [
+            0.2,
+            0.5
+          ]
+        },
+        "metrics": {
+          "fact_recall": 0.2549019607843137,
+          "invalid_output_rate": 0.0,
+          "pass_rate": NaN,
+          "primary": NaN,
+          "within_word_limit": 0.35
+        },
+        "n": 40
+      },
+      "test": {
+        "ci": {
+          "fact_recall": [
+            0.30843373493975906,
+            0.41371158392434987
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "pass_rate": [
+            NaN,
+            NaN
+          ],
+          "primary": [
+            NaN,
+            NaN
+          ],
+          "within_word_limit": [
+            0.25,
+            0.45
+          ]
+        },
+        "metrics": {
+          "fact_recall": 0.3602941176470588,
+          "invalid_output_rate": 0.0,
+          "pass_rate": NaN,
+          "primary": NaN,
+          "within_word_limit": 0.3375
+        },
+        "n": 80
+      }
+    }
+  },
+  "local-qwen3-4b": {
+    "classification": {
+      "calib": {
+        "ci": {
+          "accuracy": [
+            0.564935064935065,
+            0.7142857142857143
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.045454545454545456
+          ],
+          "macro_f1": [
+            0.501295609152752,
+            0.6378432209418124
+          ],
+          "primary": [
+            0.564935064935065,
+            0.7142857142857143
+          ]
+        },
+        "metrics": {
+          "accuracy": 0.6428571428571429,
+          "invalid_output_rate": 0.01948051948051948,
+          "macro_f1": 0.6156462585034014,
+          "primary": 0.6428571428571429
+        },
+        "n": 154
+      },
+      "test": {
+        "ci": {
+          "accuracy": [
+            0.5941558441558441,
+            0.698051948051948
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.022727272727272728
+          ],
+          "macro_f1": [
+            0.5568669553008743,
+            0.650005056289886
+          ],
+          "primary": [
+            0.5941558441558441,
+            0.698051948051948
+          ]
+        },
+        "metrics": {
+          "accuracy": 0.6461038961038961,
+          "invalid_output_rate": 0.00974025974025974,
+          "macro_f1": 0.6281482289885651,
+          "primary": 0.6461038961038961
+        },
+        "n": 308
+      }
+    },
+    "entity_matching": {
+      "calib": {
+        "ci": {
+          "f1": [
+            0.8089887640449438,
+            0.9523809523809523
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "precision": [
+            0.6792452830188679,
+            0.9090909090909091
+          ],
+          "primary": [
+            0.8089887640449438,
+            0.9523809523809523
+          ],
+          "recall": [
+            1.0,
+            1.0
+          ]
+        },
+        "metrics": {
+          "f1": 0.888888888888889,
+          "invalid_output_rate": 0.0,
+          "precision": 0.8,
+          "primary": 0.888888888888889,
+          "recall": 1.0
+        },
+        "n": 100
+      },
+      "test": {
+        "ci": {
+          "f1": [
+            0.8811188811188811,
+            0.9642857142857143
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "precision": [
+            0.813953488372093,
+            0.9473684210526315
+          ],
+          "primary": [
+            0.8811188811188811,
+            0.9642857142857143
+          ],
+          "recall": [
+            0.935064935064935,
+            1.0
+          ]
+        },
+        "metrics": {
+          "f1": 0.9285714285714285,
+          "invalid_output_rate": 0.0,
+          "precision": 0.8863636363636364,
+          "primary": 0.9285714285714285,
+          "recall": 0.975
+        },
+        "n": 200
+      }
+    },
+    "extraction": {
+      "calib": {
+        "ci": {
+          "exact_match": [
+            0.21,
+            0.38
+          ],
+          "field_accuracy": [
+            0.9163636363636364,
+            0.9372727272727273
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "primary": [
+            0.9163636363636364,
+            0.9372727272727273
+          ]
+        },
+        "metrics": {
+          "exact_match": 0.29,
+          "field_accuracy": 0.9263636363636364,
+          "invalid_output_rate": 0.0,
+          "primary": 0.9263636363636364
+        },
+        "n": 100
+      },
+      "test": {
+        "ci": {
+          "exact_match": [
+            0.245,
+            0.38
+          ],
+          "field_accuracy": [
+            0.9227272727272727,
+            0.9377272727272727
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "primary": [
+            0.9227272727272727,
+            0.9377272727272727
+          ]
+        },
+        "metrics": {
+          "exact_match": 0.31,
+          "field_accuracy": 0.93,
+          "invalid_output_rate": 0.0,
+          "primary": 0.93
+        },
+        "n": 200
+      }
+    },
+    "pii_redaction": {
+      "calib": {
+        "ci": {
+          "f2": [
+            0.8932038834951456,
+            0.9452438820518756
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "leak_rate": [
+            0.01041666666666663,
+            0.059633027522935755
+          ],
+          "precision": [
+            0.7217741935483871,
+            0.8263888888888888
+          ],
+          "primary": [
+            0.8932038834951456,
+            0.9452438820518756
+          ],
+          "recall": [
+            0.9403669724770642,
+            0.9895833333333334
+          ],
+          "zero_leak_doc_rate": [
+            0.88,
+            0.98
+          ]
+        },
+        "metrics": {
+          "f2": 0.9223562209420295,
+          "invalid_output_rate": 0.0,
+          "leak_rate": 0.03301886792452835,
+          "precision": 0.7786259541984732,
+          "primary": 0.9223562209420295,
+          "recall": 0.9669811320754716,
+          "zero_leak_doc_rate": 0.93
+        },
+        "n": 100
+      },
+      "test": {
+        "ci": {
+          "f2": [
+            0.8970177073625349,
+            0.9395348837209302
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "leak_rate": [
+            0.03263403263403264,
+            0.08352668213457082
+          ],
+          "precision": [
+            0.8016359918200409,
+            0.8684719535783365
+          ],
+          "primary": [
+            0.8970177073625349,
+            0.9395348837209302
+          ],
+          "recall": [
+            0.9164733178654292,
+            0.9673659673659674
+          ],
+          "zero_leak_doc_rate": [
+            0.85,
+            0.935
+          ]
+        },
+        "metrics": {
+          "f2": 0.920419763882816,
+          "invalid_output_rate": 0.0,
+          "leak_rate": 0.056053811659192876,
+          "precision": 0.8369781312127237,
+          "primary": 0.920419763882816,
+          "recall": 0.9439461883408071,
+          "zero_leak_doc_rate": 0.895
+        },
+        "n": 200
+      }
+    },
+    "summarisation": {
+      "calib": {
+        "ci": {
+          "fact_recall": [
+            0.6108374384236454,
+            0.7414634146341463
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "pass_rate": [
+            NaN,
+            NaN
+          ],
+          "primary": [
+            NaN,
+            NaN
+          ],
+          "within_word_limit": [
+            1.0,
+            1.0
+          ]
+        },
+        "metrics": {
+          "fact_recall": 0.6764705882352942,
+          "invalid_output_rate": 0.0,
+          "pass_rate": NaN,
+          "primary": NaN,
+          "within_word_limit": 1.0
+        },
+        "n": 40
+      },
+      "test": {
+        "ci": {
+          "fact_recall": [
+            0.6297229219143576,
+            0.7182741116751269
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "pass_rate": [
+            NaN,
+            NaN
+          ],
+          "primary": [
+            NaN,
+            NaN
+          ],
+          "within_word_limit": [
+            1.0,
+            1.0
+          ]
+        },
+        "metrics": {
+          "fact_recall": 0.6740196078431373,
+          "invalid_output_rate": 0.0,
+          "pass_rate": NaN,
+          "primary": NaN,
+          "within_word_limit": 1.0
+        },
+        "n": 80
+      }
+    }
+  },
+  "open-large": {
+    "classification": {
+      "calib": {
+        "ci": {
+          "accuracy": [
+            0.6623376623376623,
+            0.8051948051948052
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "macro_f1": [
+            0.599739398246861,
+            0.7364412523503433
+          ],
+          "primary": [
+            0.6623376623376623,
+            0.8051948051948052
+          ]
+        },
+        "metrics": {
+          "accuracy": 0.7337662337662337,
+          "invalid_output_rate": 0.0,
+          "macro_f1": 0.7082251082251082,
+          "primary": 0.7337662337662337
+        },
+        "n": 154
+      },
+      "test": {
+        "ci": {
+          "accuracy": [
+            0.75,
+            0.8441558441558441
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "macro_f1": [
+            0.7191463507252981,
+            0.8036849486082747
+          ],
+          "primary": [
+            0.75,
+            0.8441558441558441
+          ]
+        },
+        "metrics": {
+          "accuracy": 0.7987012987012987,
+          "invalid_output_rate": 0.0,
+          "macro_f1": 0.78147804576376,
+          "primary": 0.7987012987012987
+        },
+        "n": 308
+      }
+    },
+    "entity_matching": {
+      "calib": {
+        "ci": {
+          "f1": [
+            1.0,
+            1.0
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "precision": [
+            1.0,
+            1.0
+          ],
+          "primary": [
+            1.0,
+            1.0
+          ],
+          "recall": [
+            1.0,
+            1.0
+          ]
+        },
+        "metrics": {
+          "f1": 1.0,
+          "invalid_output_rate": 0.0,
+          "precision": 1.0,
+          "primary": 1.0,
+          "recall": 1.0
+        },
+        "n": 100
+      },
+      "test": {
+        "ci": {
+          "f1": [
+            0.9787234042553191,
+            1.0
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "precision": [
+            0.9583333333333334,
+            1.0
+          ],
+          "primary": [
+            0.9787234042553191,
+            1.0
+          ],
+          "recall": [
+            1.0,
+            1.0
+          ]
+        },
+        "metrics": {
+          "f1": 0.9937888198757764,
+          "invalid_output_rate": 0.0,
+          "precision": 0.9876543209876543,
+          "primary": 0.9937888198757764,
+          "recall": 1.0
+        },
+        "n": 200
+      }
+    },
+    "extraction": {
+      "calib": {
+        "ci": {
+          "exact_match": [
+            0.77,
+            0.91
+          ],
+          "field_accuracy": [
+            0.9790909090909091,
+            0.9918181818181818
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "primary": [
+            0.9790909090909091,
+            0.9918181818181818
+          ]
+        },
+        "metrics": {
+          "exact_match": 0.84,
+          "field_accuracy": 0.9854545454545455,
+          "invalid_output_rate": 0.0,
+          "primary": 0.9854545454545455
+        },
+        "n": 100
+      },
+      "test": {
+        "ci": {
+          "exact_match": [
+            0.765,
+            0.87
+          ],
+          "field_accuracy": [
+            0.9786363636363636,
+            0.9881818181818182
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "primary": [
+            0.9786363636363636,
+            0.9881818181818182
+          ]
+        },
+        "metrics": {
+          "exact_match": 0.82,
+          "field_accuracy": 0.9836363636363636,
+          "invalid_output_rate": 0.0,
+          "primary": 0.9836363636363636
+        },
+        "n": 200
+      }
+    },
+    "pii_redaction": {
+      "calib": {
+        "ci": {
+          "f2": [
+            0.8127208480565371,
+            0.923535253227408
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "leak_rate": [
+            0.08715596330275233,
+            0.21904761904761905
+          ],
+          "precision": [
+            0.9405405405405406,
+            0.9899497487437185
+          ],
+          "primary": [
+            0.8127208480565371,
+            0.923535253227408
+          ],
+          "recall": [
+            0.780952380952381,
+            0.9128440366972477
+          ],
+          "zero_leak_doc_rate": [
+            0.69,
+            0.85
+          ]
+        },
+        "metrics": {
+          "f2": 0.8743961352657005,
+          "invalid_output_rate": 0.0,
+          "leak_rate": 0.14622641509433965,
+          "precision": 0.9679144385026738,
+          "primary": 0.8743961352657005,
+          "recall": 0.8537735849056604,
+          "zero_leak_doc_rate": 0.77
+        },
+        "n": 100
+      },
+      "test": {
+        "ci": {
+          "f2": [
+            0.8515936254980081,
+            0.9212198221092758
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "leak_rate": [
+            0.09259259259259256,
+            0.17391304347826086
+          ],
+          "precision": [
+            0.9582366589327146,
+            0.9895561357702349
+          ],
+          "primary": [
+            0.8515936254980081,
+            0.9212198221092758
+          ],
+          "recall": [
+            0.8260869565217391,
+            0.9074074074074074
+          ],
+          "zero_leak_doc_rate": [
+            0.71,
+            0.825
+          ]
+        },
+        "metrics": {
+          "f2": 0.8890925756186985,
+          "invalid_output_rate": 0.0,
+          "leak_rate": 0.1300448430493274,
+          "precision": 0.9748743718592965,
+          "primary": 0.8890925756186985,
+          "recall": 0.8699551569506726,
+          "zero_leak_doc_rate": 0.77
+        },
+        "n": 200
+      }
+    },
+    "summarisation": {
+      "calib": {
+        "ci": {
+          "fact_recall": [
+            0.8059701492537313,
+            0.9113300492610837
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "pass_rate": [
+            NaN,
+            NaN
+          ],
+          "primary": [
+            NaN,
+            NaN
+          ],
+          "within_word_limit": [
+            1.0,
+            1.0
+          ]
+        },
+        "metrics": {
+          "fact_recall": 0.8627450980392157,
+          "invalid_output_rate": 0.0,
+          "pass_rate": NaN,
+          "primary": NaN,
+          "within_word_limit": 1.0
+        },
+        "n": 40
+      },
+      "test": {
+        "ci": {
+          "fact_recall": [
+            0.9240196078431373,
+            0.972568578553616
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "pass_rate": [
+            NaN,
+            NaN
+          ],
+          "primary": [
+            NaN,
+            NaN
+          ],
+          "within_word_limit": [
+            1.0,
+            1.0
+          ]
+        },
+        "metrics": {
+          "fact_recall": 0.9485294117647058,
+          "invalid_output_rate": 0.0,
+          "pass_rate": NaN,
+          "primary": NaN,
+          "within_word_limit": 1.0
+        },
+        "n": 80
+      }
+    }
+  },
+  "open-same-family": {
+    "classification": {
+      "calib": {
+        "ci": {
+          "accuracy": [
+            0.6493506493506493,
+            0.7922077922077922
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "macro_f1": [
+            0.5856654456654456,
+            0.7231999079825167
+          ],
+          "primary": [
+            0.6493506493506493,
+            0.7922077922077922
+          ]
+        },
+        "metrics": {
+          "accuracy": 0.7207792207792207,
+          "invalid_output_rate": 0.0,
+          "macro_f1": 0.6978354978354978,
+          "primary": 0.7207792207792207
+        },
+        "n": 154
+      },
+      "test": {
+        "ci": {
+          "accuracy": [
+            0.7077922077922078,
+            0.8051948051948052
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.016233766233766232
+          ],
+          "macro_f1": [
+            0.6729276614338534,
+            0.7678325329641119
+          ],
+          "primary": [
+            0.7077922077922078,
+            0.8051948051948052
+          ]
+        },
+        "metrics": {
+          "accuracy": 0.7597402597402597,
+          "invalid_output_rate": 0.006493506493506494,
+          "macro_f1": 0.747842056932966,
+          "primary": 0.7597402597402597
+        },
+        "n": 308
+      }
+    },
+    "entity_matching": {
+      "calib": {
+        "ci": {
+          "f1": [
+            1.0,
+            1.0
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "precision": [
+            1.0,
+            1.0
+          ],
+          "primary": [
+            1.0,
+            1.0
+          ],
+          "recall": [
+            1.0,
+            1.0
+          ]
+        },
+        "metrics": {
+          "f1": 1.0,
+          "invalid_output_rate": 0.0,
+          "precision": 1.0,
+          "primary": 1.0,
+          "recall": 1.0
+        },
+        "n": 100
+      },
+      "test": {
+        "ci": {
+          "f1": [
+            1.0,
+            1.0
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "precision": [
+            1.0,
+            1.0
+          ],
+          "primary": [
+            1.0,
+            1.0
+          ],
+          "recall": [
+            1.0,
+            1.0
+          ]
+        },
+        "metrics": {
+          "f1": 1.0,
+          "invalid_output_rate": 0.0,
+          "precision": 1.0,
+          "primary": 1.0,
+          "recall": 1.0
+        },
+        "n": 200
+      }
+    },
+    "extraction": {
+      "calib": {
+        "ci": {
+          "exact_match": [
+            0.7,
+            0.87
+          ],
+          "field_accuracy": [
+            0.9727272727272728,
+            0.9881818181818182
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "primary": [
+            0.9727272727272728,
+            0.9881818181818182
+          ]
+        },
+        "metrics": {
+          "exact_match": 0.79,
+          "field_accuracy": 0.980909090909091,
+          "invalid_output_rate": 0.0,
+          "primary": 0.980909090909091
+        },
+        "n": 100
+      },
+      "test": {
+        "ci": {
+          "exact_match": [
+            0.695,
+            0.82
+          ],
+          "field_accuracy": [
+            0.9713636363636363,
+            0.9831818181818182
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "primary": [
+            0.9713636363636363,
+            0.9831818181818182
+          ]
+        },
+        "metrics": {
+          "exact_match": 0.76,
+          "field_accuracy": 0.9772727272727273,
+          "invalid_output_rate": 0.0,
+          "primary": 0.9772727272727273
+        },
+        "n": 200
+      }
+    },
+    "pii_redaction": {
+      "calib": {
+        "ci": {
+          "f2": [
+            0.9510204081632653,
+            0.9877085162423177
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "leak_rate": [
+            0.009216589861751112,
+            0.053475935828877
+          ],
+          "precision": [
+            0.9478672985781991,
+            0.9910714285714286
+          ],
+          "primary": [
+            0.9510204081632653,
+            0.9877085162423177
+          ],
+          "recall": [
+            0.946524064171123,
+            0.9907834101382489
+          ],
+          "zero_leak_doc_rate": [
+            0.89,
+            0.98
+          ]
+        },
+        "metrics": {
+          "f2": 0.9716981132075472,
+          "invalid_output_rate": 0.0,
+          "leak_rate": 0.028301886792452824,
+          "precision": 0.9716981132075472,
+          "primary": 0.9716981132075472,
+          "recall": 0.9716981132075472,
+          "zero_leak_doc_rate": 0.94
+        },
+        "n": 100
+      },
+      "test": {
+        "ci": {
+          "f2": [
+            0.9556541019955656,
+            0.9817671809256664
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "leak_rate": [
+            0.010121457489878583,
+            0.04184100418410042
+          ],
+          "precision": [
+            0.9269311064718163,
+            0.9669603524229075
+          ],
+          "primary": [
+            0.9556541019955656,
+            0.9817671809256664
+          ],
+          "recall": [
+            0.9581589958158996,
+            0.9898785425101214
+          ],
+          "zero_leak_doc_rate": [
+            0.925,
+            0.98
+          ]
+        },
+        "metrics": {
+          "f2": 0.9696834596522516,
+          "invalid_output_rate": 0.0,
+          "leak_rate": 0.024663677130044803,
+          "precision": 0.9477124183006536,
+          "primary": 0.9696834596522516,
+          "recall": 0.9753363228699552,
+          "zero_leak_doc_rate": 0.955
+        },
+        "n": 200
+      }
+    },
+    "summarisation": {
+      "calib": {
+        "ci": {
+          "fact_recall": [
+            0.8682926829268293,
+            0.946078431372549
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "pass_rate": [
+            NaN,
+            NaN
+          ],
+          "primary": [
+            NaN,
+            NaN
+          ],
+          "within_word_limit": [
+            1.0,
+            1.0
+          ]
+        },
+        "metrics": {
+          "fact_recall": 0.9068627450980392,
+          "invalid_output_rate": 0.0,
+          "pass_rate": NaN,
+          "primary": NaN,
+          "within_word_limit": 1.0
+        },
+        "n": 40
+      },
+      "test": {
+        "ci": {
+          "fact_recall": [
+            0.885286783042394,
+            0.9376558603491272
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "pass_rate": [
+            NaN,
+            NaN
+          ],
+          "primary": [
+            NaN,
+            NaN
+          ],
+          "within_word_limit": [
+            0.9125,
+            1.0
+          ]
+        },
+        "metrics": {
+          "fact_recall": 0.9117647058823529,
+          "invalid_output_rate": 0.0,
+          "pass_rate": NaN,
+          "primary": NaN,
+          "within_word_limit": 0.9625
+        },
+        "n": 80
+      }
+    }
+  },
+  "rapidfuzz-baseline": {
+    "entity_matching": {
+      "calib": {
+        "ci": {
+          "f1": [
+            0.7339449541284404,
+            0.8947368421052632
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "precision": [
+            0.5797101449275363,
+            0.8095238095238095
+          ],
+          "primary": [
+            0.7339449541284404,
+            0.8947368421052632
+          ],
+          "recall": [
+            1.0,
+            1.0
+          ]
+        },
+        "metrics": {
+          "f1": 0.8163265306122449,
+          "invalid_output_rate": 0.0,
+          "precision": 0.6896551724137931,
+          "primary": 0.8163265306122449,
+          "recall": 1.0
+        },
+        "n": 100
+      },
+      "test": {
+        "ci": {
+          "f1": [
+            0.7647058823529411,
+            0.8839779005524863
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "precision": [
+            0.631578947368421,
+            0.803921568627451
+          ],
+          "primary": [
+            0.7647058823529411,
+            0.8839779005524863
+          ],
+          "recall": [
+            0.9333333333333333,
+            1.0
+          ]
+        },
+        "metrics": {
+          "f1": 0.8297872340425532,
+          "invalid_output_rate": 0.0,
+          "precision": 0.7222222222222222,
+          "primary": 0.8297872340425532,
+          "recall": 0.975
+        },
+        "n": 200
+      }
+    }
+  },
+  "regex-baseline": {
+    "pii_redaction": {
+      "calib": {
+        "ci": {
+          "f2": [
+            0.5196304849884527,
+            0.6494845360824741
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "leak_rate": [
+            0.40284360189573465,
+            0.5360824742268041
+          ],
+          "precision": [
+            1.0,
+            1.0
+          ],
+          "primary": [
+            0.5196304849884527,
+            0.6494845360824741
+          ],
+          "recall": [
+            0.4639175257731959,
+            0.5971563981042654
+          ],
+          "zero_leak_doc_rate": [
+            0.29,
+            0.47
+          ]
+        },
+        "metrics": {
+          "f2": 0.5879292403746099,
+          "invalid_output_rate": 0.0,
+          "leak_rate": 0.46698113207547165,
+          "precision": 1.0,
+          "primary": 0.5879292403746099,
+          "recall": 0.5330188679245284,
+          "zero_leak_doc_rate": 0.38
+        },
+        "n": 100
+      },
+      "test": {
+        "ci": {
+          "f2": [
+            0.5186304128902316,
+            0.6171832517672647
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "leak_rate": [
+            0.43672456575682383,
+            0.5370786516853933
+          ],
+          "precision": [
+            1.0,
+            1.0
+          ],
+          "primary": [
+            0.5186304128902316,
+            0.6171832517672647
+          ],
+          "recall": [
+            0.46292134831460674,
+            0.5632754342431762
+          ],
+          "zero_leak_doc_rate": [
+            0.295,
+            0.425
+          ]
+        },
+        "metrics": {
+          "f2": 0.5666003976143141,
+          "invalid_output_rate": 0.0,
+          "leak_rate": 0.4887892376681614,
+          "precision": 1.0,
+          "primary": 0.5666003976143141,
+          "recall": 0.5112107623318386,
+          "zero_leak_doc_rate": 0.36
+        },
+        "n": 200
+      }
+    }
+  },
+  "small-closed": {
+    "classification": {
+      "calib": {
+        "ci": {
+          "accuracy": [
+            0.6753246753246753,
+            0.8181818181818182
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "macro_f1": [
+            0.5991230991230991,
+            0.7493516655488487
+          ],
+          "primary": [
+            0.6753246753246753,
+            0.8181818181818182
+          ]
+        },
+        "metrics": {
+          "accuracy": 0.7467532467532467,
+          "invalid_output_rate": 0.0,
+          "macro_f1": 0.7217687074829932,
+          "primary": 0.7467532467532467
+        },
+        "n": 154
+      },
+      "test": {
+        "ci": {
+          "accuracy": [
+            0.6883116883116883,
+            0.7857142857142857
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "macro_f1": [
+            0.6471567279837956,
+            0.7434554480607112
+          ],
+          "primary": [
+            0.6883116883116883,
+            0.7857142857142857
+          ]
+        },
+        "metrics": {
+          "accuracy": 0.737012987012987,
+          "invalid_output_rate": 0.0,
+          "macro_f1": 0.7230790854167477,
+          "primary": 0.737012987012987
+        },
+        "n": 308
+      }
+    },
+    "entity_matching": {
+      "calib": {
+        "ci": {
+          "f1": [
+            0.955223880597015,
+            1.0
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "precision": [
+            1.0,
+            1.0
+          ],
+          "primary": [
+            0.955223880597015,
+            1.0
+          ],
+          "recall": [
+            0.9142857142857143,
+            1.0
+          ]
+        },
+        "metrics": {
+          "f1": 0.9873417721518987,
+          "invalid_output_rate": 0.0,
+          "precision": 1.0,
+          "primary": 0.9873417721518987,
+          "recall": 0.975
+        },
+        "n": 100
+      },
+      "test": {
+        "ci": {
+          "f1": [
+            0.9202453987730062,
+            0.9820359281437125
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "precision": [
+            1.0,
+            1.0
+          ],
+          "primary": [
+            0.9202453987730062,
+            0.9820359281437125
+          ],
+          "recall": [
+            0.8522727272727273,
+            0.9647058823529412
+          ]
+        },
+        "metrics": {
+          "f1": 0.9542483660130718,
+          "invalid_output_rate": 0.0,
+          "precision": 1.0,
+          "primary": 0.9542483660130718,
+          "recall": 0.9125
+        },
+        "n": 200
+      }
+    },
+    "extraction": {
+      "calib": {
+        "ci": {
+          "exact_match": [
+            0.68,
+            0.84
+          ],
+          "field_accuracy": [
+            0.9672727272727273,
+            0.9845454545454545
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "primary": [
+            0.9672727272727273,
+            0.9845454545454545
+          ]
+        },
+        "metrics": {
+          "exact_match": 0.76,
+          "field_accuracy": 0.9763636363636363,
+          "invalid_output_rate": 0.0,
+          "primary": 0.9763636363636363
+        },
+        "n": 100
+      },
+      "test": {
+        "ci": {
+          "exact_match": [
+            0.8,
+            0.895
+          ],
+          "field_accuracy": [
+            0.980909090909091,
+            0.9904545454545455
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "primary": [
+            0.980909090909091,
+            0.9904545454545455
+          ]
+        },
+        "metrics": {
+          "exact_match": 0.85,
+          "field_accuracy": 0.985909090909091,
+          "invalid_output_rate": 0.0,
+          "primary": 0.985909090909091
+        },
+        "n": 200
+      }
+    },
+    "pii_redaction": {
+      "calib": {
+        "ci": {
+          "f2": [
+            0.9720930232558138,
+            0.9877049180327869
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "leak_rate": [
+            0.0,
+            0.0
+          ],
+          "precision": [
+            0.8744769874476988,
+            0.94140625
+          ],
+          "primary": [
+            0.9720930232558138,
+            0.9877049180327869
+          ],
+          "recall": [
+            1.0,
+            1.0
+          ],
+          "zero_leak_doc_rate": [
+            1.0,
+            1.0
+          ]
+        },
+        "metrics": {
+          "f2": 0.9804832713754649,
+          "invalid_output_rate": 0.0,
+          "leak_rate": 0.0,
+          "precision": 0.9094827586206896,
+          "primary": 0.9804832713754649,
+          "recall": 1.0,
+          "zero_leak_doc_rate": 1.0
+        },
+        "n": 100
+      },
+      "test": {
+        "ci": {
+          "f2": [
+            0.9771402958314658,
+            0.990121239335429
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "leak_rate": [
+            0.0,
+            0.012048192771084376
+          ],
+          "precision": [
+            0.920997920997921,
+            0.9623059866962306
+          ],
+          "primary": [
+            0.9771402958314658,
+            0.990121239335429
+          ],
+          "recall": [
+            0.9879518072289156,
+            1.0
+          ],
+          "zero_leak_doc_rate": [
+            0.975,
+            1.0
+          ]
+        },
+        "metrics": {
+          "f2": 0.9844789356984479,
+          "invalid_output_rate": 0.0,
+          "leak_rate": 0.004484304932735439,
+          "precision": 0.9426751592356688,
+          "primary": 0.9844789356984479,
+          "recall": 0.9955156950672646,
+          "zero_leak_doc_rate": 0.99
+        },
+        "n": 200
+      }
+    },
+    "summarisation": {
+      "calib": {
+        "ci": {
+          "fact_recall": [
+            0.8536585365853658,
+            0.9476439790575916
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "pass_rate": [
+            NaN,
+            NaN
+          ],
+          "primary": [
+            NaN,
+            NaN
+          ],
+          "within_word_limit": [
+            0.8,
+            0.975
+          ]
+        },
+        "metrics": {
+          "fact_recall": 0.9019607843137255,
+          "invalid_output_rate": 0.0,
+          "pass_rate": NaN,
+          "primary": NaN,
+          "within_word_limit": 0.9
+        },
+        "n": 40
+      },
+      "test": {
+        "ci": {
+          "fact_recall": [
+            0.9381188118811881,
+            0.9759036144578314
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "pass_rate": [
+            NaN,
+            NaN
+          ],
+          "primary": [
+            NaN,
+            NaN
+          ],
+          "within_word_limit": [
+            0.9375,
+            1.0
+          ]
+        },
+        "metrics": {
+          "fact_recall": 0.9583333333333334,
+          "invalid_output_rate": 0.0,
+          "pass_rate": NaN,
+          "primary": NaN,
+          "within_word_limit": 0.975
+        },
+        "n": 80
+      }
+    }
+  },
+  "tfidf-baseline": {
+    "classification": {
+      "calib": {
+        "ci": {
+          "accuracy": [
+            0.8181818181818182,
+            0.922077922077922
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "macro_f1": [
+            0.7625,
+            0.8894505494505495
+          ],
+          "primary": [
+            0.8181818181818182,
+            0.922077922077922
+          ]
+        },
+        "metrics": {
+          "accuracy": 0.8701298701298701,
+          "invalid_output_rate": 0.0,
+          "macro_f1": 0.8571428571428571,
+          "primary": 0.8701298701298701
+        },
+        "n": 154
+      },
+      "test": {
+        "ci": {
+          "accuracy": [
+            0.8409090909090909,
+            0.9155844155844156
+          ],
+          "invalid_output_rate": [
+            0.0,
+            0.0
+          ],
+          "macro_f1": [
+            0.8143791314283819,
+            0.8969952562057825
+          ],
+          "primary": [
+            0.8409090909090909,
+            0.9155844155844156
+          ]
+        },
+        "metrics": {
+          "accuracy": 0.8798701298701299,
+          "invalid_output_rate": 0.0,
+          "macro_f1": 0.8757446737966218,
+          "primary": 0.8798701298701299
+        },
+        "n": 308
+      }
+    }
+  }
+}
