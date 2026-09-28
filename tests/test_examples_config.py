@@ -29,7 +29,7 @@ def test_reference_config_loads_and_shapes_match() -> None:
     cloud_models = {m.id: m.model for m in cfg.models if isinstance(m, CloudModel)}
     assert cloud_models == {
         "frontier": "x-ai/grok-4.7",
-        "small-closed": "google/gemini-3.8-flash",
+        "small-closed": "openai/gpt-5.4-nano",
         "open-large": "deepseek/deepseek-v3.2",
         "open-same-family": "qwen/qwen3-235b-a22b-2507",
     }

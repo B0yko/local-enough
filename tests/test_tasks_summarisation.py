@@ -148,3 +148,20 @@ def test_validate_item() -> None:
     errors = mod.validate_item(SPEC, {"id": "x", "text": "t", "required_facts": [{"fact": "f"}]})
     assert any("max_words" in e for e in errors)
     assert any("required_facts" in e for e in errors)
+
+
+def test_judged_run_counts_invalid_output_and_missing_verdict_as_fail() -> None:
+    from local_enough.tasks import summarisation
+    from local_enough.tasks.base import Parsed
+
+    spec = SPEC
+    item = {"id": "s1", "text": "t", "max_words": 120, "required_facts": [{"fact": "a", "key_tokens": {}}]}
+    good = {"facts": [{"index": 0, "present": True, "correct": True}], "unsupported_claims": []}
+    scores = [
+        summarisation.score(spec, item, Parsed(ok=True, value="a", content="a"), {"judge": good}),
+        summarisation.score(spec, item, Parsed(ok=False, error="empty summary"), {"judge": None}),
+        summarisation.score(spec, item, Parsed(ok=True, value="a", content="a"), {"judge": None}),
+    ]
+    assert summarisation.aggregate(spec, scores)["pass_rate"] == 1 / 3
+    unjudged = summarisation.score(spec, item, Parsed(ok=False, error="empty summary"))
+    assert unjudged.stats["judged"] is False

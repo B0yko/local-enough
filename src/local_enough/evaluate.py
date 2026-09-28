@@ -95,9 +95,9 @@ def score_run(
         parsed = module.parse(spec, str(record.get("raw") or ""))
         extra: dict[str, Any] | None = None
         if spec.kind == "summarisation":
-            verdict = judge_verdicts.get((str(record["model_id"]), split, item_id))
-            if verdict is not None:
-                extra = {"judge": verdict}
+            key = (str(record["model_id"]), split, item_id)
+            if key in judge_verdicts:
+                extra = {"judge": judge_verdicts[key]}
         score = module.score(spec, item, parsed, extra)
         results.setdefault((str(record["model_id"]), task_name), []).append(score)
 

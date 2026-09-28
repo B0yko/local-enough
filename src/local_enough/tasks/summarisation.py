@@ -42,6 +42,9 @@ def parse(spec: TaskSpec, raw_text: str) -> Parsed:
 def score(spec: TaskSpec, item: Item, parsed: Parsed, extra: dict[str, Any] | None = None) -> ItemScore:
     required_facts = item.get("required_facts", [])
     max_words = item.get("max_words") or spec.max_words or 120
+    # A judged run carries the key "judge" for every item; None means the output was invalid or the judge's
+    # verdict was unusable, which counts as a failed summary rather than dropping the item from the rate.
+    judged_run = extra is not None and "judge" in extra
     if not parsed.ok:
         return ItemScore(
             item_id=item["id"],
@@ -50,8 +53,8 @@ def score(spec: TaskSpec, item: Item, parsed: Parsed, extra: dict[str, Any] | No
                 "n_facts": len(required_facts),
                 "fact_present_count": 0,
                 "within_word_limit": False,
-                "judged": False,
-                "judged_pass": None,
+                "judged": judged_run,
+                "judged_pass": False if judged_run else None,
             },
         )
     summary = str(parsed.value)
@@ -70,7 +73,10 @@ def score(spec: TaskSpec, item: Item, parsed: Parsed, extra: dict[str, Any] | No
         "judged_pass": None,
     }
     judge = (extra or {}).get("judge")
-    if judge is not None:
+    if judged_run and judge is None:
+        stats["judged"] = True
+        stats["judged_pass"] = False
+    elif judge is not None:
         n = len(required_facts)
         present_correct = sum(1 for fv in judge.get("facts", []) if fv.get("present") and fv.get("correct"))
         unsupported = len(judge.get("unsupported_claims", []))
