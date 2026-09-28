@@ -156,6 +156,18 @@ def _sanitise_config(cfg: Config) -> dict[str, Any]:
     return out
 
 
+def _merge_config(previous: dict[str, Any] | None, current: dict[str, Any]) -> dict[str, Any]:
+    """Later passes may use a subset of the lineup (e.g. ``--local-only`` with a local config): keep the models
+    earlier passes recorded, let the current config win for ids it defines."""
+    if not previous:
+        return current
+    models = {m["id"]: m for m in previous.get("models", [])}
+    models.update({m["id"]: m for m in current.get("models", [])})
+    merged = {**previous, **current}
+    merged["models"] = list(models.values())
+    return merged
+
+
 def _baseline_result(text: str, latency_s: float) -> ChatResult:
     return ChatResult(
         text=text,
@@ -788,7 +800,9 @@ class _Runner:
             end_utc=_now_utc(),
         )
         self.run_dir.merge_json("env.json", env_payload)
-        self.run_dir.write_json("config.json", _sanitise_config(self.cfg))
+        self.run_dir.write_json(
+            "config.json", _merge_config(self.run_dir.read_json("config.json"), _sanitise_config(self.cfg))
+        )
         self.run_dir.write_json("route.json", self.route.model_dump())
         self.run_dir.write_json("tasks.json", {spec.name: _task_entry(spec) for spec in self.tasks})
         self.run_dir.write_json("metrics.json", self._compute_metrics())

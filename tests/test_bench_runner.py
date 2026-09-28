@@ -274,3 +274,14 @@ def test_preflight_flags_empty_and_reasoning_truncated_output(
     text: str, finish: str, reasoning: int, bad: bool
 ) -> None:
     assert _preflight_bad(_result(text, finish, reasoning)) is bad
+
+
+def test_later_passes_keep_the_models_earlier_passes_recorded() -> None:
+    from local_enough.bench.runner import _merge_config
+
+    earlier = {"project": "p", "models": [{"id": "cloud-a", "kind": "cloud"}, {"id": "local-b", "kind": "local"}]}
+    later = {"project": "p", "models": [{"id": "local-b", "kind": "local", "revision": "abc"}]}
+    merged = _merge_config(earlier, later)
+    assert [m["id"] for m in merged["models"]] == ["cloud-a", "local-b"]
+    assert merged["models"][1]["revision"] == "abc"
+    assert _merge_config(None, later) == later
