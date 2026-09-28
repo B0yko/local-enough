@@ -174,14 +174,30 @@ def _amount_in_source(value: str, source: str) -> bool:
     return any(float(m.group(1)) * 1000 == numeric for m in _AMOUNT_K_SHORTHAND_RE.finditer(source))
 
 
+# Country evidence from a phone number's calling code: "+44" / "0044" or a UK "07..." mobile -> GB;
+# "+1" / "001" or a NANP "NPA-NXX-XXXX" number -> US or CA (the calling code cannot tell them apart).
+_CALLING_CODE_EVIDENCE: tuple[tuple[re.Pattern[str], frozenset[str]], ...] = (
+    (re.compile(r"(?:\+|\b00)\s*44\b|\(?\b07\d{3}\)?[\s-]?\d{3}[\s-]?\d{3}\b"), frozenset({"GB"})),
+    (re.compile(r"(?:\+|\b00)\s*1\b|\(?\b\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}\b"), frozenset({"US", "CA"})),
+)
+
+
 def _country_in_source(code: str, source: str, table: dict[str, str]) -> bool:
     code_norm = code.strip().upper()
     if not code_norm:
         return False
     upper_source = source.upper()
-    if re.search(rf"\b{re.escape(code_norm)}\b", upper_source):
+    # ISO codes are matched as written (upper case): case-insensitively, "US" would match "reach us".
+    if re.search(rf"\b{re.escape(code_norm)}\b", source):
         return True
-    return any(mapped == code_norm and name in upper_source for name, mapped in table.items())
+    for name, mapped in table.items():
+        if mapped != code_norm:
+            continue
+        # Short aliases (US, USA, UK) are matched as written; full names in any case. Whole words only.
+        haystack = source if len(name) <= 3 else upper_source
+        if re.search(rf"\b{re.escape(name)}\b", haystack):
+            return True
+    return any(code_norm in countries and pattern.search(source) for pattern, countries in _CALLING_CODE_EVIDENCE)
 
 
 def _month_index(name: str) -> int | None:

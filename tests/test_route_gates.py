@@ -174,8 +174,9 @@ def test_extraction_gate_fails_phone_digits_not_in_source():
 
 def test_extraction_gate_fails_country_not_in_source():
     spec, ctx = _extraction_spec(), _extraction_ctx()
+    # A UK mobile number is evidence for GB, not for US.
     item = {"text": "Acme Widgets Ltd, 07700 900123, wants Nimbus Workspace", "reference_date": "2026-10-14"}
-    parsed = Parsed(ok=True, value=_base_extraction_value())
+    parsed = Parsed(ok=True, value=_base_extraction_value(country="US"))
     result = gates.gate(spec, item, parsed, ctx)
     assert not result.passed and result.reason == "country_not_in_source:country"
 
@@ -439,3 +440,14 @@ def test_build_gate_context_tunes_entity_matching_band_from_calib(tmp_path):
     ctx = gates.build_gate_context(run, {"entity_matching": spec})
     assert "entity_matching" in ctx.fuzzy
     assert "entity_matching" in ctx.thresholds.entity_matching_band
+
+
+def test_country_can_be_grounded_by_the_phone_calling_code() -> None:
+    from local_enough.route.gates import _country_in_source
+
+    uk = "You can reach us at 31 Mill Lane, Glasgow.\nPhone: 0044 7700 900282"
+    us = "Call me on (403) 555-0197 any afternoon."
+    assert _country_in_source("GB", uk, {})
+    assert not _country_in_source("US", uk, {})
+    assert _country_in_source("US", us, {}) and _country_in_source("CA", us, {})
+    assert not _country_in_source("GB", us, {})
