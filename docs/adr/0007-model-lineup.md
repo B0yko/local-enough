@@ -62,3 +62,14 @@ Why these:
 - Swapping any of these ids after the full run means rerunning every affected pass, and the README says so.
 - The frontier role is a flagship with minimal but non-zero reasoning; its latency and cost include reasoning.
 - If OpenRouter changes a price, the committed snapshot still reproduces the reported numbers offline.
+
+## Outcome (recorded after the run)
+
+- No id was swapped after the full run.
+- Measured cost of Pass A (both splits): frontier $4.35, small-closed $0.25, open-large $0.14, open-same-family $0.07,
+  $4.80 in total. The frontier model spent 475,967 reasoning tokens (321 per call on average, above the 128-token
+  allowance), so its actual cost exceeded its $4.12 dry-run estimate; the four-model total stayed below $6.50.
+- open-same-family needed 125 retries (HTTP 504 from the pinned providers) and one call still failed after three
+  retries; it is scored as a wrong answer.
+- The judge calibration kept `openai/gpt-4.1-mini` (balanced accuracy 0.953 on judge-calib against 0.952 for
+  `google/gemini-3.5-flash-lite`; 0.932 on judge-holdout).
