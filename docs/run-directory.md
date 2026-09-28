@@ -27,8 +27,9 @@ API keys, host names, user names or filesystem paths.
 `--resume DIR` (or reusing `--run DIR`) skips every `(model_id, task, split, item_id, pass)` already recorded, so an
 interrupted run neither repeats work nor re-bills.
 
-**The committed reference run** (`src/local_enough/data/reference/`) is the measured run as recorded, with two
-changes made before committing: the ledger copy is stored gzip-compressed (`cost_ledger.jsonl.gz`), and in 5 of
+**The committed reference run** (`src/local_enough/data/reference/`) is the measured run as recorded, with three
+changes made before committing: the soak summaries (`first5_tph`, `last5_tph`, `throttle_factor`) were recomputed from
+the recorded per-minute counts after the window rule was fixed to use full minutes only; the ledger copy is stored gzip-compressed (`cost_ledger.jsonl.gz`), and in 5 of
 11,930 prediction records the model output contained an email address outside the reserved `example.com/.org/.net`
 domains (a model misspelling or inventing an address), which was replaced with `redacted@removed.example.com`. Neither
 the original nor the replacement occurs in any source document, so every score, gate decision and table is unchanged;

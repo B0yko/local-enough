@@ -482,6 +482,11 @@ Total downloaded: 3.16 GB.
 | budget warning level | $12.00 |
 <!-- le:spend:end -->
 
+The table covers the reference run's own ledger copy. The project ledger, which holds every paid call made while
+building and checking this release (development smoke runs, the reference run, judge calibration and scoring, two
+router live checks and the quickstart check), totals $5.99 of the $15.00 budget: bench $4.92, judge calibrate $0.41,
+judge score $0.55, router live checks $0.10, quickstart $0.005.
+
 ## Bring your own task
 
 Point a `task.yaml` at your own `calib.jsonl` and `test.jsonl` for any of the five task kinds and add it to the
