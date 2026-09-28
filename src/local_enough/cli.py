@@ -8,6 +8,7 @@ from typing import Annotated
 import typer
 
 from local_enough import __version__
+from local_enough.bench.cli import bench, power_probe, soak
 from local_enough.config import LocalModel, load_config
 from local_enough.judge.cli import app as judge_app
 from local_enough.providers.hub import ModelBudgetExceeded, pull_models, write_downloads_json
@@ -21,6 +22,9 @@ app = typer.Typer(
     add_completion=False,
 )
 app.add_typer(datasets_app, name="datasets")
+app.command("bench")(bench)
+app.command("soak")(soak)
+app.command("power-probe")(power_probe)
 app.add_typer(judge_app, name="judge")
 
 models_app = typer.Typer(help="Manage local model downloads.", no_args_is_help=True)
