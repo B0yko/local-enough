@@ -71,11 +71,14 @@ local-enough route --run runs/local --models local.yaml   # serves http://127.0.
 from openai import OpenAI
 
 client = OpenAI(base_url="http://127.0.0.1:8000/v1", api_key="unused")
-reply = client.chat.completions.create(
-    model="local-enough/classification",
-    messages=[{"role": "user", "content": "My card still hasn't arrived after two weeks"}],
+email = (
+    "Date: Monday, 14 Sep 2026\nFrom: Dana Reyes <dana.reyes@brightwell.example.com>\n\n"
+    "Brightwell Facilities Ltd would like a demo of GuardPoint FM for 40 seats next Tuesday. "
+    "Call me on +44 7700 900123."
 )
-print(reply.choices[0].message.content, reply.model)  # the label, and the model that answered
+reply = client.chat.completions.create(model="local-enough/extraction", messages=[{"role": "user", "content": email}])
+print(reply.model)  # the local model that answered: <repo>@<sha>
+print(reply.choices[0].message.content)  # the CRM fields as JSON
 ```
 
 For exact reproduction of the reference environment use `git clone https://github.com/B0yko/local-enough && cd
