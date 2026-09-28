@@ -386,7 +386,7 @@ def write_yaml_task(path: Path, spec: TaskSpec) -> None:
     data = spec.model_dump(mode="json", exclude_none=True)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="\n") as fh:
-        yaml.safe_dump(data, fh, sort_keys=True, allow_unicode=False, default_flow_style=False)
+        yaml.safe_dump(data, fh, sort_keys=False, allow_unicode=False, default_flow_style=False)
 
 
 def sha256_of(path: Path) -> str:
@@ -1021,9 +1021,15 @@ def write_templated(db: DocBuilder, template: str, value: str, type_: str | None
     db.write(post)
 
 
-def build_pii_item(rng: random.Random, item_id: str) -> dict[str, Any]:
+def _pii_free_flags(rng: random.Random, n: int, share: float = 0.15) -> list[bool]:
+    """Exactly round(share * n) PII-free documents per split, at seeded positions."""
+    flags = [i < round(share * n) for i in range(n)]
+    rng.shuffle(flags)
+    return flags
+
+
+def build_pii_item(rng: random.Random, item_id: str, no_pii: bool) -> dict[str, Any]:
     category = rng.choice(PII_CATEGORIES)
-    no_pii = rng.random() < 0.15
     n_spans = 0 if no_pii else rng.choices([1, 2, 3, 4, 5, 6], weights=[30, 25, 20, 13, 8, 4])[0]
     weights = CATEGORY_TYPE_WEIGHTS[category]
     gold_types = rng.choices(list(weights), weights=list(weights.values()), k=n_spans)
@@ -1060,8 +1066,10 @@ def build_pii_item(rng: random.Random, item_id: str) -> dict[str, Any]:
 
 def build_pii(seed: int, out_dir: Path) -> DatasetCard:
     rng = random.Random(f"pii_redaction:{seed}")
-    calib = [build_pii_item(rng, f"pii-calib-{i:04d}") for i in range(100)]
-    test = [build_pii_item(rng, f"pii-test-{i:04d}") for i in range(200)]
+    calib_free = _pii_free_flags(rng, 100)
+    test_free = _pii_free_flags(rng, 200)
+    calib = [build_pii_item(rng, f"pii-calib-{i:04d}", calib_free[i]) for i in range(100)]
+    test = [build_pii_item(rng, f"pii-test-{i:04d}", test_free[i]) for i in range(200)]
 
     task_dir = out_dir / "pii_redaction"
     write_jsonl(task_dir / "calib.jsonl", calib)

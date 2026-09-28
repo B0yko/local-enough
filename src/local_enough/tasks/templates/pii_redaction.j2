@@ -11,8 +11,8 @@ Redaction policy - find every verbatim occurrence of:
 Do NOT redact: company names, product names, order or invoice reference codes, dates that are not a date of
 birth (ticket dates, renewal dates, etc.), or a labelled general company switchboard/office phone number.
 
-Output format: a strict JSON list of objects ``{"type": <TYPE>, "text": <exact substring from the input>}``,
-using the exact characters as they appear in the input text. Output ``[]`` if nothing should be redacted.
+Output format: a strict JSON list of objects {"type": <TYPE>, "text": <exact substring from the input>},
+using the exact characters as they appear in the input text. Output [] if nothing should be redacted.
 Nothing else in the response.
 ===USER===
 {{ text }}

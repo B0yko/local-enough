@@ -5,7 +5,7 @@ or "on the 14th".
 Output format: a single strict JSON object with exactly these fields, in this order, and nothing else
 (no prose, no code fence):
 {% for name, field in fields.items() %}
-- {{ name }} ({{ field.type }}{% if field.values %}, one of: {{ field.values | join(', ') }}{% endif %}){% if not field.nullable %}, required{% endif %}
+- {{ name }} ({{ field.type }}{% if field.values %}, one of: {{ field.values | join(', ') }}{% endif %}){{ ', required' if not field.nullable else '' }}
 {% endfor %}
 
 Normalisation rules:
@@ -13,6 +13,8 @@ Normalisation rules:
 - country: ISO 3166-1 alpha-2 code, e.g. "GB", "US", "CA".
 - dates: ISO 8601 "YYYY-MM-DD", resolved against the Date header above.
 - enum fields (product, urgency): use exactly one of the listed values.
+- urgency: "high" when the sender says the matter is time-sensitive or must move quickly; "low" when they say
+  there is no rush or it is an early-stage enquiry; otherwise "normal".
 - integer fields: a plain integer, or null.
 - amount fields: a plain number (no currency symbol, no thousands separator), or null.
 - any field not mentioned in the email is null (never omit the key).

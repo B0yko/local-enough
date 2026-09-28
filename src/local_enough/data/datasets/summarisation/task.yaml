@@ -1,14 +1,14 @@
+name: summarisation
+kind: summarisation
+description: Meeting transcript to an action summary.
 calib: calib.jsonl
+test: test.jsonl
+max_words: 120
 card:
-  distinct_templates: 150
+  source: synthetic
   licence: Apache-2.0
+  seed: 7
   metric: pass_rate
+  distinct_templates: 150
   notes: 600-1000 word meeting transcripts with 4-6 required facts and 5-10 distractors;
     judge-calib/judge-holdout summaries are construction-labelled, not human-labelled.
-  seed: 7
-  source: synthetic
-description: Meeting transcript to an action summary.
-kind: summarisation
-max_words: 120
-name: summarisation
-test: test.jsonl

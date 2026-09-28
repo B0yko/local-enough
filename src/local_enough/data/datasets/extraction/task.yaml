@@ -1,56 +1,35 @@
-calib: calib.jsonl
-card:
-  distinct_templates: 24
-  licence: Apache-2.0
-  metric: field_accuracy
-  notes: Inbound B2B enquiry emails; gold fields resolved by the generator itself.
-  seed: 7
-  source: synthetic
+name: extraction
+kind: extraction
 description: Inbound B2B enquiry email to CRM fields.
+calib: calib.jsonl
+test: test.jsonl
 fields:
-  budget_amount:
-    grounded: false
-    nullable: true
-    required: false
-    type: amount
-  budget_currency:
-    grounded: false
-    nullable: true
-    required: false
-    type: currency
-    values:
-    - EUR
-    - USD
-    - GBP
   company_name:
-    grounded: true
-    nullable: false
-    required: true
     type: string
-  contact_email:
+    required: true
     grounded: true
     nullable: false
-    required: true
-    type: email
   contact_name:
+    type: string
+    required: true
     grounded: true
     nullable: false
+  contact_email:
+    type: email
     required: true
-    type: string
-  country:
-    grounded: false
+    grounded: true
     nullable: false
-    required: true
-    type: country
   phone:
-    grounded: false
-    nullable: false
-    required: true
     type: phone
-  product:
+    required: true
     grounded: false
     nullable: false
+  country:
+    type: country
     required: true
+    grounded: false
+    nullable: false
+  product:
     type: enum
     values:
     - Nimbus Workspace
@@ -59,25 +38,46 @@ fields:
     - DeskHarbor Furniture
     - GuardPoint FM
     - SwiftDock WMS
-  requested_meeting_date:
-    grounded: false
-    nullable: true
-    required: false
-    type: date
-  seats:
-    grounded: false
-    nullable: true
-    required: false
-    type: int
-  urgency:
+    required: true
     grounded: false
     nullable: false
-    required: true
+  seats:
+    type: int
+    required: false
+    grounded: false
+    nullable: true
+  budget_amount:
+    type: amount
+    required: false
+    grounded: false
+    nullable: true
+  budget_currency:
+    type: currency
+    values:
+    - EUR
+    - USD
+    - GBP
+    required: false
+    grounded: false
+    nullable: true
+  requested_meeting_date:
+    type: date
+    required: false
+    grounded: false
+    nullable: true
+  urgency:
     type: enum
     values:
     - low
     - normal
     - high
-kind: extraction
-name: extraction
-test: test.jsonl
+    required: true
+    grounded: false
+    nullable: false
+card:
+  source: synthetic
+  licence: Apache-2.0
+  seed: 7
+  metric: field_accuracy
+  distinct_templates: 24
+  notes: Inbound B2B enquiry emails; gold fields resolved by the generator itself.

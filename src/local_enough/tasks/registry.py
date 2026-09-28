@@ -145,7 +145,9 @@ def render_prompt(kind: TaskKind, **context: Any) -> list[Message]:
     """Render the kind's template into system+user chat messages."""
     system_tmpl, user_tmpl = load_template_parts(kind)
     env = jinja2.Environment(autoescape=False, trim_blocks=True, lstrip_blocks=True)
-    env.filters["tojson"] = lambda value, indent=None: json.dumps(value, indent=indent, sort_keys=True)
+    env.filters["tojson"] = lambda value, indent=None: json.dumps(
+        value, indent=indent, sort_keys=True, ensure_ascii=False
+    )
     messages: list[Message] = []
     if system_tmpl:
         messages.append({"role": "system", "content": env.from_string(system_tmpl).render(**context)})
