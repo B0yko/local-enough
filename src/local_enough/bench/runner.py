@@ -743,8 +743,16 @@ class _Runner:
         self.run_dir.write_json("latency.json", existing)
 
     def _finalize_memory(self) -> None:
-        if self.memory_peaks:
-            self.run_dir.merge_json("memory.json", self.memory_peaks)
+        """Merge peaks into memory.json, keeping the highest peak seen for a model across passes."""
+        if not self.memory_peaks:
+            return
+        existing = self.run_dir.read_json("memory.json", {}) or {}
+        updates = {}
+        for model_id, entry in self.memory_peaks.items():
+            previous = existing.get(model_id) or {}
+            keep_previous = int(previous.get("peak_bytes") or 0) > int(entry.get("peak_bytes") or 0)
+            updates[model_id] = previous if keep_previous else entry
+        self.run_dir.merge_json("memory.json", updates)
 
     def _finalize_load(self) -> None:
         if not self.load_windows:
