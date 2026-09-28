@@ -9,15 +9,16 @@ scored with the task's own module, so the router's reported metric is computed t
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
 from local_enough import costing, costmodel
 from local_enough.bench.rundir import RunDir
+from local_enough.candidates import candidate_table
 from local_enough.config import Config, RouteConfig
 from local_enough.route import gates as gates_module
-from local_enough.route.planner import STATUS_UNSERVABLE, Plan, TaskPlan
+from local_enough.route.planner import STATUS_UNSERVABLE, CandidateRef, Plan, TaskPlan
 from local_enough.stats import p50_p95, weighted_percentile
 from local_enough.tasks import registry
 from local_enough.tasks.base import Item, ItemScore, Parsed, TaskKindModule, TaskSpec
@@ -286,6 +287,38 @@ def simulate(
     return SimResult(split=split, tasks=tasks)
 
 
+def simulate_hybrid(
+    run: RunDir | str | Path,
+    plan: Plan,
+    specs: dict[str, TaskSpec],
+    route_cfg: RouteConfig,
+    *,
+    split: str = "calib",
+) -> dict[str, TaskSimResult]:
+    """Per task, the best local LLM as primary with gated escalation to the cheapest bar-meeting cloud model.
+
+    This is the chain behind the report's ``hybrid`` verdict: local meets the bar *through the router* even when it
+    misses the bar on its own. Tasks without a local LLM candidate or without a bar-meeting cloud model are skipped.
+    """
+    run_dir = _as_rundir(run)
+    table = candidate_table(run_dir, specs, route_cfg, split)
+    gate_ctx = gates_module.build_gate_context(run_dir, specs)
+    judge_verdicts = _judge_verdicts(run_dir)
+    out: dict[str, TaskSimResult] = {}
+    for task_name, tp in plan.tasks.items():
+        spec = specs.get(task_name)
+        local = [c for c in table.get(task_name, []) if c.kind == "local" and not math.isnan(c.primary)]
+        cloud = [r for r in tp.survivors if r.kind == "cloud"]
+        if spec is None or not local or not cloud:
+            continue
+        best = max(local, key=lambda c: (c.primary, -c.usd_per_task, c.model_id))
+        escalate_to = min(cloud, key=lambda r: (r.usd_per_task, r.model_id))
+        primary = CandidateRef(best.model_id, best.kind, best.provider, best.role, best.primary, best.usd_per_task)
+        hybrid_tp = replace(tp, status="served", primary=primary, fallbacks=[escalate_to], below_bar=False)
+        out[task_name] = _simulate_task(hybrid_tp, spec, run_dir, gate_ctx, True, judge_verdicts, split)
+    return out
+
+
 # -- mixed-workload cost and the report's five comparison rows -----------------------------------------------
 
 
@@ -300,9 +333,11 @@ class MixedRow:
     p95_s: float | None
     saving_vs_all_frontier_pct: float | None
     saving_vs_cheapest_cloud_pct: float | None
+    model_id: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "model_id": self.model_id,
             "label": self.label,
             "usd_per_1k": self.usd_per_1k,
             "per_task": self.per_task,
@@ -323,10 +358,10 @@ def _bar_value(route_cfg: RouteConfig, task_name: str, best: float) -> float:
 
 
 def _weighted_avg(values: dict[str, float], weights: dict[str, float]) -> float | None:
-    total_w = sum(weights.get(t, 0.0) for t in values)
+    total_w = math.fsum(weights.get(t, 0.0) for t in values)
     if total_w <= 0:
         return None
-    return sum(values[t] * weights.get(t, 0.0) for t in values) / total_w
+    return math.fsum(values[t] * weights.get(t, 0.0) for t in values) / total_w
 
 
 def _mixed_cost(
@@ -399,29 +434,31 @@ def _fixed_model_row(
     calib_table = candidates_module.candidate_table(run_dir, specs, route_cfg, split="calib")
     table = candidates_module.candidate_table(run_dir, specs, route_cfg, split=split)
     per_task: dict[str, dict[str, Any]] = {}
-    usd_total = 0.0
+    usd_parts: list[float] = []
     latencies: list[float] = []
     weights: list[float] = []
-    for task_name, weight in route_cfg.workload_mix.items():
-        spec = specs.get(task_name)
+    item_latency: dict[str, list[float]] = {}
+    for rec in run_dir.predictions("A"):
+        if rec.get("model_id") == model_id and rec.get("split") == split:
+            item_latency.setdefault(str(rec["task"]), []).append(float(rec.get("latency_s") or 0.0))
+    for task_name, weight in sorted(route_cfg.workload_mix.items()):
         best = max((c.primary for c in calib_table.get(task_name, []) if not math.isnan(c.primary)), default=math.nan)
         bar_value = _bar_value(route_cfg, task_name, best)
         cand = next((c for c in table.get(task_name, []) if c.model_id == model_id), None)
-        n = registry.load_items(spec, split) if spec else []
         if cand is None:
             per_task[task_name] = {"metric": math.nan, "bar": bar_value, "meets_bar": False}
             continue
         meets = not math.isnan(cand.primary) and not math.isnan(bar_value) and cand.primary >= bar_value
         per_task[task_name] = {"metric": cand.primary, "bar": bar_value, "meets_bar": meets}
-        usd_total += weight * cand.usd_per_task
-        item_weight = weight / len(n) if n else 0.0
-        for _ in n:
-            latencies.append(cand.p50_s)
-            weights.append(item_weight)
+        usd_parts.append(weight * cand.usd_per_task)
+        task_latencies = item_latency.get(task_name, [])
+        item_weight = weight / len(task_latencies) if task_latencies else 0.0
+        latencies.extend(task_latencies)
+        weights.extend([item_weight] * len(task_latencies))
 
     p50 = weighted_percentile(latencies, weights, 50.0) if latencies else None
     p95 = weighted_percentile(latencies, weights, 95.0) if latencies else None
-    return MixedRow(label, usd_total * 1000, per_task, 0.0, 0.0, p50, p95, None, None)
+    return MixedRow(label, math.fsum(usd_parts) * 1000, per_task, 0.0, 0.0, p50, p95, None, None, model_id)
 
 
 def _cheapest_single_cloud(
@@ -536,6 +573,7 @@ def mixed_table(
             row.p95_s,
             vs_frontier,
             vs_cheapest,
+            row.model_id,
         )
 
     return [
