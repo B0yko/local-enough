@@ -1,0 +1,50 @@
+# ADR: local vs. cloud, per task ({{ run_label }}, {{ date }})
+
+## Context
+
+{{ headline }}
+
+Hardware: {{ hardware_name or "not measured" }}. Electricity price (stated assumption): {% if electricity_usd_per_kwh is not none %}{{ "%.2f"|format(electricity_usd_per_kwh) }} USD/kWh{% else %}n/a{% endif %}.
+Total measured API spend for this run: {% if total_api_spend_usd is not none %}${{ "%.2f"|format(total_api_spend_usd) }}{% else %}n/a{% endif %}.
+
+## Decision drivers
+
+- Accuracy against gold labels on the `test` split must meet or beat the task's quality bar (set in `route.yaml`, decided on `calib`).
+- Cost per 1,000 tasks: cloud as measured; local fully loaded (amortised hardware plus energy) at this task's own monthly volume, dedicated scenario.
+- The break-even volume must fall at or below this task's monthly volume, and at or below this machine's sustained capacity.
+- Tasks listed in `data_must_stay_local` never consider cloud cost or the cloud bar at all: only whether a local candidate meets the bar.
+
+## Options considered
+
+For every task: the local models, the cloud models (one per lineup role), and the applicable non-LLM baseline (TF-IDF for classification, regex for PII redaction, rapidfuzz for entity matching), all measured with the same prompt template, the same lenient parser and the same gold labels.
+
+## Measured evidence
+
+{{ verdict_rule }}
+
+| task | verdict | detail |
+|---|---|---|
+{% for v in verdicts -%}
+| {{ v.task }} | {{ v.label }} | {{ v.detail }} |
+{% endfor %}
+
+## Decision per task
+
+{% for v in verdicts -%}
+- **{{ v.task }}**: {{ v.label }} — {{ v.detail }}
+{% endfor %}
+
+## Consequences
+
+- Tasks decided `local` or `local (constraint)` run on hardware already owned: no per-task API cost, but capacity is capped by this machine (see the break-even table), and growth past it needs another machine or a hybrid/cloud fallback.
+- Tasks decided `cloud` or `hybrid` keep the flexibility of API scale and the current-best model on that provider, at the provider's per-token price and availability.
+{% if constrained_tasks %}
+- Tasks constrained to local ({{ constrained_tasks|join(", ") }}) accept whatever accuracy the local candidate reaches, even below the general quality bar, because the constraint is fixed independently of cost or accuracy.
+{% endif %}
+
+## Revisit triggers
+
+- The cloud lineup, its prices, or the local model revisions change: rerun the full benchmark.
+- Actual monthly volume for a task crosses its measured break-even volume or this machine's capacity.
+- A new local model fits the project's download budget and is worth benchmarking against the current one.
+- The judge's balanced accuracy on judge-holdout drops below its 0.90 target on a rerun.
