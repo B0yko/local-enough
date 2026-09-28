@@ -1,0 +1,49 @@
+name: Benchmark result on your hardware
+description: Share numbers from running local-enough's bench/report on your own machine.
+labels: [benchmark]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Thanks for running local-enough on hardware other than the one measured in the README. Numbers
+        collected here may inform a future community results table; please only share runs you're comfortable
+        making public.
+  - type: input
+    id: hardware
+    attributes:
+      label: Hardware
+      description: Machine model, chip, memory, OS/version. No serial numbers, hostnames or account details.
+      placeholder: e.g. Mac mini, Apple M4, 32 GB, macOS 15.1
+    validations:
+      required: true
+  - type: input
+    id: models
+    attributes:
+      label: Model(s) benchmarked
+      description: Repo id and revision for local models; provider model id for cloud models.
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command used
+      description: The exact `local-enough bench` / `local-enough report` invocation.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: results
+    attributes:
+      label: Results
+      description: >-
+        Paste the relevant table(s) from `report/report.md`, or attach `metrics.json` / `latency.json`. No
+        API keys, tokens or file paths from your machine, please.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Anything unusual about the run (throttling, contamination, power mode, deviations from defaults).
+    validations:
+      required: false

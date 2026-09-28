@@ -1,0 +1,27 @@
+name: Feature request
+description: Propose a new capability, task kind, provider or command.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve
+      description: What are you trying to do that local-enough doesn't support today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: >-
+        What you'd like to see. If it's a new task kind or provider, see CONTRIBUTING.md for what that
+        involves.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workaround you're using today, or other approaches you considered.
+    validations:
+      required: false

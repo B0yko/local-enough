@@ -1,0 +1,43 @@
+name: Bug report
+description: Something doesn't work the way the docs say it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: A clear description of the bug, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command and output
+      description: The exact `local-enough ...` command you ran, and its output or traceback.
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: local-enough version
+      description: Output of `local-enough --version`.
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python version and OS
+      description: For example "Python 3.12.4, macOS 15.1, arm64" or "Python 3.12.4, Ubuntu 24.04".
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant config.yaml / route.yaml / task.yaml
+      description: >-
+        Paste the relevant parts of your config, with any API keys removed. Do not paste API keys or
+        other secrets here.
+      render: yaml
+    validations:
+      required: false
