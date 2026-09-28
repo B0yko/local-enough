@@ -104,12 +104,13 @@ def score_run(
     return results
 
 
-def summarise(spec: TaskSpec, scores: list[ItemScore]) -> dict[str, Any]:
-    """``{n, metrics, ci}`` with a 95% bootstrap CI (1000 resamples, seed 7) for every metric."""
+def summarise(spec: TaskSpec, scores: list[ItemScore], ci_metrics: Sequence[str] | None = None) -> dict[str, Any]:
+    """``{n, metrics, ci}`` with a 95% bootstrap CI (1000 resamples, seed 7) for every metric in ``ci_metrics``
+    (default: all of them)."""
     module = registry.get_kind(spec.kind)
     metrics = module.aggregate(spec, scores)
     ci: dict[str, tuple[float, float]] = {}
-    for name in metrics:
+    for name in metrics if ci_metrics is None else [m for m in ci_metrics if m in metrics]:
 
         def _statistic(resample: Sequence[ItemScore], _name: str = name) -> float:
             return module.aggregate(spec, list(resample))[_name]

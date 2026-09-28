@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from collections import Counter
 from typing import Any
 
 from local_enough.config import TaskKind
@@ -55,12 +56,21 @@ def aggregate(spec: TaskSpec, scores: list[ItemScore]) -> dict[str, float]:
         return {"primary": math.nan, "accuracy": math.nan, "macro_f1": math.nan, "invalid_output_rate": math.nan}
     accuracy = sum(1 for s in scores if s.stats.get("correct")) / n
     invalid_rate = sum(1 for s in scores if not s.valid) / n
-    labels = sorted({s.stats["gold"] for s in scores} | {s.stats["pred"] for s in scores if s.stats.get("pred")})
+    # One pass over the items (this runs thousands of times inside the bootstrap).
+    gold_n: Counter[str] = Counter()
+    pred_n: Counter[str] = Counter()
+    hit_n: Counter[str] = Counter()
+    for s in scores:
+        gold, pred = s.stats["gold"], s.stats.get("pred")
+        gold_n[gold] += 1
+        if pred:
+            pred_n[pred] += 1
+            if pred == gold:
+                hit_n[gold] += 1
     f1s = []
-    for lbl in labels:
-        tp = sum(1 for s in scores if s.stats.get("pred") == lbl and s.stats["gold"] == lbl)
-        fp = sum(1 for s in scores if s.stats.get("pred") == lbl and s.stats["gold"] != lbl)
-        fn = sum(1 for s in scores if s.stats.get("pred") != lbl and s.stats["gold"] == lbl)
+    for lbl in sorted(set(gold_n) | set(pred_n)):
+        tp = hit_n[lbl]
+        fp, fn = pred_n[lbl] - tp, gold_n[lbl] - tp
         precision = tp / (tp + fp) if (tp + fp) else 0.0
         recall = tp / (tp + fn) if (tp + fn) else 0.0
         f1s.append(2 * precision * recall / (precision + recall) if (precision + recall) else 0.0)

@@ -19,6 +19,7 @@ from typing import Any
 from rapidfuzz import fuzz
 
 from local_enough.bench.rundir import RunDir
+from local_enough.candidates import run_fingerprint
 from local_enough.providers.baselines import FuzzyMatchBaseline, RegexPiiBaseline, TfidfBaseline
 from local_enough.tasks import registry
 from local_enough.tasks.base import FieldSpec, Item, Parsed, TaskSpec
@@ -345,7 +346,20 @@ def _tune_extraction_grounding(run_dir: RunDir, spec: TaskSpec) -> float:
     return min(_GROUNDING_CEIL, max(_GROUNDING_FLOOR, ordered[keep_index]))
 
 
+_CONTEXT_CACHE: dict[tuple[Any, ...], GateContext] = {}
+
+
 def build_gate_context(run: RunDir | str, specs: dict[str, TaskSpec]) -> GateContext:
+    """Cached :func:`_build_gate_context`: training the TF-IDF baseline and tuning thresholds is the slow part, and
+    the planner, the simulation and the report each need the same context for the same run."""
+    run_dir = run if isinstance(run, RunDir) else RunDir(run)
+    key = (run_fingerprint(run_dir), tuple(sorted((n, s.kind, str(s.root)) for n, s in specs.items())))
+    if key not in _CONTEXT_CACHE:
+        _CONTEXT_CACHE[key] = _build_gate_context(run_dir, specs)
+    return _CONTEXT_CACHE[key]
+
+
+def _build_gate_context(run: RunDir | str, specs: dict[str, TaskSpec]) -> GateContext:
     """Rebuild the gate context (baselines + tuned thresholds) from a run's ``calib`` data.
 
     Deterministic given the same run and specs: ``route.planner`` calls this once to store the thresholds in

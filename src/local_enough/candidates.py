@@ -50,10 +50,46 @@ def _latency(latency: dict[str, Any], model_id: str, task: str, split: str) -> t
     return float(node.get("p50_s", math.nan)), float(node.get("p95_s", math.nan))
 
 
+_RUN_FILES = (
+    "predictions.jsonl.gz",
+    "latency.json",
+    "config.json",
+    "soak.json",
+    "power.json",
+    "judge_scores.jsonl.gz",
+    "judge_calibration.json",
+)
+
+
+def run_fingerprint(run: RunDir) -> tuple[Any, ...]:
+    """Resolved path plus size and mtime of every input file: a cache key that changes when the run does."""
+    stats = []
+    for name in _RUN_FILES:
+        path = run.file(name)
+        stats.append((name, path.stat().st_size, path.stat().st_mtime_ns) if path.exists() else (name, None, None))
+    return (str(run.path.resolve()), *stats)
+
+
+_TABLE_CACHE: dict[tuple[Any, ...], dict[str, list[Candidate]]] = {}
+
+
 def candidate_table(
     run: RunDir, specs: dict[str, TaskSpec], route_cfg: RouteConfig, split: str
 ) -> dict[str, list[Candidate]]:
-    """Candidates per task for ``split`` (Pass A), sorted by model id for stable output."""
+    """Candidates per task for ``split`` (Pass A), sorted by model id for stable output.
+
+    Scoring and bootstrapping are the expensive part of a report, and the planner, the simulation and the report
+    all ask for the same tables, so results are cached per run fingerprint, split, route config and task set.
+    """
+    key = (run_fingerprint(run), split, route_cfg.model_dump_json(), tuple(sorted(specs)))
+    if key not in _TABLE_CACHE:
+        _TABLE_CACHE[key] = _candidate_table(run, specs, route_cfg, split)
+    return {task: list(cands) for task, cands in _TABLE_CACHE[key].items()}
+
+
+def _candidate_table(
+    run: RunDir, specs: dict[str, TaskSpec], route_cfg: RouteConfig, split: str
+) -> dict[str, list[Candidate]]:
     models = costing.run_models(run)
     latency = run.read_json("latency.json", {}) or {}
     costs = costing.usd_per_task(run, route_cfg, split=split)
@@ -62,7 +98,7 @@ def candidate_table(
     for (model_id, task), scores in sorted(evaluate.score_run(run, specs, split).items()):
         spec = specs[task]
         model = models.get(model_id, {"id": model_id, "kind": "cloud"})
-        summary = evaluate.summarise(spec, scores)
+        summary = evaluate.summarise(spec, scores, ci_metrics=("primary",))
         metrics: dict[str, float] = summary["metrics"]
         ci: dict[str, tuple[float, float]] = {k: (float(v[0]), float(v[1])) for k, v in summary["ci"].items()}
         primary, primary_ci = float(metrics["primary"]), ci.get("primary", (math.nan, math.nan))
