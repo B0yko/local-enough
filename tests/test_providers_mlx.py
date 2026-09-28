@@ -38,6 +38,15 @@ class FakeProcess:
         return self.returncode
 
 
+_REAL_PORT_CHECK = MlxServer._check_port_free
+
+
+@pytest.fixture(autouse=True)
+def _ports_look_free(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The fake servers below use fixed ports; a real service on the test machine must not make them fail."""
+    monkeypatch.setattr(MlxServer, "_check_port_free", lambda self: None)
+
+
 @pytest.fixture
 def snapshot_dir(tmp_path: Path) -> Path:
     d = tmp_path / "50d427756c6b1b2fe0c0a10f67fbda1fc8e82c1b"
@@ -134,6 +143,7 @@ def test_start_refuses_a_port_that_is_already_in_use(monkeypatch: pytest.MonkeyP
     import socket
 
     _patch_snapshot_download(monkeypatch, snapshot_dir)
+    monkeypatch.setattr(MlxServer, "_check_port_free", _REAL_PORT_CHECK)
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as busy:
         busy.bind(("127.0.0.1", 0))
         busy.listen()
