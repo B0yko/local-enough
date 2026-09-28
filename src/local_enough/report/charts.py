@@ -20,7 +20,11 @@ import matplotlib
 
 matplotlib.use("Agg", force=True)
 
+from matplotlib.axes import Axes
+from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
+from matplotlib.font_manager import FontProperties
+from matplotlib.transforms import Bbox
 
 BASELINE_FLOOR_USD_PER_1K = 1e-4
 BASELINE_LABEL = "baseline (≈$0)"
@@ -81,18 +85,160 @@ def _pareto_frontier(points: list[ChartPoint]) -> list[ChartPoint]:
     return frontier
 
 
+_LABEL_FONT_SIZE = 7
+_LEADER_FROM_OFFSET_INDEX = 2
+LegendLoc = Literal["lower right", "lower left", "upper left", "upper right"]
+_LEGEND_LOCS: tuple[LegendLoc, ...] = ("lower right", "lower left", "upper left", "upper right")
+# Label positions to try, most preferred first: (dx px, dy px, horizontal anchor, vertical anchor).
+_LABEL_OFFSETS: tuple[tuple[float, float, str, str], ...] = (
+    (9, 4, "left", "bottom"),
+    (9, -4, "left", "top"),
+    (-14, 6, "right", "bottom"),
+    (-14, -6, "right", "top"),
+    (0, 11, "center", "bottom"),
+    (0, -11, "center", "top"),
+    (9, 17, "left", "bottom"),
+    (9, -17, "left", "top"),
+    (-9, 17, "right", "bottom"),
+    (-9, -17, "right", "top"),
+    (0, 23, "center", "bottom"),
+    (0, -23, "center", "top"),
+    (9, 30, "left", "bottom"),
+    (9, -30, "left", "top"),
+    (-9, 30, "right", "bottom"),
+    (-9, -30, "right", "top"),
+)
+
+
+def _overlap(a: Bbox, b: Bbox) -> float:
+    w = min(a.x1, b.x1) - max(a.x0, b.x0)
+    h = min(a.y1, b.y1) - max(a.y0, b.y0)
+    return w * h if w > 0 and h > 0 else 0.0
+
+
+def _y_limits(points: list[ChartPoint], quality_bar: float | None) -> tuple[float, float]:
+    """Full 0..1 range, or a zoomed lower bound when every point (and the bar) sits well above zero."""
+    lows = [v for p in points for v in (p.ci_lo, p.primary) if not math.isnan(v)]
+    if quality_bar is not None and not math.isnan(quality_bar):
+        lows.append(quality_bar)
+    top = 1.06
+    if not lows:
+        return -0.02, top
+    zoomed = math.floor((min(lows) - 0.05) / 0.05) * 0.05
+    return (round(zoomed, 2), top) if zoomed > 0.15 else (-0.02, top)
+
+
+def _x_limits(points: list[ChartPoint]) -> tuple[float, float] | None:
+    xs = [
+        v for p in points for v in (p.usd_per_1k, p.usd_per_1k_energy) if v is not None and not math.isnan(v) and v > 0
+    ]
+    return (min(xs) / 2.2, max(xs) * 2.6) if xs else None
+
+
+def _obstacles(ax: Axes, points: list[ChartPoint], frontier: list[ChartPoint], quality_bar: float | None) -> list[Bbox]:
+    """Display-space boxes that a label should stay clear of: markers, CI whiskers, cost links, lines."""
+    boxes: list[Bbox] = []
+
+    def to_px(x: float, y: float) -> tuple[float, float]:
+        px, py = ax.transData.transform((x, y))
+        return float(px), float(py)
+
+    for p in points:
+        x, y = to_px(p.usd_per_1k, p.primary)
+        boxes.append(Bbox([[x - 6, y - 6], [x + 6, y + 6]]))
+        if not math.isnan(p.ci_lo) and not math.isnan(p.ci_hi):
+            _, lo = to_px(p.usd_per_1k, p.ci_lo)
+            _, hi = to_px(p.usd_per_1k, p.ci_hi)
+            boxes.append(Bbox([[x - 5, min(lo, hi)], [x + 5, max(lo, hi)]]))
+        if p.usd_per_1k_energy is not None and not math.isnan(p.usd_per_1k_energy):
+            ex, _ = to_px(p.usd_per_1k_energy, p.primary)
+            boxes.append(Bbox([[ex - 6, y - 6], [ex + 6, y + 6]]))
+            boxes.append(Bbox([[min(ex, x), y - 1.5], [max(ex, x), y + 1.5]]))
+    if quality_bar is not None and not math.isnan(quality_bar):
+        (x0, y), (x1, _) = to_px(ax.get_xlim()[0], quality_bar), to_px(ax.get_xlim()[1], quality_bar)
+        boxes.append(Bbox([[x0, y - 1.5], [x1, y + 1.5]]))
+    del frontier  # the frontier line is thin and crossing it reads fine; only markers and links block labels
+    return boxes
+
+
+def _place_labels(
+    fig: Figure, ax: Axes, points: list[ChartPoint], obstacles: list[Bbox], extra_blocked: list[Bbox]
+) -> None:
+    """Annotate every point, choosing per point the first offset whose text box collides with nothing.
+
+    Deterministic: points are visited in a fixed order, offsets are tried in a fixed order, and text is measured
+    with the bundled DejaVu Sans, so the same run always yields the same picture.
+    """
+    renderer = fig.canvas.get_renderer()  # type: ignore[attr-defined]
+    font = FontProperties(size=_LABEL_FONT_SIZE)
+    axes_box = ax.get_window_extent(renderer)
+    placed: list[Bbox] = []
+    blocked = [*obstacles, *extra_blocked]
+    order = sorted(points, key=lambda p: (p.usd_per_1k, -p.primary, p.model_id))
+    for p in order:
+        text = BASELINE_LABEL if p.kind == "baseline" else p.model_id
+        width, height, _ = renderer.get_text_width_height_descent(text, font, ismath=False)
+        px, py = (float(v) for v in ax.transData.transform((p.usd_per_1k, p.primary)))
+        best: tuple[float, int] | None = None
+        for index, (dx, dy, ha, va) in enumerate(_LABEL_OFFSETS):
+            x0 = px + dx - (0 if ha == "left" else width if ha == "right" else width / 2)
+            y0 = py + dy - (0 if va == "bottom" else height)
+            box = Bbox([[x0, y0], [x0 + width, y0 + height]])
+            inside = _overlap(box, axes_box)
+            outside_area = box.width * box.height - inside
+            score = (
+                outside_area * 10 + sum(_overlap(box, b) for b in blocked) + sum(_overlap(box, b) for b in placed) * 4
+            )
+            if best is None or score < best[0]:
+                best = (score, index)
+            if score == 0:
+                break
+        assert best is not None
+        index = best[1]
+        dx, dy, ha, va = _LABEL_OFFSETS[index]
+        x0 = px + dx - (0 if ha == "left" else width if ha == "right" else width / 2)
+        y0 = py + dy - (0 if va == "bottom" else height)
+        placed.append(Bbox([[x0, y0], [x0 + width, y0 + height]]))
+        scale = 72.0 / fig.dpi
+        ax.annotate(
+            text,
+            (p.usd_per_1k, p.primary),
+            textcoords="offset points",
+            xytext=(dx * scale, dy * scale),
+            ha=ha,
+            va=va,
+            fontsize=_LABEL_FONT_SIZE,
+            # A label that had to move away from its marker gets a thin leader line so it stays unambiguous.
+            arrowprops={"arrowstyle": "-", "linewidth": 0.5, "color": "#888888", "shrinkA": 0, "shrinkB": 3}
+            if index >= _LEADER_FROM_OFFSET_INDEX
+            else None,
+        )
+
+
 def frontier_chart(
     task: str, points: list[ChartPoint], *, quality_bar: float | None, split_label: str = "test"
 ) -> Figure:
-    """One accuracy-vs-cost frontier chart: x = USD/1,000 tasks (log), y = primary metric with 95% CI."""
+    """One accuracy-vs-cost frontier chart: x = USD/1,000 tasks (log), y = primary metric with 95% CI.
+
+    The Pareto frontier is drawn as a staircase (the best metric reachable at or below each cost) so that a single
+    dominating point, such as a free baseline, still shows as a line; labels are placed so they do not collide.
+    """
     fig = Figure(figsize=(6.4, 4.2))
+    FigureCanvasAgg(fig)
     ax = fig.add_subplot(111)
+    ax.set_xscale("log")
+    xlim = _x_limits(points)
+    if xlim is not None:
+        ax.set_xlim(*xlim)
+    ax.set_ylim(*_y_limits(points, quality_bar))
 
     frontier = _pareto_frontier(points)
-    if len(frontier) >= 2:
-        ax.plot(
-            [p.usd_per_1k for p in frontier],
-            [p.primary for p in frontier],
+    if frontier:
+        x_right = ax.get_xlim()[1]
+        ax.step(
+            [p.usd_per_1k for p in frontier] + [x_right],
+            [p.primary for p in frontier] + [frontier[-1].primary],
+            where="post",
             color="#c0392b",
             linewidth=1.2,
             zorder=1,
@@ -100,9 +246,11 @@ def frontier_chart(
         )
 
     seen_kinds: set[ChartKind] = set()
+    plotted: list[ChartPoint] = []
     for p in sorted(points, key=lambda p: p.model_id):
         if math.isnan(p.primary) or math.isnan(p.usd_per_1k):
             continue
+        plotted.append(p)
         color, marker = _COLORS[p.kind], _MARKERS[p.kind]
         label = p.kind if p.kind not in seen_kinds else None
         seen_kinds.add(p.kind)
@@ -133,22 +281,32 @@ def frontier_chart(
                 markersize=7,
                 zorder=3,
             )
-        annotation = BASELINE_LABEL if p.kind == "baseline" else p.model_id
-        ax.annotate(annotation, (p.usd_per_1k, p.primary), textcoords="offset points", xytext=(6, 4), fontsize=7)
 
     if quality_bar is not None and not math.isnan(quality_bar):
         ax.axhline(quality_bar, color="#666666", linewidth=1.0, linestyle="--", label="quality bar")
 
-    ax.set_xscale("log")
     ax.set_xlabel("USD per 1,000 tasks (log scale)")
     ax.set_ylabel("primary metric")
-    ax.set_ylim(-0.02, 1.02)
     ax.set_title(f"{task}: accuracy vs. cost ({split_label} split)")
+    fig.tight_layout()
+
+    obstacles = _obstacles(ax, plotted, frontier, quality_bar)
+    legend_box: list[Bbox] = []
     handles, labels = ax.get_legend_handles_labels()
     if handles:
         by_label = dict(zip(labels, handles, strict=True))
-        ax.legend(by_label.values(), by_label.keys(), loc="lower right", frameon=False)
-    fig.tight_layout()
+        renderer = fig.canvas.get_renderer()  # type: ignore[attr-defined]
+        best_loc, best_cost = _LEGEND_LOCS[0], math.inf
+        for loc in _LEGEND_LOCS:
+            legend = ax.legend(by_label.values(), by_label.keys(), loc=loc, frameon=False)
+            box = legend.get_window_extent(renderer)
+            cost = sum(_overlap(box, b) for b in obstacles)
+            legend.remove()
+            if cost < best_cost:
+                best_loc, best_cost = loc, cost
+        legend = ax.legend(by_label.values(), by_label.keys(), loc=best_loc, frameon=False)
+        legend_box = [legend.get_window_extent(renderer)]
+    _place_labels(fig, ax, plotted, obstacles, legend_box)
     return fig
 
 

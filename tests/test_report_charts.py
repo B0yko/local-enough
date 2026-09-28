@@ -58,3 +58,43 @@ def test_frontier_chart_handles_empty_points() -> None:
     fig = frontier_chart("classification", [], quality_bar=None)
     svg = inline_svg(fig)
     assert svg.startswith("<svg")
+
+
+def _crowded_points() -> list[ChartPoint]:
+    return [
+        ChartPoint("open-large", "cloud", 0.984, 0.975, 0.99, 0.11),
+        ChartPoint("open-same-family", "cloud", 0.977, 0.972, 0.983, 0.08),
+        ChartPoint("small-closed", "cloud", 0.986, 0.98, 0.99, 0.26),
+        ChartPoint("frontier", "cloud", 0.996, 0.993, 0.998, 4.06),
+        ChartPoint("local-qwen3-4b", "local", 0.930, 0.923, 0.938, 9.22, 0.0087),
+        ChartPoint("local-qwen2.5-1.5b", "local", 0.894, 0.886, 0.902, 9.22, 0.0063),
+    ]
+
+
+def test_crowded_point_labels_do_not_overlap_each_other_or_leave_the_axes() -> None:
+    fig = frontier_chart("extraction", _crowded_points(), quality_bar=0.944)
+    renderer = fig.canvas.get_renderer()  # type: ignore[attr-defined]
+    ax = fig.axes[0]
+    axes_box = ax.get_window_extent(renderer)
+    boxes = [t.get_window_extent(renderer) for t in ax.texts]
+    assert len(boxes) == len(_crowded_points())
+    for i, a in enumerate(boxes):
+        assert axes_box.x0 <= a.x0 and a.x1 <= axes_box.x1 and axes_box.y0 <= a.y0 and a.y1 <= axes_box.y1
+        for b in boxes[i + 1 :]:
+            assert not a.overlaps(b), "two labels overlap"
+
+
+def test_a_single_dominating_baseline_still_draws_a_pareto_line() -> None:
+    points = [
+        _point("tfidf-baseline", "baseline", 0.88, BASELINE_FLOOR_USD_PER_1K),
+        _point("frontier", "cloud", 0.85, 2.0),
+    ]
+    fig = frontier_chart("classification", points, quality_bar=0.83)
+    ax = fig.axes[0]
+    labels = [line.get_label() for line in ax.get_lines()]
+    assert "Pareto frontier" in labels
+    frontier_line = next(line for line in ax.get_lines() if line.get_label() == "Pareto frontier")
+    ys = list(frontier_line.get_ydata())
+    assert ys and all(math.isclose(y, 0.88) for y in ys)
+    # The staircase runs on to the right edge of the plot, so the line spans the whole chart.
+    assert frontier_line.get_xdata()[-1] >= ax.get_xlim()[1] * 0.99

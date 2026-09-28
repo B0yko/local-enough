@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from typing import Any
 
 from local_enough.candidates import Candidate
 from local_enough.config import RouteConfig
@@ -203,8 +204,8 @@ def test_bar_value_relative_to_best_ignores_nan_scores() -> None:
     assert gap_to_bar(1.0, bar) == 0.0
 
 
-def _headline(**overrides):
-    kwargs = dict(
+def _headline(**overrides: Any) -> str:
+    kwargs: dict[str, Any] = dict(
         met_bar_tasks=["classification", "entity_matching"],
         total_tasks=5,
         workload_mix={"classification": 0.30, "entity_matching": 0.15},
