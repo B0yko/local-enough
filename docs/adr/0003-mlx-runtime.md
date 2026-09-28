@@ -5,9 +5,10 @@
 
 ## Context
 
-The measured hardware is a fanless MacBook Air (Apple M5, 24 GB). Local runtimes on Apple Silicon include MLX
-(`mlx_lm.server`), llama.cpp (`llama-server`), Ollama and LM Studio. Measuring several runtimes multiplies the
-measurement windows on a machine that throttles, and v0.1 has one hardware profile.
+The measured hardware is one Apple Silicon machine, a Mac Studio (2025, Apple M4 Max, 128 GB). Local runtimes on
+Apple Silicon include MLX (`mlx_lm.server`), llama.cpp (`llama-server`), Ollama and LM Studio. Every measured runtime
+adds its own measurement windows (quality at concurrency 1, throughput at 4, a soak), and v0.1 has one hardware
+profile.
 
 ## Decision
 

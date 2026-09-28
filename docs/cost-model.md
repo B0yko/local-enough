@@ -53,9 +53,11 @@ reference setup).
 sustained_tasks_per_hour(t) = pass_b_tasks_per_hour(t) × throttle_factor
 ```
 
-Pass B measures throughput at concurrency 4 after a short warm-up; the throttle factor (Pass C,
-last-5-minute throughput ÷ first-5-minute throughput from a 20-minute soak) corrects that short
-measurement for thermal throttling over a sustained run.
+Pass B measures throughput at concurrency 4; the throttle factor (Pass C, last-5-minute
+throughput ÷ first-5-minute throughput over the full minutes of a 20-minute soak) corrects that
+short measurement for any slowdown over a sustained run, such as thermal throttling on a fanless
+laptop. It is capped at 1.0: a last window faster than the first is noise and never scales
+throughput up.
 
 ```
 energy_usd_per_task(t) = incremental_watts / (sustained_tasks_per_hour(t) / 3600) / 3.6e6

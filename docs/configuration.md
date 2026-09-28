@@ -187,17 +187,17 @@ The machine local cost, break-even and capacity are computed for. Required to ge
 
 ```yaml
 hardware:
-  name: macbook-air-m5-24gb
-  purchase_price_usd: 1499
+  name: mac-studio-m4-max-128gb
+  purchase_price_usd: 4099          # US apple.com launch list price of this configuration
   price_label: list price
-  price_source_url: https://www.apple.com/shop/buy-mac/macbook-air
-  price_date: "2026-09-01"
+  price_source_url: https://web.archive.org/web/20250315063017/https://www.apple.com/shop/buy-mac/mac-studio/apple-m4-max-with-14-core-cpu-32-core-gpu-16-core-neural-engine-36gb-memory-512gb
+  price_date: "2025-03-15"
   lifetime_years: 3
   allocation: 1.0
   busy_hours_per_day: 8
   electricity_usd_per_kwh: 0.30
   ops_usd_per_month: 0
-  power: {mode: measured, incremental_watts: 20, idle_watts: 5}
+  power: {mode: configured, incremental_watts: 139, idle_watts: 6}   # desktop: no battery telemetry
 ```
 
 ## `route.yaml`

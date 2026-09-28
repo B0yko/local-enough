@@ -350,7 +350,18 @@ def _build_local_perf(run: RunDir, local_costs_map: dict[tuple[str, str], LocalC
         mem_entry = memory.get(model_id) or {}
         first = rows[0] if rows else None
         per_model[model_id] = {
-            "tasks": [{"task": lc.task, "tph_c1": lc.tasks_per_hour_c1, "tph_c4": lc.tasks_per_hour_c4} for lc in rows],
+            "tasks": [
+                {
+                    "task": lc.task,
+                    "tph_c1": lc.tasks_per_hour_c1,
+                    "tph_c4": lc.tasks_per_hour_c4,
+                    "sustained_tph": lc.sustained_tasks_per_hour,
+                    "capacity_per_month": lc.capacity_per_month,
+                }
+                for lc in rows
+            ],
+            "applied_throttle": first.throttle_factor if first else None,
+            "throttle_source": first.throttle_source if first else None,
             "first5_tph": soak_entry.get("first5_tph"),
             "last5_tph": soak_entry.get("last5_tph"),
             "throttle_factor": soak_entry.get("throttle_factor"),
@@ -560,16 +571,24 @@ def _gather_router_facts(
     from local_enough.route import simulate as route_simulate
 
     plan = route_planner.build_plan(run, specs, route_cfg)
-    hybrid = route_simulate.simulate_hybrid(run, plan, specs, route_cfg, split="calib")
-    hybrid_by_task = {task: res.meets_bar and res.escalation_rate <= 0.20 for task, res in hybrid.items()}
+    # `hybrid` follows the plan the router actually serves: a local primary (local LLM or baseline) whose gated chain,
+    # escalating to cloud on failed gates, meets the bar on calib with at most 20% escalation.
+    calib_sim = route_simulate.simulate(run, plan, specs, route_cfg, split="calib")
+    hybrid_by_task: dict[str, bool] = {}
+    hybrid_details: dict[str, dict[str, Any]] = {}
+    for task, res in calib_sim.tasks.items():
+        tp = plan.tasks[task]
+        local_primary = tp.primary is not None and tp.primary.kind in ("local", "baseline")
+        cloud_fallbacks = [r.model_id for r in tp.fallbacks if r.kind == "cloud"]
+        hybrid_by_task[task] = bool(
+            local_primary and cloud_fallbacks and res.meets_bar and 0 < res.escalation_rate <= 0.20
+        )
+        hybrid_details[task] = {
+            "escalation_rate": res.escalation_rate,
+            "escalates_to": cloud_fallbacks[0] if cloud_fallbacks else None,
+        }
     mixed_rows = [row.to_dict() for row in route_simulate.mixed_table(run, plan, specs, route_cfg)]
     saving_pct, saving_vs, saving_scope, refused = _extract_saving(mixed_rows)
-    hybrid_details: dict[str, dict[str, Any]] = {}
-    for task, res in hybrid.items():
-        # The same escalation target simulate_hybrid picks: the cheapest bar-meeting cloud survivor.
-        cloud = [r for r in plan.tasks[task].survivors if r.kind == "cloud"]
-        escalates_to = min(cloud, key=lambda r: (r.usd_per_task, r.model_id)).model_id if cloud else None
-        hybrid_details[task] = {"escalation_rate": res.escalation_rate, "escalates_to": escalates_to}
     return RouterFacts(
         available=True,
         plan_text=route_planner.print_plan(plan),

@@ -9,16 +9,15 @@ scored with the task's own module, so the router's reported metric is computed t
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from local_enough import costing, costmodel
 from local_enough.bench.rundir import RunDir
-from local_enough.candidates import candidate_table
 from local_enough.config import Config, RouteConfig
 from local_enough.route import gates as gates_module
-from local_enough.route.planner import STATUS_UNSERVABLE, CandidateRef, Plan, TaskPlan
+from local_enough.route.planner import STATUS_UNSERVABLE, Plan, TaskPlan
 from local_enough.stats import p50_p95, weighted_percentile
 from local_enough.tasks import registry
 from local_enough.tasks.base import Item, ItemScore, Parsed, TaskKindModule, TaskSpec
@@ -292,38 +291,6 @@ def simulate(
             continue
         tasks[task_name] = _simulate_task(tp, spec, run_dir, gate_ctx, gates, judge_verdicts, split)
     return SimResult(split=split, tasks=tasks)
-
-
-def simulate_hybrid(
-    run: RunDir | str | Path,
-    plan: Plan,
-    specs: dict[str, TaskSpec],
-    route_cfg: RouteConfig,
-    *,
-    split: str = "calib",
-) -> dict[str, TaskSimResult]:
-    """Per task, the best local LLM as primary with gated escalation to the cheapest bar-meeting cloud model.
-
-    This is the chain behind the report's ``hybrid`` verdict: local meets the bar *through the router* even when it
-    misses the bar on its own. Tasks without a local LLM candidate or without a bar-meeting cloud model are skipped.
-    """
-    run_dir = _as_rundir(run)
-    table = candidate_table(run_dir, specs, route_cfg, split)
-    gate_ctx = gates_module.build_gate_context(run_dir, specs)
-    judge_verdicts = _judge_verdicts(run_dir)
-    out: dict[str, TaskSimResult] = {}
-    for task_name, tp in plan.tasks.items():
-        spec = specs.get(task_name)
-        local = [c for c in table.get(task_name, []) if c.kind == "local" and not math.isnan(c.primary)]
-        cloud = [r for r in tp.survivors if r.kind == "cloud"]
-        if spec is None or not local or not cloud:
-            continue
-        best = max(local, key=lambda c: (c.primary, -c.usd_per_task, c.model_id))
-        escalate_to = min(cloud, key=lambda r: (r.usd_per_task, r.model_id))
-        primary = CandidateRef(best.model_id, best.kind, best.provider, best.role, best.primary, best.usd_per_task)
-        hybrid_tp = replace(tp, status="served", primary=primary, fallbacks=[escalate_to], below_bar=False)
-        out[task_name] = _simulate_task(hybrid_tp, spec, run_dir, gate_ctx, True, judge_verdicts, split)
-    return out
 
 
 # -- mixed-workload cost and the report's five comparison rows -----------------------------------------------

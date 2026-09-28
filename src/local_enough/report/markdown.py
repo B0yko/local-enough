@@ -211,9 +211,21 @@ def render_local_perf(data: ReportData) -> str:
         out.append(f"#### {model_id}\n")
         out.append(
             _table(
-                ["task", "tasks/hour (c=1, Pass A)", "tasks/hour (c=4, Pass B)"],
                 [
-                    [t["task"], fmt.fmt_number(t["tph_c1"], decimals=0), fmt.fmt_number(t["tph_c4"], decimals=0)]
+                    "task",
+                    "tasks/hour (c=1, Pass A)",
+                    "tasks/hour (c=4, Pass B)",
+                    "sustained tasks/hour (Pass B x throttle)",
+                    "capacity (tasks/month)",
+                ],
+                [
+                    [
+                        t["task"],
+                        fmt.fmt_number(t["tph_c1"], decimals=0),
+                        fmt.fmt_number(t["tph_c4"], decimals=0),
+                        fmt.fmt_number(t.get("sustained_tph"), decimals=0),
+                        fmt.fmt_number(t.get("capacity_per_month"), decimals=0),
+                    ]
                     for t in m["tasks"]
                 ],
             )
@@ -231,8 +243,13 @@ def render_local_perf(data: ReportData) -> str:
                         fmt.fmt_number(m["last5_tph"], decimals=0, missing=fmt.NOT_MEASURED),
                     ],
                     [
-                        "throttle factor (last5/first5)",
+                        "throttle factor (last5/first5, full minutes)",
                         fmt.fmt_number(m["throttle_factor"], decimals=3, missing=fmt.NOT_MEASURED),
+                    ],
+                    [
+                        "throttle factor applied",
+                        fmt.fmt_number(m.get("applied_throttle"), decimals=3)
+                        + f" ({m.get('throttle_source') or fmt.NA})",
                     ],
                     ["peak memory", _peak_memory_cell(m)],
                     ["incremental watts", fmt.fmt_watts(m["incremental_watts"]) + f" ({m['watts_label']})"],
@@ -357,7 +374,7 @@ def render_router(data: ReportData) -> str:
         "configuration",
         "USD / 1k mixed tasks",
         "tasks meeting bar",
-        "served locally",
+        "served locally (LLM or baseline)",
         "escalated",
         "p50 / p95 s",
         "saving vs all-frontier",

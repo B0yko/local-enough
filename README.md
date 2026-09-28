@@ -52,7 +52,7 @@ calib items per task:
 
 ```bash
 local-enough init my-eval && cd my-eval               # config.yaml, quickstart.yaml, local.yaml, route.yaml, ...
-export OPENROUTER_API_KEY=...                          # or put it in .env (see .env.example)
+export OPENROUTER_API_KEY=...                          # or fill .env, then: set -a; . ./.env; set +a
 local-enough bench --tasks all --models quickstart.yaml --split calib --limit 10 --dry-run   # estimate first
 local-enough bench --tasks all --models quickstart.yaml --split calib --limit 10
 local-enough report
@@ -193,8 +193,8 @@ Quality bar (calib): 82.7%. Split: test. Scenario: local dedicated at V_t.
 
 | model | kind | accuracy (95% CI) | invalid % | p50 | p95 | $/1k tasks | meets bar (calib) | holds (test) |
 |---|---|---|---|---|---|---|---|---|
-| local-qwen2.5-1.5b | local | 42.5% [37.0%, 48.1%] | 3.2% | 0.10s | 0.12s | $7.68 (energy $0.0012) | no | no |
-| local-qwen3-4b | local | 64.6% [59.4%, 69.8%] | 1.0% | 0.14s | 0.17s | $7.68 (energy $0.0017) | no | no |
+| local-qwen2.5-1.5b | local | 42.5% [37.0%, 48.1%] | 3.2% | 0.10s | 0.12s | $7.68 (energy $0.0010) | no | no |
+| local-qwen3-4b | local | 64.6% [59.4%, 69.8%] | 1.0% | 0.14s | 0.17s | $7.68 (energy $0.0014) | no | no |
 | frontier | cloud | 85.1% [80.8%, 89.0%] | 0.0% | 2.62s | 9.23s | $2.08 | no | yes |
 | open-large | cloud | 79.9% [75.0%, 84.4%] | 0.0% | 1.75s | 2.96s | $0.05 | no | no |
 | open-same-family | cloud | 76.0% [70.8%, 80.5%] | 0.6% | 1.80s | 9.63s | $0.02 | no | no |
@@ -210,8 +210,8 @@ Quality bar (calib): 95.0%. Split: test. Scenario: local dedicated at V_t.
 
 | model | kind | f1 (95% CI) | invalid % | p50 | p95 | $/1k tasks | meets bar (calib) | holds (test) |
 |---|---|---|---|---|---|---|---|---|
-| local-qwen2.5-1.5b | local | 92.6% [87.8%, 96.5%] | 0.0% | 0.14s | 0.14s | $15.36 (energy $0.0017) | yes | no |
-| local-qwen3-4b | local | 92.9% [88.1%, 96.4%] | 0.0% | 0.25s | 0.26s | $15.36 (energy $0.0029) | no | no |
+| local-qwen2.5-1.5b | local | 92.6% [87.8%, 96.5%] | 0.0% | 0.14s | 0.14s | $15.36 (energy $0.0013) | yes | no |
+| local-qwen3-4b | local | 92.9% [88.1%, 96.4%] | 0.0% | 0.25s | 0.26s | $15.36 (energy $0.0024) | no | no |
 | frontier | cloud | 100.0% [100.0%, 100.0%] | 0.0% | 3.20s | 8.08s | $2.07 | yes | yes |
 | open-large | cloud | 99.4% [97.9%, 100.0%] | 0.0% | 1.75s | 3.22s | $0.07 | yes | yes |
 | open-same-family | cloud | 100.0% [100.0%, 100.0%] | 0.0% | 1.72s | 8.28s | $0.02 | yes | yes |
@@ -230,8 +230,8 @@ Quality bar (calib): 94.4%. Split: test. Scenario: local dedicated at V_t.
 
 | model | kind | field_accuracy (95% CI) | invalid % | p50 | p95 | $/1k tasks | meets bar (calib) | holds (test) |
 |---|---|---|---|---|---|---|---|---|
-| local-qwen2.5-1.5b | local | 89.4% [88.6%, 90.2%] | 0.0% | 0.67s | 0.71s | $9.22 (energy $0.0064) | no | no |
-| local-qwen3-4b | local | 93.0% [92.3%, 93.8%] | 0.0% | 1.20s | 1.30s | $9.22 (energy $0.0087) | no | no |
+| local-qwen2.5-1.5b | local | 89.4% [88.6%, 90.2%] | 0.0% | 0.67s | 0.71s | $9.22 (energy $0.0051) | no | no |
+| local-qwen3-4b | local | 93.0% [92.3%, 93.8%] | 0.0% | 1.20s | 1.30s | $9.22 (energy $0.0071) | no | no |
 | frontier | cloud | 99.6% [99.3%, 99.8%] | 0.0% | 6.30s | 19.59s | $4.06 | yes | yes |
 | open-large | cloud | 98.4% [97.9%, 98.8%] | 0.0% | 3.82s | 5.60s | $0.11 | yes | yes |
 | open-same-family | cloud | 97.7% [97.1%, 98.3%] | 0.0% | 4.99s | 13.30s | $0.08 | yes | yes |
@@ -246,8 +246,8 @@ Quality bar (calib): 95.0%. Split: test. Scenario: local dedicated at V_t.
 
 | model | kind | f2 (95% CI) | invalid % | p50 | p95 | $/1k tasks | meets bar (calib) | holds (test) |
 |---|---|---|---|---|---|---|---|---|
-| local-qwen2.5-1.5b | local | 43.4% [38.2%, 47.9%] | 0.5% | 0.21s | 0.50s | $11.52 (energy $0.0025) | no | no |
-| local-qwen3-4b | local | 92.0% [89.7%, 94.0%] | 0.0% | 0.60s | 1.36s | $11.52 (energy $0.0053) | no | no |
+| local-qwen2.5-1.5b | local | 43.4% [38.2%, 47.9%] | 0.5% | 0.21s | 0.50s | $11.52 (energy $0.0021) | no | no |
+| local-qwen3-4b | local | 92.0% [89.7%, 94.0%] | 0.0% | 0.60s | 1.36s | $11.52 (energy $0.0044) | no | no |
 | frontier | cloud | 100.0% [100.0%, 100.0%] | 0.0% | 4.48s | 10.13s | $2.69 | yes | yes |
 | open-large | cloud | 88.9% [85.2%, 92.1%] | 0.0% | 2.52s | 3.98s | $0.07 | no | no |
 | open-same-family | cloud | 97.0% [95.6%, 98.2%] | 0.0% | 3.23s | 11.54s | $0.03 | yes | yes |
@@ -263,8 +263,8 @@ Quality bar (calib): 68.9%. Split: test. Scenario: local dedicated at V_t.
 
 | model | kind | pass_rate (95% CI) | invalid % | p50 | p95 | $/1k tasks | meets bar (calib) | holds (test) |
 |---|---|---|---|---|---|---|---|---|
-| local-qwen2.5-1.5b | local | 0.2% [0.0%, 5.8%] | 0.0% | 1.64s | 1.82s | $23.04 (energy $0.01) | no | no |
-| local-qwen3-4b | local | 40.7% [28.8%, 53.7%] | 0.0% | 1.73s | 1.87s | $23.05 (energy $0.02) | no | no |
+| local-qwen2.5-1.5b | local | 0.2% [0.0%, 5.8%] | 0.0% | 1.64s | 1.82s | $23.04 (energy $0.0090) | no | no |
+| local-qwen3-4b | local | 40.7% [28.8%, 53.7%] | 0.0% | 1.73s | 1.87s | $23.05 (energy $0.01) | no | no |
 | frontier | cloud | 63.9% [51.1%, 77.5%] | 0.0% | 7.54s | 16.63s | $5.64 | yes | no |
 | open-large | cloud | 11.8% [3.1%, 20.4%] | 0.0% | 3.45s | 4.37s | $0.29 | no | no |
 | open-same-family | cloud | 50.8% [37.7%, 63.4%] | 0.0% | 6.05s | 12.36s | $0.16 | no | no |
@@ -287,38 +287,40 @@ Reproduce: `local-enough report --run reference`.
 <!-- le:local_perf:start -->
 #### local-qwen2.5-1.5b
 
-| task | tasks/hour (c=1, Pass A) | tasks/hour (c=4, Pass B) |
-|---|---|---|
-| classification | 34,674 | 42,939 |
-| entity_matching | 25,646 | 31,828 |
-| extraction | 5,379 | 8,275 |
-| pii_redaction | 15,005 | 20,702 |
-| summarisation | 2,660 | 4,700 |
+| task | tasks/hour (c=1, Pass A) | tasks/hour (c=4, Pass B) | sustained tasks/hour (Pass B x throttle) | capacity (tasks/month) |
+|---|---|---|---|---|
+| classification | 34,674 | 42,939 | 42,128 | 10,110,735 |
+| entity_matching | 25,646 | 31,828 | 31,226 | 7,494,360 |
+| extraction | 5,379 | 8,275 | 8,119 | 1,948,567 |
+| pii_redaction | 15,005 | 20,702 | 20,311 | 4,874,747 |
+| summarisation | 2,660 | 4,700 | 4,611 | 1,106,657 |
 
 | metric | value |
 |---|---|
 | first-5-min throughput (soak) | 12,072 |
-| last-5-min throughput (soak) | 9,576 |
-| throttle factor (last5/first5) | 0.793 |
+| last-5-min throughput (soak) | 11,844 |
+| throttle factor (last5/first5, full minutes) | 0.981 |
+| throttle factor applied | 0.981 (soak (last 5 / first 5 full minutes)) |
 | peak memory | 4.71 GB (footprint) |
 | incremental watts | 139.0 W (configured) |
 | idle watts | 6.0 W (configured) |
 
 #### local-qwen3-4b
 
-| task | tasks/hour (c=1, Pass A) | tasks/hour (c=4, Pass B) |
-|---|---|---|
-| classification | 25,546 | 30,555 |
-| entity_matching | 14,582 | 17,718 |
-| extraction | 2,989 | 5,834 |
-| pii_redaction | 5,319 | 9,540 |
-| summarisation | 2,107 | 2,887 |
+| task | tasks/hour (c=1, Pass A) | tasks/hour (c=4, Pass B) | sustained tasks/hour (Pass B x throttle) | capacity (tasks/month) |
+|---|---|---|---|---|
+| classification | 25,546 | 30,555 | 30,555 | 7,333,195 |
+| entity_matching | 14,582 | 17,718 | 17,718 | 4,252,379 |
+| extraction | 2,989 | 5,834 | 5,834 | 1,400,204 |
+| pii_redaction | 5,319 | 9,540 | 9,540 | 2,289,666 |
+| summarisation | 2,107 | 2,887 | 2,887 | 692,836 |
 
 | metric | value |
 |---|---|
 | first-5-min throughput (soak) | 6,852 |
-| last-5-min throughput (soak) | 5,640 |
-| throttle factor (last5/first5) | 0.823 |
+| last-5-min throughput (soak) | 7,008 |
+| throttle factor (last5/first5, full minutes) | 1.023 |
+| throttle factor applied | 1.000 (soak (last 5 / first 5 full minutes), capped at 1.0) |
 | peak memory | 13.96 GB (footprint) |
 | incremental watts | 139.0 W (configured) |
 | idle watts | 6.0 W (configured) |
@@ -332,21 +334,24 @@ Reproduce: `local-enough bench --local-only --split test --concurrency 4`, `loca
 
 **Measurement conditions.** All local numbers come from one Mac Studio (desktop, mains power), with `caffeinate`
 spawned by `bench`, `soak` and `power-probe`, and other heavy workloads on the machine paused during the measurement
-windows.
-Before and every 60 s during each local pass (A, B, soak), a sampler recorded the CPU and memory in use by everything
-except local-enough's own processes (system-wide counters, so other users' processes count too); a window is
-`contaminated` when that exceeds one core for more than 10% of its samples, and none of the published windows was.
-Pass A runs local models at concurrency 1, Pass B at 4, and the 20-minute soak at 4 on the `workload_mix`; sustained
-throughput is Pass B × the soak's throttle factor. Even on this fan-cooled desktop the last five minutes of the soak ran
-18–21% slower than the first five; the report applies that ratio as measured and does not attribute it to a cause.
-Peak memory is the server's physical footprint (`/usr/bin/footprint`, which includes Metal allocations; checked by
-comparing a loaded model's footprint with its size on disk). A
-desktop Mac has no battery telemetry, so `power-probe` reports it unavailable and energy uses configured watts: 6 W
-idle and 145 − 6 = 139 W incremental, from Apple's published Mac Studio (2025, M4 Max) figures
-([support.apple.com/en-us/102027](https://support.apple.com/en-us/102027)), an upper bound. Energy is a small part of
-local cost at these volumes either way. The hardware price is the US apple.com list price of this configuration at
-launch ($1,999 base + $300 16-core/40-core chip + $1,200 128 GB + $600 2 TB = $4,099), read from Apple's archived
-configurator on 2025-03-15; the M4 Max model is no longer sold new.
+windows. Before and every 60 s during each local pass (A, B, soak), a sampler recorded the CPU and memory in use by
+everything except local-enough's own processes (system-wide counters, so other users' processes count too); a window
+is `contaminated` when that exceeds one core for more than 10% of its samples, and none of the published windows was.
+Every sample of background load was below one core (0.15 to 0.99) except the second sample of each Pass A and soak
+window: those windows were recorded before a sampler fix, when the second sample came about a second after the first
+and read 0 to 15 cores from counter priming, an artifact rather than load; the fixed sampler, used for Pass B, primes
+its counters and measures a fresh interval.
+
+Pass A runs local models at concurrency 1, Pass B at 4, and the 20-minute soak at 4 on the `workload_mix`. Sustained
+throughput is Pass B × the soak's throttle factor (last five full minutes ÷ first five, capped at 1.0); on this
+desktop it was 0.981 for the 1.5B model and 1.023 for the 4B model (applied as 1.0), so there was no slowdown to
+speak of. Peak memory is the server's physical footprint (`/usr/bin/footprint`, which includes Metal allocations;
+checked by comparing a loaded model's footprint with its size on disk). A desktop Mac has no battery telemetry, so
+`power-probe` reports it unavailable and energy uses configured watts: 6 W idle and 145 − 6 = 139 W incremental, from
+Apple's published Mac Studio (2025, M4 Max) figures ([support.apple.com/en-us/102027](https://support.apple.com/en-us/102027)),
+an upper bound. Energy is a small part of local cost at these volumes either way. The hardware price is the US
+apple.com list price of this configuration at launch ($1,999 base + $300 16-core/40-core chip + $1,200 128 GB + $600
+2 TB = $4,099), read from Apple's archived configurator on 2025-03-15; the M4 Max model is no longer sold new.
 
 ### Break-even (dedicated machine)
 
@@ -355,11 +360,11 @@ Scenario: dedicated (one machine per task at V_t).
 
 | task | V_t (tasks/mo) | best local LLM | cheapest cloud (meets bar) | cloud $/1k | local energy $/1k | local fixed $/mo | break-even (tasks/mo) | capacity (tasks/mo) | machines needed | verdict |
 |---|---|---|---|---|---|---|---|---|---|---|
-| classification | 15,000 | local-qwen3-4b | none meets the bar | n/a | $0.0017 | $115.16 | n/a | 6,036,080 | 1 | n/a — no cloud model meets the bar |
-| entity_matching | 7,500 | local-qwen2.5-1.5b | open-same-family | $0.02 | $0.0017 | $115.16 | 5,064,689 | 6,059,270 | 1 | break-even |
-| extraction | 12,500 | local-qwen3-4b | open-same-family | $0.08 | $0.0087 | $115.16 | n/a | 1,152,532 | 1 | n/a — local below bar |
-| pii_redaction | 10,000 | local-qwen3-4b | open-same-family | $0.03 | $0.0053 | $115.16 | n/a | 1,884,664 | 1 | n/a — local below bar |
-| summarisation | 5,000 | local-qwen3-4b | frontier | $5.64 | $0.02 | $115.16 | n/a | 570,286 | 1 | n/a — local below bar |
+| classification | 15,000 | local-qwen3-4b | none meets the bar | n/a | $0.0014 | $115.16 | n/a | 7,333,195 | 1 | n/a — no cloud model meets the bar |
+| entity_matching | 7,500 | local-qwen2.5-1.5b | open-same-family | $0.02 | $0.0013 | $115.16 | 4,995,204 | 7,494,360 | 1 | break-even |
+| extraction | 12,500 | local-qwen3-4b | open-same-family | $0.08 | $0.0071 | $115.16 | n/a | 1,400,204 | 1 | n/a — local below bar |
+| pii_redaction | 10,000 | local-qwen3-4b | open-same-family | $0.03 | $0.0044 | $115.16 | n/a | 2,289,666 | 1 | n/a — local below bar |
+| summarisation | 5,000 | local-qwen3-4b | frontier | $5.64 | $0.01 | $115.16 | n/a | 692,836 | 1 | n/a — local below bar |
 
 Reproduce: `local-enough report --run reference`.
 <!-- le:break_even:end -->
@@ -376,10 +381,10 @@ Verdict rule, decided on the calib split: **local** when a local candidate meets
 | task | verdict | detail |
 |---|---|---|
 | classification | local | the TF-IDF baseline (no LLM) meets the bar at about $0 per task, so there is no hardware to pay back at this task's volume (15,000 tasks/month). |
-| entity_matching | hybrid | local alone is cheaper only above 5,064,689 tasks/month; with gates and escalation to open-same-family the router meets the bar with 0% escalation. |
-| extraction | cloud | no local candidate meets the bar and breaks even within volume/capacity, and the hybrid router path does not qualify either. |
+| entity_matching | cloud | local alone is cheaper only above 4,995,204 tasks/month; the served plan has no local primary that meets the bar with at most 20% escalation. |
+| extraction | cloud | local alone is below the bar (gap to bar: -1.8%); the served plan has no local primary that meets the bar with at most 20% escalation. |
 | pii_redaction | local — below bar (constraint) | data_must_stay_local; no local candidate meets the bar (gap to bar: -2.8%). |
-| summarisation | cloud | no local candidate meets the bar and breaks even within volume/capacity, and the hybrid router path does not qualify either. |
+| summarisation | cloud | local alone is below the bar (gap to bar: -31.1%); the served plan has no local primary that meets the bar with at most 20% escalation. |
 <!-- le:verdicts:end -->
 
 ### Router on the mixed workload (shared machine)
@@ -387,7 +392,7 @@ Verdict rule, decided on the calib split: **local** when a local candidate meets
 <!-- le:router:start -->
 Scenario: shared machine (mixed workload, `workload_mix` weights, full test split). Source: `local-enough route --simulate --run reference`.
 
-| configuration | USD / 1k mixed tasks | tasks meeting bar | served locally | escalated | p50 / p95 s | saving vs all-frontier | saving vs cheapest cloud |
+| configuration | USD / 1k mixed tasks | tasks meeting bar | served locally (LLM or baseline) | escalated | p50 / p95 s | saving vs all-frontier | saving vs cheapest cloud |
 |---|---|---|---|---|---|---|---|
 | All traffic to frontier (`frontier`) | $3.051 | 4/5 | 0.0% | 0.0% | 4.48 / 14.76 | n/a | n/a |
 | Cheapest single cloud model meeting every bar: none | n/a | n/a | n/a | n/a | n/a / n/a | n/a | n/a |

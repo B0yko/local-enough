@@ -177,11 +177,11 @@ def task_verdict(
                 f"{local_alone_reason}; {through}." if local_alone_reason else f"{through[0].upper()}{through[1:]}."
             )
         return TaskVerdict(task, VERDICT_HYBRID, detail)
+    reason = local_alone_reason or "no local candidate meets the bar and breaks even within volume and capacity"
     return TaskVerdict(
         task,
         VERDICT_CLOUD,
-        "no local candidate meets the bar and breaks even within volume/capacity, and the hybrid router path "
-        "does not qualify either.",
+        f"{reason}; the served plan has no local primary that meets the bar with at most 20% escalation.",
     )
 
 
