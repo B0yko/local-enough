@@ -91,7 +91,9 @@ def local_costs(
         soak_entry = soak.get(model_id) or {}
         throttle = soak_entry.get("throttle_factor")
         if throttle:
-            throttle_factor, throttle_source = float(throttle), "soak (last 5 / first 5 min)"
+            # A last window faster than the first is noise, not negative throttling: never scale throughput up.
+            throttle_factor = min(1.0, float(throttle))
+            throttle_source = "soak (last 5 / first 5 full minutes)" + (", capped at 1.0" if throttle > 1 else "")
         else:
             throttle_factor, throttle_source = 1.0, "no soak (assumed 1.0)"
         incremental, idle, label = power_for(run, model_id, hw)

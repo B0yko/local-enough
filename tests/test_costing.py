@@ -83,3 +83,10 @@ def test_cloud_and_baseline_costs(tmp_path):
     assert costs[("tfidf", "classification")] == 0.0
     assert ("loc", "classification") in costs
     assert costing.provider_of({"kind": "cloud", "model": "vendor/big"}) == "vendor"
+
+
+def test_throttle_factor_above_one_is_capped(tmp_path):
+    run = _run(tmp_path, power={}, soak={"loc": {"throttle_factor": 1.03}})
+    cost = costing.local_costs(run, ROUTE)[("loc", "classification")]
+    assert cost.throttle_factor == 1.0 and "capped" in cost.throttle_source
+    assert cost.sustained_tasks_per_hour == 3600.0
