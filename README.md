@@ -65,7 +65,7 @@ reply = client.chat.completions.create(
     model="local-enough/classification",
     messages=[{"role": "user", "content": "My card still hasn't arrived after two weeks"}],
 )
-print(reply.choices[0].message.content, reply.model)   # the label, and the model that answered
+print(reply.choices[0].message.content, reply.model)  # the label, and the model that answered
 ```
 
 For exact reproduction of the reference environment use `git clone https://github.com/B0yko/local-enough && cd
