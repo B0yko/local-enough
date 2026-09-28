@@ -372,9 +372,16 @@ def _weighted_avg(values: dict[str, float], weights: dict[str, float]) -> float 
 
 
 def _mixed_cost(
-    sim: SimResult, run_dir: RunDir, route_cfg: RouteConfig, local_costs: dict[tuple[str, str], costing.LocalCost]
+    sim: SimResult,
+    run_dir: RunDir,
+    route_cfg: RouteConfig,
+    local_costs: dict[tuple[str, str], costing.LocalCost],
+    unservable: frozenset[str] = frozenset(),
 ) -> float | None:
-    """USD per 1,000 mixed tasks under the shared-machine scenario (docs/cost-model.md)."""
+    """USD per 1,000 mixed tasks under the shared-machine scenario (docs/cost-model.md).
+
+    Tasks in ``unservable`` are refused (HTTP 503), so they carry no cost and their volume is left out of the
+    per-1,000 denominator: the figure is per task actually served."""
     hw = costing.hardware_from_run(run_dir)
     fixed_usd_per_month = 0.0
     if hw is not None:
@@ -393,11 +400,13 @@ def _mixed_cost(
     any_local_llm_call = False
     models = costing.run_models(run_dir)
 
+    served_volume = 0.0
     for task_name, task_result in sim.tasks.items():
         n = task_result.n
-        if n <= 0:
+        if n <= 0 or task_name in unservable:
             continue
         volume = route_cfg.monthly_volume(task_name)
+        served_volume += volume
         scale = volume / n
         for model_id, call_count in task_result.calls_by_model.items():
             monthly_calls = call_count * scale
@@ -418,23 +427,29 @@ def _mixed_cost(
 
     machines = (max(1, math.ceil(utilisation)) if utilisation > 0 else 1) if any_local_llm_call else 0
     monthly_total = machines * fixed_usd_per_month + energy_total + cloud_total
-    total_volume = route_cfg.reference_monthly_volume
-    if total_volume <= 0:
+    if served_volume <= 0:
         return None
-    return monthly_total / total_volume * 1000
+    return monthly_total / served_volume * 1000
 
 
 def _fixed_model_row(
-    label: str, model_id: str | None, run_dir: RunDir, specs: dict[str, TaskSpec], route_cfg: RouteConfig, split: str
+    label: str,
+    model_id: str | None,
+    run_dir: RunDir,
+    specs: dict[str, TaskSpec],
+    route_cfg: RouteConfig,
+    split: str,
+    only_tasks: frozenset[str] | None = None,
 ) -> MixedRow:
-    """A non-router row: every task in ``workload_mix`` served entirely by one fixed cloud model.
+    """A non-router row: every task in ``workload_mix`` (or just ``only_tasks``) served entirely by one fixed
+    cloud model.
 
     The bar is always the calib-decided one (:func:`_bar_value` over the calib candidate table), matching how
     every other verdict in the report is decided, even though the metric and cost shown are measured on
     ``split``.
     """
     if model_id is None:
-        return MixedRow(label, None, {}, 0.0, 0.0, None, None, None, None)
+        return MixedRow(label, None, {}, None, None, None, None, None, None)
 
     from local_enough import candidates as candidates_module
 
@@ -448,7 +463,10 @@ def _fixed_model_row(
     for rec in run_dir.predictions("A"):
         if rec.get("model_id") == model_id and rec.get("split") == split:
             item_latency.setdefault(str(rec["task"]), []).append(float(rec.get("latency_s") or 0.0))
-    for task_name, weight in sorted(route_cfg.workload_mix.items()):
+    mix = {t: w for t, w in sorted(route_cfg.workload_mix.items()) if only_tasks is None or t in only_tasks}
+    total_weight = math.fsum(mix.values())
+    norm = total_weight if only_tasks is not None and total_weight > 0 else 1.0
+    for task_name, weight in mix.items():
         best = max((c.primary for c in calib_table.get(task_name, []) if not math.isnan(c.primary)), default=math.nan)
         bar_value = _bar_value(route_cfg, task_name, best)
         cand = next((c for c in table.get(task_name, []) if c.model_id == model_id), None)
@@ -465,7 +483,7 @@ def _fixed_model_row(
 
     p50 = weighted_percentile(latencies, weights, 50.0) if latencies else None
     p95 = weighted_percentile(latencies, weights, 95.0) if latencies else None
-    return MixedRow(label, math.fsum(usd_parts) * 1000, per_task, 0.0, 0.0, p50, p95, None, None, model_id)
+    return MixedRow(label, math.fsum(usd_parts) / norm * 1000, per_task, 0.0, 0.0, p50, p95, None, None, model_id)
 
 
 def _cheapest_single_cloud(
@@ -534,18 +552,29 @@ def mixed_table(
 
     def _router_row(label: str, p: Plan, gates_enabled: bool) -> MixedRow:
         sim = simulate(run_dir, p, specs, route_cfg, split=split, gates=gates_enabled)
-        per_task = {name: {"metric": r.metric, "bar": r.bar, "meets_bar": r.meets_bar} for name, r in sim.tasks.items()}
-        served = _weighted_avg({n: r.served_locally_rate for n, r in sim.tasks.items()}, route_cfg.workload_mix)
-        esc = _weighted_avg({n: r.escalation_rate for n, r in sim.tasks.items()}, route_cfg.workload_mix)
+        refused = frozenset(n for n in sim.tasks if p.tasks[n].status == STATUS_UNSERVABLE)
+        per_task = {
+            name: {
+                "metric": r.metric,
+                "bar": r.bar,
+                "meets_bar": r.meets_bar and name not in refused,
+                "unservable": name in refused,
+            }
+            for name, r in sim.tasks.items()
+        }
+        # Refused (503) items are neither served nor escalated and have no latency: leave them out of every share.
+        live = {n: r for n, r in sim.tasks.items() if n not in refused}
+        served = _weighted_avg({n: r.served_locally_rate for n, r in live.items()}, route_cfg.workload_mix)
+        esc = _weighted_avg({n: r.escalation_rate for n, r in live.items()}, route_cfg.workload_mix)
         latencies: list[float] = []
         weights: list[float] = []
-        for name, r in sim.tasks.items():
+        for name, r in live.items():
             w = route_cfg.workload_mix.get(name, 0.0) / r.n if r.n else 0.0
             latencies.extend(r.latencies_s)
             weights.extend([w] * len(r.latencies_s))
         p50 = weighted_percentile(latencies, weights, 50.0) if latencies else None
         p95 = weighted_percentile(latencies, weights, 95.0) if latencies else None
-        usd = _mixed_cost(sim, run_dir, route_cfg, local_costs)
+        usd = _mixed_cost(sim, run_dir, route_cfg, local_costs, refused)
         return MixedRow(
             label,
             usd,
@@ -562,14 +591,29 @@ def mixed_table(
     row_gates_no_constraints = _router_row("router (gates, no constraints)", plan_gates_no_constraints, True)
     row_gates_constraints = _router_row("router (gates, route.yaml constraints)", plan, True)
 
+    subset_rows: dict[frozenset[str], tuple[MixedRow, MixedRow]] = {}
+
+    def _reference_rows(row: MixedRow) -> tuple[MixedRow, MixedRow]:
+        """The two fixed-model rows over the tasks ``row`` actually serves (all of them unless some are refused)."""
+        served = frozenset(t for t, v in row.per_task.items() if not v.get("unservable"))
+        if len(served) == len(row.per_task):
+            return row_all_frontier, row_cheapest_cloud
+        if served not in subset_rows:
+            subset_rows[served] = (
+                _fixed_model_row("all-frontier", frontier_id, run_dir, specs, route_cfg, split, served),
+                _fixed_model_row("cheapest-single-cloud", cheapest_id, run_dir, specs, route_cfg, split, served),
+            )
+        return subset_rows[served]
+
     def _savings(row: MixedRow) -> MixedRow:
         vs_frontier = None
         vs_cheapest = None
+        frontier_ref, cheapest_ref = _reference_rows(row)
         if row.usd_per_1k is not None:
-            if row_all_frontier.usd_per_1k:
-                vs_frontier = (row_all_frontier.usd_per_1k - row.usd_per_1k) / row_all_frontier.usd_per_1k * 100
-            if row_cheapest_cloud.usd_per_1k:
-                vs_cheapest = (row_cheapest_cloud.usd_per_1k - row.usd_per_1k) / row_cheapest_cloud.usd_per_1k * 100
+            if frontier_ref.usd_per_1k:
+                vs_frontier = (frontier_ref.usd_per_1k - row.usd_per_1k) / frontier_ref.usd_per_1k * 100
+            if cheapest_ref.usd_per_1k:
+                vs_cheapest = (cheapest_ref.usd_per_1k - row.usd_per_1k) / cheapest_ref.usd_per_1k * 100
         return MixedRow(
             row.label,
             row.usd_per_1k,
