@@ -8,6 +8,7 @@ using :class:`RunDir` directly -- the same technique ``tests/test_candidates.py`
 
 from __future__ import annotations
 
+import dataclasses
 import json
 from pathlib import Path
 
@@ -15,7 +16,8 @@ import fakes
 from local_enough.bench.rundir import PREDICTIONS, RunDir
 from local_enough.config import Constraints, RouteConfig
 from local_enough.report.build import build_report, readme_blocks
-from local_enough.report.markdown import BLOCK_NAMES
+from local_enough.report.markdown import BLOCK_NAMES, render_router, render_sensitivity
+from local_enough.report.tables import build_report_data
 from local_enough.tasks import registry
 from local_enough.tasks.base import TaskSpec
 
@@ -213,7 +215,40 @@ def write_full_synthetic_run(run_dir: Path) -> tuple[RunDir, dict[str, TaskSpec]
         "power.json",
         {model_id: {"mode": "measured", "incremental_watts": 20.0, "idle_watts": 5.0} for model_id in LOCAL_MODELS},
     )
-    run.write_json("memory.json", {"combined": {"bytes": 6_000_000_000, "method": "footprint"}})
+    gib = 2**30
+    run.write_json(
+        "memory.json",
+        {
+            "loc-a": {"peak_bytes": 4_000_000_000, "method": "footprint", "disk_bytes": 2_300_000_000},
+            "loc-b": {"peak_bytes": 2_000_000_000, "method": "footprint", "disk_bytes": 900_000_000},
+            "combined": {
+                "method": "footprint (phys_footprint, includes Metal allocations)",
+                "models_bytes": {"loc-a": 3 * gib, "loc-b": 1 * gib},
+                "router_bytes": gib // 2,
+                "ours_bytes": 4 * gib + gib // 2,
+                "system_used_before_bytes": 10 * gib,
+                "system_used_bytes": 15 * gib,
+            },
+        },
+    )
+    run.write_json(
+        "load_samples.json",
+        {
+            "windows": [
+                {"name": "A:loc-a", "contaminated": False, "samples": []},
+                {"name": "A:loc-b", "contaminated": True, "samples": []},
+                {"name": "B:loc-a", "contaminated": False, "samples": []},
+            ]
+        },
+    )
+    ledger = [
+        {"command": "bench", "actual_usd": 1.5},
+        {"command": "bench", "actual_usd": 0.5},
+        {"command": "judge calibrate", "actual_usd": 0.25},
+        {"command": "judge score", "actual_usd": 0.125},
+        {"command": "route replay", "actual_usd": 0.0625},
+    ]
+    run.file("cost_ledger.jsonl").write_text("".join(json.dumps(r) + "\n" for r in ledger), encoding="utf-8")
     run.write_json("route.json", json.loads(route_cfg().model_dump_json()))
     run.write_json(
         "live_check.json",
@@ -313,3 +348,149 @@ def test_readme_blocks_match_build_report_content(tmp_path: Path) -> None:
     report_md = (out / "report.md").read_text(encoding="utf-8")
     assert blocks["spend"].strip() in report_md
     assert blocks["verdicts"].strip() in report_md
+
+
+def _blocks(tmp_path: Path) -> dict[str, str]:
+    run, specs = write_full_synthetic_run(tmp_path / "run")
+    return readme_blocks(run, specs=specs, route_cfg=route_cfg())
+
+
+def test_local_performance_shows_peak_memory_per_model_and_the_combined_footprint(tmp_path: Path) -> None:
+    block = _blocks(tmp_path)["local_perf"]
+    assert "| peak memory | 4.00 GB (footprint) |" in block
+    assert "| peak memory | 2.00 GB (footprint) |" in block
+    assert "not measured" not in block.split("| peak memory")[1].split("\n")[0]
+    assert "Both local models + router: 4.50 GiB (footprint; loc-a 3.00 GiB, loc-b 1.00 GiB, router 0.50 GiB)" in block
+    assert "system memory in use at the time: 15.00 GiB of 24 GiB, 10.00 GiB before loading them" in block
+    assert "(includes other workloads)" in block
+
+
+def test_local_cost_cell_shows_the_fully_loaded_cost_with_the_energy_only_cost_beside_it(tmp_path: Path) -> None:
+    block = _blocks(tmp_path)["results"]
+    local_rows = [line for line in block.splitlines() if line.startswith("| loc-a |")]
+    assert local_rows
+    assert all("(energy $" in line for line in local_rows)
+    cloud_rows = [line for line in block.splitlines() if line.startswith("| cloud-small |")]
+    assert cloud_rows and all("energy" not in line for line in cloud_rows)
+
+
+def test_spend_shows_the_budget_and_splits_the_ledger_by_command(tmp_path: Path) -> None:
+    block = _blocks(tmp_path)["spend"]
+    assert "| total API spend | $2.44 |" in block
+    for row in (
+        "| spend: bench | $2.00 |",
+        "| spend: judge calibrate | $0.25 |",
+        "| spend: judge score | $0.12 |",
+        "| spend: route replay | $0.06 |",
+        "| budget cap | $15.00 |",
+        "| budget warning level | $12.00 |",
+    ):
+        assert row in block
+    assert block.index("spend: bench") < block.index("spend: judge calibrate") < block.index("spend: route replay")
+
+
+def test_spend_says_when_the_run_recorded_no_budget(tmp_path: Path) -> None:
+    run, specs = write_full_synthetic_run(tmp_path / "run")
+    cfg = json.loads(run.file("config.json").read_text(encoding="utf-8"))
+    del cfg["budget_usd"], cfg["budget_warn_usd"]
+    run.write_json("config.json", cfg)
+    block = readme_blocks(run, specs=specs, route_cfg=route_cfg())["spend"]
+    assert "| budget cap | not recorded in this run |" in block
+
+
+def test_setup_shows_the_machine_power_and_measurement_windows(tmp_path: Path) -> None:
+    run, specs = write_full_synthetic_run(tmp_path / "run")
+    env = json.loads(run.file("env.json").read_text(encoding="utf-8"))
+    env.update({"machine_model": "Mac16,9", "chip": "Apple M4 Max", "memory_gb": 128.0})
+    run.write_json("env.json", env)
+    cfg = json.loads(run.file("config.json").read_text(encoding="utf-8"))
+    cfg["hardware"]["power"] = {"mode": "configured", "incremental_watts": 139.0, "idle_watts": 6.0}
+    run.write_json("config.json", cfg)
+    run.write_json(
+        "power.json",
+        {m: {"mode": "unavailable", "reason": "AppleSmartBattery is missing fields"} for m in LOCAL_MODELS},
+    )
+    setup = readme_blocks(run, specs=specs, route_cfg=route_cfg())["setup"]
+    assert "| machine | Mac Studio (Mac16,9), Apple M4 Max, 128 GB |" in setup
+    assert "128.00" not in setup
+    assert (
+        "| power | configured: 6 W idle, 139 W incremental, from Apple's published figures; "
+        "no battery telemetry on a desktop |" in setup
+    )
+    assert "| measurement windows | 3 load-sample windows, 1 flagged contaminated |" in setup
+
+
+def test_setup_falls_back_to_the_identifier_and_reports_missing_files(tmp_path: Path) -> None:
+    run, specs = write_partial_synthetic_run(tmp_path / "run")
+    setup = readme_blocks(run, specs=specs, route_cfg=route_cfg())["setup"]
+    assert "| measurement windows | not measured |" in setup
+    assert "| machine | n/a |" in setup
+
+
+def test_sensitivity_says_why_it_is_not_applicable_when_no_cloud_model_meets_the_bar(tmp_path: Path) -> None:
+    run, specs = write_full_synthetic_run(tmp_path / "run")
+    data = build_report_data(run, specs=specs, route_cfg=route_cfg())
+    empty = dataclasses.replace(
+        data,
+        break_even={
+            **data.break_even,
+            "sensitivity": [],
+            "headline_task": "classification",
+            "sensitivity_note": (
+                "not applicable: no cloud model meets the classification bar, so there is no break-even volume to vary"
+            ),
+        },
+    )
+    assert render_sensitivity(empty) == (
+        "*(sensitivity grid not applicable: no cloud model meets the classification bar, "
+        "so there is no break-even volume to vary)*\n"
+    )
+
+
+def test_router_table_marks_refused_tasks_and_keeps_rows_without_a_model_at_n_a(tmp_path: Path) -> None:
+    run, specs = write_full_synthetic_run(tmp_path / "run")
+    data = build_report_data(run, specs=specs, route_cfg=route_cfg())
+    per_task = {
+        "classification": {"metric": 0.9, "bar": 0.8, "meets_bar": True, "unservable": False},
+        "pii_redaction": {"metric": 0.0, "bar": 0.95, "meets_bar": False, "unservable": True},
+    }
+    rows = [
+        {
+            "label": "router (gates, route.yaml constraints)",
+            "usd_per_1k": 1.0,
+            "per_task": per_task,
+            "served_locally_pct": 100.0,
+            "escalation_pct": 0.0,
+            "p50_s": 0.5,
+            "p95_s": 0.9,
+            "saving_vs_all_frontier_pct": 50.0,
+            "saving_vs_cheapest_cloud_pct": None,
+        },
+        {
+            "label": "cheapest-single-cloud",
+            "usd_per_1k": None,
+            "per_task": {},
+            "served_locally_pct": None,
+            "escalation_pct": None,
+            "p50_s": None,
+            "p95_s": None,
+            "saving_vs_all_frontier_pct": None,
+            "saving_vs_cheapest_cloud_pct": None,
+        },
+    ]
+    text = render_router(dataclasses.replace(data, router=dataclasses.replace(data.router, mixed_rows=rows)))
+    assert "Router with gates + data_must_stay_local (1/2 tasks served)" in text
+    assert "unservable (503)" in text
+    assert (
+        "| Cheapest single cloud model meeting every bar: none | n/a | n/a | n/a | n/a | n/a / n/a | n/a | n/a |"
+        in text
+    )
+    assert "0.0%" not in text.split("Per-task")[0].split("Cheapest single cloud")[1]
+
+
+def test_headline_saving_of_a_real_build_is_a_sane_percentage(tmp_path: Path) -> None:
+    run, specs = write_full_synthetic_run(tmp_path / "run")
+    data = build_report_data(run, specs=specs, route_cfg=route_cfg())
+    for word in data.headline.split():
+        if word.endswith("%") and word[:-1].replace(".", "").replace("+", "").isdigit():
+            assert abs(float(word[:-1])) <= 100

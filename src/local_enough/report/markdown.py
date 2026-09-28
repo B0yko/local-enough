@@ -57,9 +57,7 @@ def render_setup(data: ReportData) -> str:
             ["field", "value"],
             [
                 ["hardware", s.get("hardware_name") or fmt.NA],
-                ["machine model", s.get("machine_model") or fmt.NA],
-                ["chip", s.get("chip") or fmt.NA],
-                ["memory", fmt.fmt_number(s.get("memory_gb"), decimals=2) + " GB" if s.get("memory_gb") else fmt.NA],
+                ["machine", s.get("machine") or fmt.NA],
                 ["macOS", f"{s.get('macos_version') or fmt.NA} ({s.get('macos_build') or fmt.NA})"],
                 ["mlx", s.get("mlx_version") or fmt.NA],
                 ["mlx-lm", s.get("mlx_lm_version") or fmt.NA],
@@ -76,6 +74,8 @@ def render_setup(data: ReportData) -> str:
                     "electricity price (assumption)",
                     f"{fmt.fmt_number(s.get('electricity_usd_per_kwh'), decimals=2)} USD/kWh",
                 ],
+                ["power", s.get("power") or fmt.NOT_MEASURED],
+                ["measurement windows", s.get("measurement_windows") or fmt.NOT_MEASURED],
                 ["total API spend", fmt.fmt_usd(s.get("total_api_spend_usd"))],
             ],
         )
@@ -110,6 +110,15 @@ def render_setup(data: ReportData) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _cost_cell(row: dict[str, Any]) -> str:
+    """USD per 1,000 tasks; a local model shows its fully loaded cost with the energy-only cost beside it."""
+    cost = fmt.fmt_usd_per_1k(row["usd_per_task"])
+    energy = row.get("energy_usd_per_task")
+    if row["kind"] == "local" and energy is not None:
+        return f"{cost} (energy {fmt.fmt_usd_per_1k(energy)})"
+    return cost
+
+
 def render_results(data: ReportData) -> str:
     out = []
     for task in data.tasks:
@@ -127,7 +136,7 @@ def render_results(data: ReportData) -> str:
                 fmt.fmt_pct(r["invalid_output_rate"]),
                 fmt.fmt_seconds(r["p50_s"]),
                 fmt.fmt_seconds(r["p95_s"]),
-                fmt.fmt_usd_per_1k(r["usd_per_task"]),
+                _cost_cell(r),
                 fmt.fmt_bool(r["meets_bar_calib"]),
                 fmt.fmt_bool(r["holds_test"]),
             ]
@@ -153,6 +162,34 @@ def render_results(data: ReportData) -> str:
             out.append(f"\nCalib-pass/test-fail: {', '.join(block['calib_pass_test_fail'])}.\n")
         out.append(f"\nReproduce: `local-enough report --run {data.run_label}`.\n")
     return "\n".join(out)
+
+
+def _peak_memory_cell(m: dict[str, Any]) -> str:
+    peak = m["peak_memory_bytes"]
+    if peak is None:
+        return fmt.NOT_MEASURED
+    method = m["peak_memory_method"]
+    return f"{fmt.fmt_gb(peak)} ({method})" if method else fmt.fmt_gb(peak)
+
+
+def _combined_memory_line(data: ReportData, *, machine_gb: float | None) -> str:
+    combined = data.local_perf.get("combined") or {}
+    ours = combined.get("ours_bytes")
+    if ours is None:
+        return f"Both local models + router: {fmt.NOT_MEASURED}."
+    method = str(combined.get("method") or "").split(" (", 1)[0]
+    parts = [f"{model_id} {fmt.fmt_gib(b)}" for model_id, b in sorted((combined.get("models_bytes") or {}).items())]
+    if combined.get("router_bytes") is not None:
+        parts.append(f"router {fmt.fmt_gib(combined['router_bytes'])}")
+    detail = "; ".join(x for x in [method, ", ".join(parts)] if x)
+    line = f"Both local models + router: {fmt.fmt_gib(ours)}{f' ({detail})' if detail else ''}"
+    used = combined.get("system_used_bytes")
+    if used is not None:
+        of = f" of {fmt.fmt_number(machine_gb, decimals=0)} GiB" if machine_gb else ""
+        before = combined.get("system_used_before_bytes")
+        before_text = f", {fmt.fmt_gib(before)} before loading them" if before is not None else ""
+        line += f"; system memory in use at the time: {fmt.fmt_gib(used)}{of}{before_text} (includes other workloads)"
+    return line + "."
 
 
 def render_local_perf(data: ReportData) -> str:
@@ -186,15 +223,13 @@ def render_local_perf(data: ReportData) -> str:
                         "throttle factor (last5/first5)",
                         fmt.fmt_number(m["throttle_factor"], decimals=3, missing=fmt.NOT_MEASURED),
                     ],
-                    ["peak memory", fmt.fmt_gb(m["peak_memory_bytes"], missing=fmt.NOT_MEASURED)],
-                    ["peak memory method", m["peak_memory_method"] or fmt.NOT_MEASURED],
+                    ["peak memory", _peak_memory_cell(m)],
                     ["incremental watts", fmt.fmt_watts(m["incremental_watts"]) + f" ({m['watts_label']})"],
                     ["idle watts", fmt.fmt_watts(m["idle_watts"]) + f" ({m['watts_label']})"],
                 ],
             )
         )
-    combined = data.local_perf.get("combined_memory_bytes")
-    out.append(f"\nBoth local models + router + OS: {fmt.fmt_gb(combined, missing=fmt.NOT_MEASURED)}.\n")
+    out.append("\n" + _combined_memory_line(data, machine_gb=data.setup.get("memory_gb")) + "\n")
     out.append("\nReproduce: `local-enough bench --local-only --split test --concurrency 4`, `local-enough soak`.\n")
     return "\n".join(out)
 
@@ -241,7 +276,8 @@ def render_sensitivity(data: ReportData) -> str:
     task = data.break_even["headline_task"]
     cells = data.break_even["sensitivity"]
     if not cells:
-        return f"*(sensitivity grid not measured for the headline task, {task})*\n"
+        note = data.break_even.get("sensitivity_note") or f"not measured for the headline task, {task}"
+        return f"*(sensitivity grid {note})*\n"
     rows = [
         [
             fmt.fmt_number(c.lifetime_years, decimals=0),
@@ -273,6 +309,10 @@ ROUTER_ROW_LABELS = {
 def _router_row_name(row: dict[str, Any]) -> str:
     label = str(row.get("label"))
     name = ROUTER_ROW_LABELS.get(label, label)
+    per_task = row.get("per_task") or {}
+    refused = sum(1 for v in per_task.values() if v.get("unservable"))
+    if refused:
+        name += f" ({len(per_task) - refused}/{len(per_task)} tasks served)"
     if row.get("model_id"):
         return f"{name} (`{row['model_id']}`)"
     if label == "cheapest-single-cloud":
@@ -337,6 +377,9 @@ def render_router(data: ReportData) -> str:
             v = per_task.get(task)
             if not v:
                 cells.append(fmt.NA)
+                continue
+            if v.get("unservable"):
+                cells.append("unservable (503)")
                 continue
             metric, bar = v.get("metric"), v.get("bar")
             mark = "meets" if v.get("meets_bar") else "below"
@@ -437,11 +480,15 @@ def render_downloads(data: ReportData) -> str:
 
 def render_spend(data: ReportData) -> str:
     sp = data.spend
-    rows = [
-        ["total API spend", fmt.fmt_usd(sp.get("total_usd"))],
-        ["budget cap", fmt.fmt_usd(sp.get("budget_usd"))],
-        ["budget warning level", fmt.fmt_usd(sp.get("budget_warn_usd"))],
-    ]
+    not_recorded = "not recorded in this run"
+    rows = [["total API spend", fmt.fmt_usd(sp.get("total_usd"))]]
+    rows.extend([f"spend: {command}", fmt.fmt_usd(usd)] for command, usd in (sp.get("by_command") or {}).items())
+    rows.extend(
+        [
+            ["budget cap", fmt.fmt_usd(sp.get("budget_usd"), missing=not_recorded)],
+            ["budget warning level", fmt.fmt_usd(sp.get("budget_warn_usd"), missing=not_recorded)],
+        ]
+    )
     return _table(["field", "value"], rows)
 
 

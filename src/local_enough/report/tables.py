@@ -24,6 +24,7 @@ from local_enough.config import HardwareConfig, RouteConfig
 from local_enough.costing import LocalCost
 from local_enough.costmodel import BreakEven, SensitivityCell
 from local_enough.judge import stats as judge_stats
+from local_enough.report import format as fmt
 from local_enough.report import quality
 from local_enough.report.charts import BASELINE_FLOOR_USD_PER_1K, ChartKind, ChartPoint
 from local_enough.report.quality import TaskVerdict
@@ -49,6 +50,11 @@ class RouterFacts:
     hybrid_by_task: dict[str, bool] = field(default_factory=dict)
     saving_pct: float | None = None
     saving_vs: str | None = None
+    saving_scope: str | None = None
+    """Which router row the headline saving comes from, when it is not the deployed (gates + constraints) row."""
+    refused_tasks: list[str] = field(default_factory=list)
+    """Tasks the deployed router refuses with HTTP 503 (must stay local, no local candidate meets the bar)."""
+    hybrid_details: dict[str, dict[str, Any]] = field(default_factory=dict)
     source_cmd: str = ""
 
 
@@ -84,12 +90,18 @@ def run_label(run: RunDir) -> str:
     return run.path.name or "run"
 
 
-def _ledger_total(run: RunDir) -> float:
-    """Sum of ``actual_usd`` in the run's own ``cost_ledger.jsonl`` copy (plain JSONL, bench + judge lines)."""
+LEDGER_COMMAND_ORDER: tuple[str, ...] = ("bench", "judge calibrate", "judge score", "route", "route replay")
+
+
+def _ledger_by_command(run: RunDir) -> dict[str, float]:
+    """``actual_usd`` in the run's own ``cost_ledger.jsonl`` copy, summed per ledger ``command``.
+
+    Known commands come first in pipeline order, any others after them alphabetically.
+    """
     path = run.file("cost_ledger.jsonl")
     if not path.exists():
-        return 0.0
-    total = 0.0
+        return {}
+    totals: dict[str, float] = {}
     with path.open(encoding="utf-8") as fh:
         for line in fh:
             line = line.strip()
@@ -99,13 +111,71 @@ def _ledger_total(run: RunDir) -> float:
                 record = json.loads(line)
             except json.JSONDecodeError:
                 continue
-            total += float(record.get("actual_usd") or 0.0)
-    return total
+            command = str(record.get("command") or "unknown")
+            totals[command] = totals.get(command, 0.0) + float(record.get("actual_usd") or 0.0)
+    known = [c for c in LEDGER_COMMAND_ORDER if c in totals]
+    return {c: totals[c] for c in [*known, *sorted(set(totals) - set(known))]}
 
 
 def _default_route_cfg(run: RunDir) -> RouteConfig:
     data = run.read_json("route.json")
     return RouteConfig.model_validate(data) if data else DEFAULT_ROUTE_CONFIG
+
+
+MACHINE_FAMILY: dict[str, str] = {
+    "Mac13,1": "Mac Studio",
+    "Mac13,2": "Mac Studio",
+    "Mac14,13": "Mac Studio",
+    "Mac14,14": "Mac Studio",
+    "Mac16,9": "Mac Studio",
+}
+DESKTOP_FAMILIES = frozenset({"Mac Studio", "Mac mini", "iMac", "Mac Pro"})
+
+
+def machine_family(machine_model: str | None) -> str | None:
+    """The product name for a hardware identifier we know (``Mac16,9`` -> ``Mac Studio``), else ``None``."""
+    return MACHINE_FAMILY.get(machine_model or "")
+
+
+def _machine_text(env: dict[str, Any]) -> str | None:
+    """``"Mac Studio (Mac16,9), Apple M4 Max, 128 GB"`` from ``env.json``; parts that are missing are left out."""
+    model, chip, memory = env.get("machine_model"), env.get("chip"), env.get("memory_gb")
+    family = machine_family(model)
+    if family and model:
+        head: str | None = f"{family} ({model})"
+    else:
+        head = model or None
+    parts = [head, chip, fmt.fmt_gb_whole(memory, missing="") or None]
+    text = ", ".join(str(p) for p in parts if p)
+    return text or None
+
+
+def _power_text(run: RunDir, cfg: dict[str, Any], env: dict[str, Any]) -> str:
+    """How the watts behind the energy cost were obtained: measured, or configured (and why not measured)."""
+    hw_power = (cfg.get("hardware") or {}).get("power") or {}
+    idle, incremental = hw_power.get("idle_watts"), hw_power.get("incremental_watts")
+    telemetry = run.read_json("power.json", {}) or {}
+    modes = {str(v.get("mode")) for v in telemetry.values() if isinstance(v, dict)}
+    reasons = sorted({str(v["reason"]) for v in telemetry.values() if isinstance(v, dict) and v.get("reason")})
+    watts = f"{fmt.fmt_number(idle, decimals=0)} W idle, {fmt.fmt_number(incremental, decimals=0)} W incremental"
+    if hw_power.get("mode") == "configured" or not modes or modes == {"unavailable"}:
+        if not hw_power:
+            return fmt.NOT_MEASURED
+        if modes == {"unavailable"} and machine_family(env.get("machine_model")) in DESKTOP_FAMILIES:
+            return f"configured: {watts}, from Apple's published figures; no battery telemetry on a desktop"
+        why = f"; measured telemetry unavailable ({'; '.join(reasons)})" if reasons else ""
+        return f"configured: {watts}{why}"
+    return f"measured (battery telemetry): {watts}"
+
+
+def _measurement_windows_text(run: RunDir) -> str:
+    """Count of load-sample windows and how many were flagged contaminated by other workloads."""
+    samples = run.read_json("load_samples.json", {}) or {}
+    windows = samples.get("windows") if isinstance(samples, dict) else None
+    if not isinstance(windows, list) or not windows:
+        return fmt.NOT_MEASURED
+    flagged = sum(1 for w in windows if isinstance(w, dict) and w.get("contaminated"))
+    return f"{len(windows)} load-sample windows, {flagged} flagged contaminated"
 
 
 def _build_setup(run: RunDir, specs: dict[str, TaskSpec], tasks: list[str]) -> dict[str, Any]:
@@ -146,10 +216,14 @@ def _build_setup(run: RunDir, specs: dict[str, TaskSpec], tasks: list[str]) -> d
                 sizes[split] = None
         split_sizes[name] = sizes
 
+    spend_by_command = _ledger_by_command(run)
     return {
         "machine_model": env.get("machine_model"),
         "chip": env.get("chip"),
         "memory_gb": env.get("memory_gb"),
+        "machine": _machine_text(env),
+        "power": _power_text(run, cfg, env),
+        "measurement_windows": _measurement_windows_text(run),
         "macos_version": env.get("macos_version"),
         "macos_build": env.get("macos_build"),
         "mlx_version": env.get("mlx_version"),
@@ -162,7 +236,8 @@ def _build_setup(run: RunDir, specs: dict[str, TaskSpec], tasks: list[str]) -> d
         "hardware_name": (cfg.get("hardware") or {}).get("name"),
         "hardware_price": env.get("hardware_price") or {},
         "electricity_usd_per_kwh": (cfg.get("hardware") or {}).get("electricity_usd_per_kwh"),
-        "total_api_spend_usd": _ledger_total(run),
+        "total_api_spend_usd": math.fsum(spend_by_command.values()),
+        "spend_by_command": spend_by_command,
         "run_date": (env.get("start_utc") or "")[:10] or None,
     }
 
@@ -195,10 +270,16 @@ def _build_results(
             meets_test = quality.meets_bar(c.primary, bar)
             if meets_calib and not meets_test:
                 drift.append(c.model_id)
+            energy_per_task: float | None = None
+            if c.kind == "local":
+                lc_row = local_costs_map.get((c.model_id, task))
+                if lc_row is not None and math.isfinite(lc_row.energy_usd_per_task):
+                    energy_per_task = lc_row.energy_usd_per_task
             rows.append(
                 {
                     "model_id": c.model_id,
                     "kind": c.kind,
+                    "energy_usd_per_task": energy_per_task,
                     "role": c.role,
                     "primary": c.primary,
                     "ci": c.primary_ci,
@@ -260,15 +341,28 @@ def _build_local_perf(run: RunDir, local_costs_map: dict[tuple[str, str], LocalC
             "first5_tph": soak_entry.get("first5_tph"),
             "last5_tph": soak_entry.get("last5_tph"),
             "throttle_factor": soak_entry.get("throttle_factor"),
-            "peak_memory_bytes": mem_entry.get("bytes"),
+            "peak_memory_bytes": mem_entry.get("peak_bytes", mem_entry.get("bytes")),
             "peak_memory_method": mem_entry.get("method"),
+            "disk_bytes": mem_entry.get("disk_bytes"),
             "incremental_watts": first.incremental_watts if first else None,
             "idle_watts": first.idle_watts if first else None,
             "watts_label": first.watts_label if first else "not measured",
         }
     combined_raw = memory.get("combined")
-    combined_bytes = combined_raw.get("bytes") if isinstance(combined_raw, dict) else None
-    return {"models": per_model, "combined_memory_bytes": combined_bytes}
+    combined: dict[str, Any] = combined_raw if isinstance(combined_raw, dict) else {}
+    ours = combined.get("ours_bytes", combined.get("bytes"))
+    return {
+        "models": per_model,
+        "combined_memory_bytes": ours,
+        "combined": {
+            "ours_bytes": ours,
+            "models_bytes": combined.get("models_bytes") or {},
+            "router_bytes": combined.get("router_bytes"),
+            "system_used_bytes": combined.get("system_used_bytes"),
+            "system_used_before_bytes": combined.get("system_used_before_bytes"),
+            "method": combined.get("method"),
+        },
+    }
 
 
 def _cheapest_cloud(
@@ -373,6 +467,25 @@ def _build_sensitivity(
     )
 
 
+def _sensitivity_note(
+    headline_task: str,
+    be_row: dict[str, Any],
+    local_costs_map: dict[tuple[str, str], LocalCost],
+    hw: HardwareConfig | None,
+) -> str:
+    """Why the sensitivity grid is empty, for the report to say instead of "not measured"."""
+    if hw is None:
+        return "not measured: this run has no hardware configuration, so the fixed cost cannot be varied"
+    if not be_row:
+        return f"not measured: no break-even row for the headline task, {headline_task}"
+    if be_row.get("cheapest_cloud_usd_per_task") is None or not be_row.get("cheapest_cloud_model"):
+        return f"not applicable: no cloud model meets the {headline_task} bar, so there is no break-even volume to vary"
+    model_id = be_row.get("best_local_model")
+    if not model_id or local_costs_map.get((str(model_id), headline_task)) is None:
+        return f"not measured: no local throughput was measured for the headline task, {headline_task}"
+    return f"not measured for the headline task, {headline_task}"
+
+
 def _as_dict(row: Any) -> dict[str, Any]:
     if isinstance(row, dict):
         return row
@@ -385,19 +498,41 @@ def _as_dict(row: Any) -> dict[str, Any]:
     return {"value": row}
 
 
-def _extract_saving(rows: list[dict[str, Any]]) -> tuple[float | None, str | None]:
-    """Headline saving of the deployed router (gates + route.yaml constraints): against the cheapest single cloud
-    model meeting every bar, or against all-frontier when no such model exists."""
-    router = next((r for r in rows if r.get("label") == "router (gates, route.yaml constraints)"), None)
-    if router is None:
-        return None, None
+ROUTER_DEPLOYED_LABEL = "router (gates, route.yaml constraints)"
+ROUTER_UNCONSTRAINED_LABEL = "router (gates, no constraints)"
+
+
+def _refused_tasks(row: dict[str, Any] | None) -> list[str]:
+    per_task = (row or {}).get("per_task") or {}
+    return sorted(t for t, v in per_task.items() if v.get("unservable"))
+
+
+def _extract_saving(rows: list[dict[str, Any]]) -> tuple[float | None, str | None, str | None, list[str]]:
+    """Headline saving of the deployed router (gates + route.yaml constraints), in percent.
+
+    It is measured against the cheapest single cloud model meeting every bar, or against all-frontier when no such
+    model exists. When the deployed router refuses (503) any task, its cost covers fewer tasks than the baselines it
+    is compared with, so the saving comes from the gates-without-constraints row instead. Returns
+    ``(saving_pct, saving_vs, scope, refused_tasks)``; ``scope`` names the substitute row, ``None`` for the deployed
+    one, and ``refused_tasks`` are the tasks the deployed router refuses.
+    """
+    deployed = next((r for r in rows if r.get("label") == ROUTER_DEPLOYED_LABEL), None)
+    if deployed is None:
+        return None, None, None, []
+    refused = _refused_tasks(deployed)
+    router, scope = deployed, None
+    if refused:
+        unconstrained = next((r for r in rows if r.get("label") == ROUTER_UNCONSTRAINED_LABEL), None)
+        if unconstrained is not None:
+            router, scope = unconstrained, "gates, no route.yaml constraints"
     vs_cheapest = router.get("saving_vs_cheapest_cloud_pct")
     if isinstance(vs_cheapest, int | float) and math.isfinite(vs_cheapest):
-        return float(vs_cheapest), "the cheapest single cloud model meeting every bar"
+        return float(vs_cheapest), "the cheapest single cloud model meeting every bar", scope, refused
     vs_frontier = router.get("saving_vs_all_frontier_pct")
     if isinstance(vs_frontier, int | float) and math.isfinite(vs_frontier):
-        return float(vs_frontier), "all traffic to the frontier model (no single cloud model meets every bar)"
-    return None, None
+        vs = "all traffic to the frontier model (no single cloud model meets every bar)"
+        return float(vs_frontier), vs, scope, refused
+    return None, None, scope, refused
 
 
 def _gather_router_facts(
@@ -415,7 +550,13 @@ def _gather_router_facts(
     hybrid = route_simulate.simulate_hybrid(run, plan, specs, route_cfg, split="calib")
     hybrid_by_task = {task: res.meets_bar and res.escalation_rate <= 0.20 for task, res in hybrid.items()}
     mixed_rows = [row.to_dict() for row in route_simulate.mixed_table(run, plan, specs, route_cfg)]
-    saving_pct, saving_vs = _extract_saving(mixed_rows)
+    saving_pct, saving_vs, saving_scope, refused = _extract_saving(mixed_rows)
+    hybrid_details: dict[str, dict[str, Any]] = {}
+    for task, res in hybrid.items():
+        # The same escalation target simulate_hybrid picks: the cheapest bar-meeting cloud survivor.
+        cloud = [r for r in plan.tasks[task].survivors if r.kind == "cloud"]
+        escalates_to = min(cloud, key=lambda r: (r.usd_per_task, r.model_id)).model_id if cloud else None
+        hybrid_details[task] = {"escalation_rate": res.escalation_rate, "escalates_to": escalates_to}
     return RouterFacts(
         available=True,
         plan_text=route_planner.print_plan(plan),
@@ -423,8 +564,31 @@ def _gather_router_facts(
         hybrid_by_task=hybrid_by_task,
         saving_pct=saving_pct,
         saving_vs=saving_vs,
+        saving_scope=saving_scope,
+        refused_tasks=refused,
+        hybrid_details=hybrid_details,
         source_cmd=f"local-enough route --simulate --run {label}",
     )
+
+
+def _local_alone_reason(be: BreakEven | None, local_meets: bool, gap: float) -> str | None:
+    """Why local on its own did not win the task, for the ``hybrid`` verdict's detail."""
+    if not local_meets:
+        gap_text = "" if math.isnan(gap) else f" (gap to bar: -{fmt.fmt_pct(gap)})"
+        return f"local alone is below the bar{gap_text}"
+    if be is None:
+        return None
+    volume = fmt.fmt_number(be.volume) if be.volume is not None else None
+    if be.verdict == costmodel.VERDICT_BREAK_EVEN and volume:
+        return f"local alone is cheaper only above {volume} tasks/month"
+    if be.verdict == costmodel.VERDICT_INFEASIBLE:
+        where = f"at {volume} tasks/month, " if volume else ""
+        return f"local alone would break even {where}more than this machine can serve"
+    if be.verdict == costmodel.VERDICT_NEVER:
+        return "local alone is never cheaper than the cheapest cloud model meeting the bar"
+    if be.verdict == costmodel.VERDICT_NO_CLOUD_BAR:
+        return "no cloud model meets the bar on its own, so local alone has nothing to break even against"
+    return None
 
 
 def _build_verdicts(
@@ -446,8 +610,10 @@ def _build_verdicts(
         v_t = route_cfg.monthly_volume(task)
         be = break_even_by_task.get(task)
 
+        free_baseline: str | None = None
         if best_broad is not None and best_broad.kind == "baseline" and local_meets:
             breaks_even_within, be_volume = True, None
+            free_baseline = quality.baseline_name(best_broad.model_id)
         else:
             reached_break_even = be is not None and be.verdict == costmodel.VERDICT_BREAK_EVEN and be.volume is not None
             breaks_even_within = bool(
@@ -455,6 +621,7 @@ def _build_verdicts(
             )
             be_volume = be.volume if be is not None else None
 
+        hybrid = router.hybrid_details.get(task) or {}
         out.append(
             quality.task_verdict(
                 task,
@@ -465,6 +632,10 @@ def _build_verdicts(
                 break_even_volume=be_volume,
                 v_t=v_t,
                 hybrid_eligible=router.hybrid_by_task.get(task, False),
+                free_baseline=free_baseline,
+                local_alone_reason=_local_alone_reason(be, local_meets, gap),
+                hybrid_escalation_rate=hybrid.get("escalation_rate"),
+                hybrid_escalates_to=hybrid.get("escalates_to"),
             )
         )
     return out
@@ -538,8 +709,13 @@ def _build_downloads(run: RunDir) -> dict[str, Any]:
     return {"rows": rows, "total_bytes": total_bytes}
 
 
-def _build_spend(cfg: dict[str, Any], total_usd: float) -> dict[str, Any]:
-    return {"total_usd": total_usd, "budget_usd": cfg.get("budget_usd"), "budget_warn_usd": cfg.get("budget_warn_usd")}
+def _build_spend(cfg: dict[str, Any], total_usd: float, by_command: dict[str, float]) -> dict[str, Any]:
+    return {
+        "total_usd": total_usd,
+        "by_command": by_command,
+        "budget_usd": cfg.get("budget_usd"),
+        "budget_warn_usd": cfg.get("budget_warn_usd"),
+    }
 
 
 def build_report_data(
@@ -582,8 +758,25 @@ def build_report_data(
     data_table = _build_data_table(resolved_specs, tasks)
     downloads = _build_downloads(run)
     cfg_dict = run.read_json("config.json", {}) or {}
-    spend = _build_spend(cfg_dict, setup["total_api_spend_usd"])
+    spend = _build_spend(cfg_dict, setup["total_api_spend_usd"], setup["spend_by_command"])
     v_t_by_task = {t: resolved_route.monthly_volume(t) for t in tasks}
+    local_winners: dict[str, quality.LocalWinner] = {}
+    for t in met_bar_tasks:
+        scored = [c for c in quality.local_candidates(calib.get(t, [])) if not math.isnan(c.primary)]
+        if scored:
+            top = max(scored, key=lambda c: (c.primary, c.model_id))
+            local_winners[t] = quality.LocalWinner(top.model_id, top.kind)
+    refusals: list[quality.Refusal] = []
+    for t in router.refused_tasks:
+        local_scores = [c.primary for c in quality.local_candidates(calib.get(t, [])) if not math.isnan(c.primary)]
+        refusals.append(
+            quality.Refusal(
+                t,
+                PRIMARY_METRIC_NAME.get(resolved_specs[t].kind, "primary"),
+                max(local_scores, default=math.nan),
+                bar_by_task[t],
+            )
+        )
     headline_str = quality.headline_text(
         met_bar_tasks=met_bar_tasks,
         total_tasks=len(tasks),
@@ -593,6 +786,9 @@ def build_report_data(
         router_available=router.available,
         router_saving_pct=router.saving_pct,
         router_saving_vs=router.saving_vs,
+        router_saving_scope=router.saving_scope,
+        local_winners=local_winners,
+        refusals=refusals,
     )
 
     return ReportData(
@@ -608,6 +804,9 @@ def build_report_data(
         break_even={
             "rows": break_even_rows,
             "sensitivity": sensitivity,
+            "sensitivity_note": _sensitivity_note(
+                headline_task_name, break_even_rows.get(headline_task_name, {}), local_costs_map, hw
+            ),
             "headline_task": headline_task_name,
             "headline_task_met_bar": headline_task_name in met_bar_tasks,
         },
