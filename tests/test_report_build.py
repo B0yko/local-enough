@@ -301,7 +301,7 @@ def test_partial_run_renders_without_crashing(tmp_path: Path) -> None:
 
     blocks = readme_blocks(run, specs=specs, route_cfg=route_cfg())
     assert set(blocks) == set(BLOCK_NAMES)
-    assert "router table unavailable" in blocks["router"]
+    assert "Scenario: shared machine" in blocks["router"]
 
 
 def test_readme_blocks_match_build_report_content(tmp_path: Path) -> None:

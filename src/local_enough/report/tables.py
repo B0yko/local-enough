@@ -21,7 +21,7 @@ from local_enough import costing, costmodel, evaluate, paths
 from local_enough.bench.rundir import RunDir
 from local_enough.bench.runner import DEFAULT_ROUTE_CONFIG
 from local_enough.candidates import Candidate, candidate_table
-from local_enough.config import Config, HardwareConfig, RouteConfig
+from local_enough.config import HardwareConfig, RouteConfig
 from local_enough.costing import LocalCost
 from local_enough.costmodel import BreakEven, SensitivityCell
 from local_enough.judge import stats as judge_stats
@@ -387,13 +387,17 @@ def _as_dict(row: Any) -> dict[str, Any]:
 
 
 def _extract_saving(rows: list[dict[str, Any]]) -> tuple[float | None, str | None]:
-    for row in rows:
-        label = str(row.get("label") or row.get("name") or row.get("row") or "").lower()
-        if "gate" in label and "no" not in label and "no gate" not in label:
-            for key in ("saving_vs_cheapest_single_pct", "saving_vs_cheapest_pct", "saving_pct", "saving_vs_cheapest"):
-                value = row.get(key)
-                if isinstance(value, int | float):
-                    return float(value), "the cheapest single cloud model meeting every bar"
+    """Headline saving of the deployed router (gates + route.yaml constraints): against the cheapest single cloud
+    model meeting every bar, or against all-frontier when no such model exists."""
+    router = next((r for r in rows if r.get("label") == "router (gates, route.yaml constraints)"), None)
+    if router is None:
+        return None, None
+    vs_cheapest = router.get("saving_vs_cheapest_cloud_pct")
+    if isinstance(vs_cheapest, int | float) and math.isfinite(vs_cheapest):
+        return float(vs_cheapest), "the cheapest single cloud model meeting every bar"
+    vs_frontier = router.get("saving_vs_all_frontier_pct")
+    if isinstance(vs_frontier, int | float) and math.isfinite(vs_frontier):
+        return float(vs_frontier), "all traffic to the frontier model (no single cloud model meets every bar)"
     return None, None
 
 
@@ -405,56 +409,23 @@ def _gather_router_facts(
     bar_by_task: dict[str, float],
     label: str,
 ) -> RouterFacts:
-    try:
-        # route/planner.py and route/simulate.py land on branch m5 in parallel with this one; until
-        # they are merged this import raises ImportError and the router table/hybrid verdict
-        # degrade to "unavailable" below. type: ignore is targeted, not blanket, and documents why.
-        from local_enough.route import planner as route_planner  # type: ignore[attr-defined]
-        from local_enough.route import simulate as route_simulate  # type: ignore[attr-defined]
-    except ImportError:
-        return RouterFacts(available=False)
+    from local_enough.route import planner as route_planner
+    from local_enough.route import simulate as route_simulate
 
-    cfg_obj: Config | None = None
-    cfg_dict = run.read_json("config.json")
-    if cfg_dict:
-        try:
-            cfg_obj = Config.model_validate(cfg_dict)
-        except Exception:
-            cfg_obj = None
-
-    try:
-        plan = route_planner.build_plan(run, specs, route_cfg, cfg_obj)
-        plan_text = str(route_planner.print_plan(plan))
-        calib_sim = route_simulate.simulate(run, plan, specs, route_cfg, cfg_obj, split="calib")
-        per_task = getattr(calib_sim, "per_task", None)
-        per_task_map = per_task if isinstance(per_task, dict) else {}
-        hybrid_by_task: dict[str, bool] = {}
-        for task in specs:
-            entry = per_task_map.get(task)
-            escalation = getattr(entry, "escalation_rate", None) if entry is not None else None
-            metric = getattr(entry, "metric", None) if entry is not None else None
-            bar = bar_by_task.get(task, math.nan)
-            hybrid_by_task[task] = bool(
-                entry is not None
-                and isinstance(escalation, int | float)
-                and escalation <= 0.20
-                and isinstance(metric, int | float)
-                and quality.meets_bar(float(metric), bar)
-            )
-        table = route_simulate.mixed_table(run, plan, specs, route_cfg, cfg_obj)
-        mixed_rows = [_as_dict(row) for row in table]
-        saving_pct, saving_vs = _extract_saving(mixed_rows)
-        return RouterFacts(
-            available=True,
-            plan_text=plan_text,
-            mixed_rows=mixed_rows,
-            hybrid_by_task=hybrid_by_task,
-            saving_pct=saving_pct,
-            saving_vs=saving_vs,
-            source_cmd=f"local-enough route --simulate --run {label}",
-        )
-    except Exception:
-        return RouterFacts(available=False)
+    plan = route_planner.build_plan(run, specs, route_cfg)
+    hybrid = route_simulate.simulate_hybrid(run, plan, specs, route_cfg, split="calib")
+    hybrid_by_task = {task: res.meets_bar and res.escalation_rate <= 0.20 for task, res in hybrid.items()}
+    mixed_rows = [row.to_dict() for row in route_simulate.mixed_table(run, plan, specs, route_cfg)]
+    saving_pct, saving_vs = _extract_saving(mixed_rows)
+    return RouterFacts(
+        available=True,
+        plan_text=route_planner.print_plan(plan),
+        mixed_rows=mixed_rows,
+        hybrid_by_task=hybrid_by_task,
+        saving_pct=saving_pct,
+        saving_vs=saving_vs,
+        source_cmd=f"local-enough route --simulate --run {label}",
+    )
 
 
 def _build_verdicts(

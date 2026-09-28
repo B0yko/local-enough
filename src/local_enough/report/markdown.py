@@ -8,6 +8,7 @@ Each ``render_<name>`` function is pure text: no file I/O, no charts (those are 
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 from typing import Any
 
@@ -260,16 +261,92 @@ def render_verdicts(data: ReportData) -> str:
     return f"{VERDICT_RULE_TEXT}\n\n{_table(['task', 'verdict', 'detail'], rows)}"
 
 
+ROUTER_ROW_LABELS = {
+    "all-frontier": "All traffic to frontier",
+    "cheapest-single-cloud": "Cheapest single cloud model meeting every bar",
+    "router (no gates, no constraints)": "Router, primary only (no gates), no constraints",
+    "router (gates, no constraints)": "Router with gates, no constraints",
+    "router (gates, route.yaml constraints)": "Router with gates + data_must_stay_local",
+}
+
+
+def _router_row_name(row: dict[str, Any]) -> str:
+    label = str(row.get("label"))
+    name = ROUTER_ROW_LABELS.get(label, label)
+    if row.get("model_id"):
+        return f"{name} (`{row['model_id']}`)"
+    if label == "cheapest-single-cloud":
+        return f"{name}: none"
+    return name
+
+
+def _pct_value(value: Any) -> str:
+    return f"{float(value):.1f}%" if isinstance(value, int | float) and math.isfinite(value) else fmt.NA
+
+
+def _signed_pct_value(value: Any) -> str:
+    return f"{float(value):+.1f}%" if isinstance(value, int | float) and math.isfinite(value) else fmt.NA
+
+
+def _usd_1k(value: Any) -> str:
+    return f"${float(value):,.3f}" if isinstance(value, int | float) and math.isfinite(value) else fmt.NA
+
+
+def _secs(value: Any) -> str:
+    return f"{float(value):.2f}" if isinstance(value, int | float) and math.isfinite(value) else fmt.NA
+
+
 def render_router(data: ReportData) -> str:
     if not data.router.available:
         return f"{data.router.plan_text}\n"
     rows_data = data.router.mixed_rows
     if not rows_data:
         return "*(router simulation returned no rows)*\n"
-    headers = sorted({k for row in rows_data for k in row})
-    rows = [[row.get(h, "") for h in headers] for row in rows_data]
-    body = _table(headers, rows)
-    return f"Scenario: shared (mixed workload). Source: `{data.router.source_cmd}`.\n\n{body}"
+    headers = [
+        "configuration",
+        "USD / 1k mixed tasks",
+        "tasks meeting bar",
+        "served locally",
+        "escalated",
+        "p50 / p95 s",
+        "saving vs all-frontier",
+        "saving vs cheapest cloud",
+    ]
+    rows = []
+    for row in rows_data:
+        per_task = row.get("per_task") or {}
+        met = sum(1 for v in per_task.values() if v.get("meets_bar"))
+        rows.append(
+            [
+                _router_row_name(row),
+                _usd_1k(row.get("usd_per_1k")),
+                f"{met}/{len(per_task)}" if per_task else fmt.NA,
+                _pct_value(row.get("served_locally_pct")),
+                _pct_value(row.get("escalation_pct")),
+                f"{_secs(row.get('p50_s'))} / {_secs(row.get('p95_s'))}",
+                _signed_pct_value(row.get("saving_vs_all_frontier_pct")),
+                _signed_pct_value(row.get("saving_vs_cheapest_cloud_pct")),
+            ]
+        )
+    tasks = sorted({t for row in rows_data for t in (row.get("per_task") or {})})
+    per_rows = []
+    for row in rows_data:
+        per_task = row.get("per_task") or {}
+        cells = [_router_row_name(row)]
+        for task in tasks:
+            v = per_task.get(task)
+            if not v:
+                cells.append(fmt.NA)
+                continue
+            metric, bar = v.get("metric"), v.get("bar")
+            mark = "meets" if v.get("meets_bar") else "below"
+            cells.append(f"{fmt.fmt_number(metric, decimals=3)} vs {fmt.fmt_number(bar, decimals=3)} ({mark})")
+        per_rows.append(cells)
+    return (
+        f"Scenario: shared machine (mixed workload, `workload_mix` weights, full test split). "
+        f"Source: `{data.router.source_cmd}`.\n\n{_table(headers, rows)}\n"
+        f"Per-task primary metric against its calib bar:\n\n{_table(['configuration', *tasks], per_rows)}"
+    )
 
 
 def render_live_check(data: ReportData) -> str:
