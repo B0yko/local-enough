@@ -1,0 +1,17 @@
+======================================================================
+[54321]: 64-bit    Footprint: 2148540 KB (16384 bytes per page)
+======================================================================
+
+  Dirty      Clean  Reclaimable    Regions    Category
+    ---        ---          ---        ---    ---
+1843200 KB        0 B        0 B        612    MALLOC_LARGE
+ 245760 KB        0 B        0 B        128    IOSurface
+  40960 KB        0 B        0 B         64    __DATA_DIRTY
+  12288 KB        0 B        0 B         32    __DATA
+   4096 KB        0 B        0 B          4    stack
+    ---        ---          ---        ---    ---
+2148540 KB     512 KB        0 B        880    TOTAL
+
+Auxiliary data:
+    phys_footprint: 2183254 KB
+    phys_footprint_peak: 2201088 KB
