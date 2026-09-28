@@ -63,7 +63,7 @@ def _memory_gb() -> float | None:
     if raw is None:
         return None
     try:
-        return round(int(raw) / 1e9, 2)
+        return round(int(raw) / 2**30, 1)  # GiB, as Apple quotes unified memory (24 GB = 24 GiB)
     except ValueError:
         return None
 
