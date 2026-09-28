@@ -798,6 +798,7 @@ dependencies = [
     { name = "mlx", marker = "platform_machine == 'arm64' and sys_platform == 'darwin'" },
     { name = "mlx-lm", marker = "platform_machine == 'arm64' and sys_platform == 'darwin'" },
     { name = "numpy" },
+    { name = "openai" },
     { name = "psutil" },
     { name = "pydantic" },
     { name = "pyyaml" },
@@ -810,7 +811,6 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "mypy" },
-    { name = "openai" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "respx" },
@@ -829,6 +829,7 @@ requires-dist = [
     { name = "mlx", marker = "platform_machine == 'arm64' and sys_platform == 'darwin'", specifier = ">=0.32.2" },
     { name = "mlx-lm", marker = "platform_machine == 'arm64' and sys_platform == 'darwin'", specifier = ">=0.31.3" },
     { name = "numpy", specifier = ">=1.26" },
+    { name = "openai", specifier = ">=1.40" },
     { name = "psutil", specifier = ">=6.0" },
     { name = "pydantic", specifier = ">=2.7" },
     { name = "pyyaml", specifier = ">=6.0" },
@@ -841,7 +842,6 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "mypy", specifier = ">=1.11" },
-    { name = "openai", specifier = ">=1.40" },
     { name = "pytest", specifier = ">=8.2" },
     { name = "pytest-asyncio", specifier = ">=0.23" },
     { name = "respx", specifier = ">=0.21" },
