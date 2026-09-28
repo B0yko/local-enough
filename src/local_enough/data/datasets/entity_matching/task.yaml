@@ -1,0 +1,12 @@
+calib: calib.jsonl
+card:
+  distinct_templates: 10
+  licence: Apache-2.0
+  metric: f1
+  notes: Vendor/customer master dedupe pairs, about 40% matches.
+  seed: 7
+  source: synthetic
+description: Two company records to a match/no-match decision.
+kind: entity_matching
+name: entity_matching
+test: test.jsonl

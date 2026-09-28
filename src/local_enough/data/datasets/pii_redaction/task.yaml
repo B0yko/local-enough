@@ -1,0 +1,20 @@
+calib: calib.jsonl
+card:
+  distinct_templates: 71
+  licence: Apache-2.0
+  metric: f2
+  notes: Support tickets, HR notes, invoice disputes and call notes with 0-6 PII spans;
+    ~15% PII-free.
+  seed: 7
+  source: synthetic
+description: Redact personal data from business notes.
+kind: pii_redaction
+name: pii_redaction
+pii_types:
+- PERSON
+- EMAIL
+- PHONE
+- IBAN
+- ADDRESS
+- DATE_OF_BIRTH
+test: test.jsonl

@@ -1,0 +1,154 @@
+{"id": "banking77-calib-0000", "label": "card_swallowed", "text": "HOw do I get my card back after the ATM has pulled it in?"}
+{"id": "banking77-calib-0001", "label": "cash_withdrawal_not_recognised", "text": "I just lost my wallet and I see that they are already withdrawing money from my account. How can I stop this?"}
+{"id": "banking77-calib-0002", "label": "disposable_card_limits", "text": "what is the disposable cards limit?"}
+{"id": "banking77-calib-0003", "label": "Refund_not_showing_up", "text": "There's a refund missing from my statement"}
+{"id": "banking77-calib-0004", "label": "pin_blocked", "text": "How do I reset my PIN, I can't seem to use my card?"}
+{"id": "banking77-calib-0005", "label": "transfer_timing", "text": "How long to I have to wait for a transfer to reach my account?"}
+{"id": "banking77-calib-0006", "label": "wrong_exchange_rate_for_cash_withdrawal", "text": "I did not get the right amount of money when I used a different country's currency."}
+{"id": "banking77-calib-0007", "label": "compromised_card", "text": "Freeze my account it's been hacked."}
+{"id": "banking77-calib-0008", "label": "apple_pay_or_google_pay", "text": "My American Express is in my Apple Pay and the top up is failing, why?"}
+{"id": "banking77-calib-0009", "label": "declined_cash_withdrawal", "text": "I tried to withdraw money but I was declined!"}
+{"id": "banking77-calib-0010", "label": "card_not_working", "text": "The card I have doesn't work."}
+{"id": "banking77-calib-0011", "label": "declined_transfer", "text": "Why did a transfer get declined?"}
+{"id": "banking77-calib-0012", "label": "top_up_failed", "text": "I'm not sure why my top up request was denied"}
+{"id": "banking77-calib-0013", "label": "top_up_failed", "text": "My top-up isn't working."}
+{"id": "banking77-calib-0014", "label": "request_refund", "text": "I ordered something ages ago online but it's simply not arriving. I've got enough! Give me back my money, I'm not paying these people."}
+{"id": "banking77-calib-0015", "label": "pending_top_up", "text": "Could you explain why my top-up has gone through yet?"}
+{"id": "banking77-calib-0016", "label": "topping_up_by_card", "text": "Cannot access my top up."}
+{"id": "banking77-calib-0017", "label": "verify_source_of_funds", "text": "Why do you need to know where my money is coming from?"}
+{"id": "banking77-calib-0018", "label": "apple_pay_or_google_pay", "text": "How do I top up? Can I use my apple watch?"}
+{"id": "banking77-calib-0019", "label": "card_payment_not_recognised", "text": "Payment i did not do"}
+{"id": "banking77-calib-0020", "label": "card_arrival", "text": "I've been waiting longer than expected for my card."}
+{"id": "banking77-calib-0021", "label": "atm_support", "text": "Which ATM's will accept my card?"}
+{"id": "banking77-calib-0022", "label": "card_payment_not_recognised", "text": "What should I do to get transactions off of my account if I didn't make them?  My card must have been compromised and I need to freeze it asap!"}
+{"id": "banking77-calib-0023", "label": "beneficiary_not_allowed", "text": "I am not able to do a transfer to an account"}
+{"id": "banking77-calib-0024", "label": "extra_charge_on_statement", "text": "When will the $1 transaction be credited to me?"}
+{"id": "banking77-calib-0025", "label": "pending_card_payment", "text": "Please help me to know the status of my card payment as its pending since a while."}
+{"id": "banking77-calib-0026", "label": "verify_my_identity", "text": "Where do I verify my identity?"}
+{"id": "banking77-calib-0027", "label": "balance_not_updated_after_cheque_or_cash_deposit", "text": "cash deposit to my account has shown a red flag."}
+{"id": "banking77-calib-0028", "label": "terminate_account", "text": "I would like to delete my account."}
+{"id": "banking77-calib-0029", "label": "order_physical_card", "text": "Do you charge for physical cards"}
+{"id": "banking77-calib-0030", "label": "top_up_limits", "text": "As for limits are top ups included?"}
+{"id": "banking77-calib-0031", "label": "supported_cards_and_currencies", "text": "Is my currency okay to add money with?"}
+{"id": "banking77-calib-0032", "label": "exchange_rate", "text": "What kind of foreign exchange rate will I get when I exchange my money?"}
+{"id": "banking77-calib-0033", "label": "supported_cards_and_currencies", "text": "Which cards do you guys support? I want to top up using my credit card."}
+{"id": "banking77-calib-0034", "label": "exchange_charge", "text": "Is there a discount for frequently exchanging currencies?"}
+{"id": "banking77-calib-0035", "label": "contactless_not_working", "text": "I wanted to use my card contactless but it doesn't seem to be working, what could be the problem?"}
+{"id": "banking77-calib-0036", "label": "direct_debit_payment_not_recognised", "text": "There's a Direct Debit payment in my account that I didn't make"}
+{"id": "banking77-calib-0037", "label": "wrong_exchange_rate_for_cash_withdrawal", "text": "Why was the exchange rate wrong when I got cash"}
+{"id": "banking77-calib-0038", "label": "transfer_timing", "text": "How long do I have to wait for a transfer from the US?"}
+{"id": "banking77-calib-0039", "label": "order_physical_card", "text": "Do you ship cards to where I live?"}
+{"id": "banking77-calib-0040", "label": "fiat_currency_support", "text": "Can I hold money in other currencies?"}
+{"id": "banking77-calib-0041", "label": "getting_spare_card", "text": "Would it be possible to get another card?"}
+{"id": "banking77-calib-0042", "label": "transaction_charged_twice", "text": "I would like to know why I was charged twice for my purchase."}
+{"id": "banking77-calib-0043", "label": "wrong_amount_of_cash_received", "text": "Something went wrong with my withdrawal. The amount of money isn't right."}
+{"id": "banking77-calib-0044", "label": "exchange_charge", "text": "When I travel, what will it cost to switch for my currency?"}
+{"id": "banking77-calib-0045", "label": "transfer_fee_charged", "text": "I was charged for something I didn't expect"}
+{"id": "banking77-calib-0046", "label": "declined_card_payment", "text": "Please explain why my card was declined?"}
+{"id": "banking77-calib-0047", "label": "card_payment_wrong_exchange_rate", "text": "Why is your exchange rate for my card payment wrong"}
+{"id": "banking77-calib-0048", "label": "pending_card_payment", "text": "I recently made a payment, and it is showing up in my account as \"pending\". What does that mean?"}
+{"id": "banking77-calib-0049", "label": "pending_cash_withdrawal", "text": "Where's accounting for my cash withdrawal?"}
+{"id": "banking77-calib-0050", "label": "virtual_card_not_working", "text": "My disposable virtual card has been rejected by the merchant earlier today. What should I do?"}
+{"id": "banking77-calib-0051", "label": "cancel_transfer", "text": "Can I cancel my transaction?"}
+{"id": "banking77-calib-0052", "label": "activate_my_card", "text": "What's the right way to activate my card?"}
+{"id": "banking77-calib-0053", "label": "atm_support", "text": "Is there any nearby ATM's?"}
+{"id": "banking77-calib-0054", "label": "country_support", "text": "How many countries do you support?"}
+{"id": "banking77-calib-0055", "label": "top_up_reverted", "text": "Causes of top-up cancellation"}
+{"id": "banking77-calib-0056", "label": "getting_virtual_card", "text": "help me obtain a virtual card"}
+{"id": "banking77-calib-0057", "label": "get_disposable_virtual_card", "text": "I just purchased a disposable virtual card. Am I able to use it for online purchases immediately?"}
+{"id": "banking77-calib-0058", "label": "top_up_by_card_charge", "text": "Are there charges for topping up US cards?"}
+{"id": "banking77-calib-0059", "label": "getting_virtual_card", "text": "How can I order virtual cards?"}
+{"id": "banking77-calib-0060", "label": "request_refund", "text": "I want to get an item refunded"}
+{"id": "banking77-calib-0061", "label": "card_acceptance", "text": "Who accepts my card?"}
+{"id": "banking77-calib-0062", "label": "verify_top_up", "text": "It wants me to verify the top up. Why?"}
+{"id": "banking77-calib-0063", "label": "visa_or_mastercard", "text": "How do I get a visa card?"}
+{"id": "banking77-calib-0064", "label": "get_physical_card", "text": "Does my PIN come with my card?"}
+{"id": "banking77-calib-0065", "label": "balance_not_updated_after_bank_transfer", "text": "Hello I made a bank transfer couple hours ago from my UK account but it doesn't show up yet. Can you please check if everything is alright with it?"}
+{"id": "banking77-calib-0066", "label": "unable_to_verify_identity", "text": "I tried verifying my ID, but it won't let me."}
+{"id": "banking77-calib-0067", "label": "balance_not_updated_after_cheque_or_cash_deposit", "text": "How long does it take to process cheque deposits?"}
+{"id": "banking77-calib-0068", "label": "failed_transfer", "text": "Why didn't my transfer go through?"}
+{"id": "banking77-calib-0069", "label": "topping_up_by_card", "text": "Why isn't my top up showing on my wallet?"}
+{"id": "banking77-calib-0070", "label": "get_disposable_virtual_card", "text": "Is there anyway, I can get a disposable virtual card?"}
+{"id": "banking77-calib-0071", "label": "visa_or_mastercard", "text": "Do you guys accept mastercard or visa?"}
+{"id": "banking77-calib-0072", "label": "change_pin", "text": "How can I change the PIN?  Do I have to go to a real bank?"}
+{"id": "banking77-calib-0073", "label": "cash_withdrawal_charge", "text": "I had a wrong fee charged at this ATM."}
+{"id": "banking77-calib-0074", "label": "why_verify_identity", "text": "Do I really need to verify my identity?"}
+{"id": "banking77-calib-0075", "label": "cash_withdrawal_charge", "text": "How come you charge for cash withdrawals? I withdrew cash after buying groceries today, and there seems to be a new fee"}
+{"id": "banking77-calib-0076", "label": "card_linking", "text": "how do I link a card I already have?"}
+{"id": "banking77-calib-0077", "label": "cancel_transfer", "text": "Is there a way to revert my transaction from this morning?"}
+{"id": "banking77-calib-0078", "label": "age_limit", "text": "How young can I be to open my own account?"}
+{"id": "banking77-calib-0079", "label": "exchange_rate", "text": "Can you explain your exchange rate policy to me?"}
+{"id": "banking77-calib-0080", "label": "cash_withdrawal_not_recognised", "text": "How do I cancel my card? There are charges on my account that I didn't make."}
+{"id": "banking77-calib-0081", "label": "transaction_charged_twice", "text": "There is more than one of the same transaction on my account."}
+{"id": "banking77-calib-0082", "label": "card_delivery_estimate", "text": "my card was not in the mail again can you advise?"}
+{"id": "banking77-calib-0083", "label": "card_acceptance", "text": "Is there any place I cannot use my card?"}
+{"id": "banking77-calib-0084", "label": "top_up_limits", "text": "can you limit my top up?"}
+{"id": "banking77-calib-0085", "label": "top_up_by_cash_or_cheque", "text": "I need to top up cash, How do I do it?"}
+{"id": "banking77-calib-0086", "label": "compromised_card", "text": "What do I do to stop unauthorized transactions on my card? I was never in the place from which the transactions on my bill were made and I never made them. Please help!"}
+{"id": "banking77-calib-0087", "label": "getting_spare_card", "text": "How would I go about getting a second card?"}
+{"id": "banking77-calib-0088", "label": "declined_transfer", "text": "My transfers are being declined. IT has always worked for me but now it's declining my card. I've tried several times."}
+{"id": "banking77-calib-0089", "label": "top_up_by_bank_transfer_charge", "text": "If I make a top-up are there charges applied?"}
+{"id": "banking77-calib-0090", "label": "transfer_fee_charged", "text": "I was charge a fee for my transfer, why?"}
+{"id": "banking77-calib-0091", "label": "receiving_money", "text": "What different ways are there for someone to send me money?"}
+{"id": "banking77-calib-0092", "label": "balance_not_updated_after_bank_transfer", "text": "Why isn't the transfer on my account showing up?"}
+{"id": "banking77-calib-0093", "label": "beneficiary_not_allowed", "text": "My beneficiary is not allowed, please may I have answer as to why this is?"}
+{"id": "banking77-calib-0094", "label": "card_about_to_expire", "text": "My card's expiring, what happens now?"}
+{"id": "banking77-calib-0095", "label": "card_not_working", "text": "Is my card broken?"}
+{"id": "banking77-calib-0096", "label": "activate_my_card", "text": "Would like to use my card and need to activate it first.  Can you help me do this?"}
+{"id": "banking77-calib-0097", "label": "pending_cash_withdrawal", "text": "My withdrawl is still pending.  Why?"}
+{"id": "banking77-calib-0098", "label": "card_payment_wrong_exchange_rate", "text": "The exchange rate was wrong when I bought something outside the country."}
+{"id": "banking77-calib-0099", "label": "pending_transfer", "text": "I would like to know why my payment is still pending, can you help?"}
+{"id": "banking77-calib-0100", "label": "card_payment_fee_charged", "text": "Why did I have to pay extra because I paid with card?"}
+{"id": "banking77-calib-0101", "label": "lost_or_stolen_card", "text": "How do I report a stolen card?"}
+{"id": "banking77-calib-0102", "label": "why_verify_identity", "text": "I want to skip verification of my identity."}
+{"id": "banking77-calib-0103", "label": "card_payment_fee_charged", "text": "Why are there fees for card usage?"}
+{"id": "banking77-calib-0104", "label": "declined_cash_withdrawal", "text": "I need your help to check my account, please! My card keeps being declined at the ATM, and I've already tried two different ones!"}
+{"id": "banking77-calib-0105", "label": "lost_or_stolen_card", "text": "How do I report my card stolen?"}
+{"id": "banking77-calib-0106", "label": "get_physical_card", "text": "I cannot seem to find my PIN. Where is it?"}
+{"id": "banking77-calib-0107", "label": "country_support", "text": "Is it possible to get a card if I'm not in the UK?"}
+{"id": "banking77-calib-0108", "label": "top_up_by_bank_transfer_charge", "text": "Will I be charged a fee if I receive a SEPA transfer"}
+{"id": "banking77-calib-0109", "label": "wrong_amount_of_cash_received", "text": "I have not received the amount of cash i was supposed to."}
+{"id": "banking77-calib-0110", "label": "Refund_not_showing_up", "text": "It's been a week and I have done everything that I was asked to do and still nothing. I have contacted the seller and have not gotten a response. Please understand my frustration and put the money back in my account."}
+{"id": "banking77-calib-0111", "label": "passcode_forgotten", "text": "What should I do if the passcode doesn't work for me?"}
+{"id": "banking77-calib-0112", "label": "transfer_into_account", "text": "I'm out of money, can I add money with my bank?"}
+{"id": "banking77-calib-0113", "label": "terminate_account", "text": "I don't find your services useful anymore, how do I delete my account?"}
+{"id": "banking77-calib-0114", "label": "reverted_card_payment?", "text": "What is the reason that my card payment was cancelled?"}
+{"id": "banking77-calib-0115", "label": "failed_transfer", "text": "Hi, I'm buying a flat and I'm trying to get my mortgage to go though. Every time I check I simply get an error message. Is there any way you can help me get this money transferred over. Thanks!"}
+{"id": "banking77-calib-0116", "label": "receiving_money", "text": "can I transfer my salary if it's in a different currency?"}
+{"id": "banking77-calib-0117", "label": "virtual_card_not_working", "text": "My virtual card won't work."}
+{"id": "banking77-calib-0118", "label": "disposable_card_limits", "text": "Is it possible to make several disposable cards in a day?"}
+{"id": "banking77-calib-0119", "label": "edit_personal_details", "text": "My address has updated and I need to change it."}
+{"id": "banking77-calib-0120", "label": "contactless_not_working", "text": "I tried to pay contactless at the bus today and it didn't work. Any ideas why?"}
+{"id": "banking77-calib-0121", "label": "reverted_card_payment?", "text": "Can you tell my why my card payment has been reverted."}
+{"id": "banking77-calib-0122", "label": "card_about_to_expire", "text": "in china, need new card"}
+{"id": "banking77-calib-0123", "label": "card_linking", "text": "The app doesn't show the card I received."}
+{"id": "banking77-calib-0124", "label": "exchange_via_app", "text": "Can this app help me exchange currencies?"}
+{"id": "banking77-calib-0125", "label": "passcode_forgotten", "text": "Help me reset the passcode."}
+{"id": "banking77-calib-0126", "label": "lost_or_stolen_phone", "text": "I got mugged yesterday and lost access to the app. I need to regain it."}
+{"id": "banking77-calib-0127", "label": "transfer_not_received_by_recipient", "text": "I need to find out why my transfer didn't get there."}
+{"id": "banking77-calib-0128", "label": "direct_debit_payment_not_recognised", "text": "It seems there is an incorrect listing of a direct debit payment on my app that I did not make"}
+{"id": "banking77-calib-0129", "label": "card_delivery_estimate", "text": "can I choose a date for delivery?"}
+{"id": "banking77-calib-0130", "label": "verify_source_of_funds", "text": "Can I find the origination of my funds?"}
+{"id": "banking77-calib-0131", "label": "verify_my_identity", "text": "When getting my ID checked, what are the steps involved?"}
+{"id": "banking77-calib-0132", "label": "pending_transfer", "text": "For how long will my transfer be pending?"}
+{"id": "banking77-calib-0133", "label": "pin_blocked", "text": "How can I unlock the pin?"}
+{"id": "banking77-calib-0134", "label": "unable_to_verify_identity", "text": "The app doesn't believe that I am me"}
+{"id": "banking77-calib-0135", "label": "automatic_top_up", "text": "how do I top up my money automatically"}
+{"id": "banking77-calib-0136", "label": "extra_charge_on_statement", "text": "I can see an extra 1£ charge on my app. Why did you charge me extra?"}
+{"id": "banking77-calib-0137", "label": "transfer_not_received_by_recipient", "text": "When will my funds transfer?"}
+{"id": "banking77-calib-0138", "label": "automatic_top_up", "text": "I'm running out of money, can I  auto top up?"}
+{"id": "banking77-calib-0139", "label": "card_swallowed", "text": "The ATM ate my card."}
+{"id": "banking77-calib-0140", "label": "fiat_currency_support", "text": "What currencies are used in your exchange?"}
+{"id": "banking77-calib-0141", "label": "exchange_via_app", "text": "I think I want AUD and not GBP, can you help?"}
+{"id": "banking77-calib-0142", "label": "change_pin", "text": "Help me set up a new PIN?"}
+{"id": "banking77-calib-0143", "label": "verify_top_up", "text": "How do I go forth verifying my top-up card?"}
+{"id": "banking77-calib-0144", "label": "edit_personal_details", "text": "I have moved.  Where can I update my details?"}
+{"id": "banking77-calib-0145", "label": "age_limit", "text": "I would like an account for my children, how do I go about doing this?"}
+{"id": "banking77-calib-0146", "label": "pending_top_up", "text": "My card was topped this morning but I can't see the funds. Why didn't it complete?"}
+{"id": "banking77-calib-0147", "label": "top_up_by_card_charge", "text": "Can I top up using an international card"}
+{"id": "banking77-calib-0148", "label": "declined_card_payment", "text": "Card payment declined?"}
+{"id": "banking77-calib-0149", "label": "top_up_by_cash_or_cheque", "text": "Can I use cash to top up my account?"}
+{"id": "banking77-calib-0150", "label": "transfer_into_account", "text": "Can I do a bank transfer to put additional money in my account because I am out of money?"}
+{"id": "banking77-calib-0151", "label": "top_up_reverted", "text": "Hi, i don't know what's going on i've just paid for my top up twice by accident can you help me get a refund please."}
+{"id": "banking77-calib-0152", "label": "card_arrival", "text": "I have been waiting longer than expected for my bank card, could you provide information on when it will arrive?"}
+{"id": "banking77-calib-0153", "label": "lost_or_stolen_phone", "text": "I think my phone is either lost or stolen."}

@@ -1,0 +1,150 @@
+{"id": "custom-train-0000", "label": "billing", "text": "I cancelled my plan last week but was still billed, please look into this."}
+{"id": "custom-train-0001", "label": "bug_report", "text": "the mobile app is extremely slow today, taking over a minute to respond."}
+{"id": "custom-train-0002", "label": "billing", "text": "My card was declined but the charge still shows as pending, what should I do?"}
+{"id": "custom-train-0003", "label": "how_to", "text": "Can you walk me through enabling notifications for the mobile app?"}
+{"id": "custom-train-0004", "label": "how_to", "text": "Can you point me to documentation on configuring the API integration?"}
+{"id": "custom-train-0005", "label": "how_to", "text": "Where can I change the default settings for the billing page?"}
+{"id": "custom-train-0006", "label": "billing", "text": "The discount code I applied didn't reduce the total on my invoice."}
+{"id": "custom-train-0007", "label": "bug_report", "text": "After the last update, the dashboard stopped working entirely."}
+{"id": "custom-train-0008", "label": "how_to", "text": "How do I connect the billing page to our existing tools?"}
+{"id": "custom-train-0009", "label": "bug_report", "text": "I'm getting an error message when I open the notification settings, nothing loads."}
+{"id": "custom-train-0010", "label": "bug_report", "text": "My changes in the notification settings aren't being saved between sessions."}
+{"id": "custom-train-0011", "label": "how_to", "text": "How can I give a colleague access to the dashboard without making them an admin?"}
+{"id": "custom-train-0012", "label": "billing", "text": "I'd like to update my payment method before the next billing cycle."}
+{"id": "custom-train-0013", "label": "bug_report", "text": "My changes in the notification settings aren't being saved between sessions."}
+{"id": "custom-train-0014", "label": "how_to", "text": "Is it possible to customise the layout of the export tool?"}
+{"id": "custom-train-0015", "label": "how_to", "text": "What's the best way to migrate our data into the export tool?"}
+{"id": "custom-train-0016", "label": "billing", "text": "Can you confirm when my next invoice for the mobile app is due?"}
+{"id": "custom-train-0017", "label": "billing", "text": "My card was declined but the charge still shows as pending, what should I do?"}
+{"id": "custom-train-0018", "label": "billing", "text": "Is it possible to switch from monthly to annual billing?"}
+{"id": "custom-train-0019", "label": "bug_report", "text": "The app crashed twice today while I was using the search filter."}
+{"id": "custom-train-0020", "label": "billing", "text": "Is it possible to switch from monthly to annual billing?"}
+{"id": "custom-train-0021", "label": "how_to", "text": "How do I reset the mobile app back to its original configuration?"}
+{"id": "custom-train-0022", "label": "bug_report", "text": "The app crashed twice today while I was using the API integration."}
+{"id": "custom-train-0023", "label": "billing", "text": "Is it possible to switch from monthly to annual billing?"}
+{"id": "custom-train-0024", "label": "billing", "text": "I cancelled my plan last week but was still billed, please look into this."}
+{"id": "custom-train-0025", "label": "how_to", "text": "How do I set up the export tool for my whole team?"}
+{"id": "custom-train-0026", "label": "billing", "text": "I was charged twice for my the dashboard subscription this month, can you refund the extra payment?"}
+{"id": "custom-train-0027", "label": "billing", "text": "I'd like to update my payment method before the next billing cycle."}
+{"id": "custom-train-0028", "label": "how_to", "text": "Can you point me to documentation on configuring the calendar sync?"}
+{"id": "custom-train-0029", "label": "bug_report", "text": "After the last update, the API integration stopped working entirely."}
+{"id": "custom-train-0030", "label": "bug_report", "text": "I'm getting an error message when I open the file upload, nothing loads."}
+{"id": "custom-train-0031", "label": "how_to", "text": "Is it possible to customise the layout of the mobile app?"}
+{"id": "custom-train-0032", "label": "bug_report", "text": "the notification settings shows the wrong data compared to what's in my account."}
+{"id": "custom-train-0033", "label": "bug_report", "text": "the file upload is extremely slow today, taking over a minute to respond."}
+{"id": "custom-train-0034", "label": "how_to", "text": "Can you walk me through enabling notifications for the API integration?"}
+{"id": "custom-train-0035", "label": "bug_report", "text": "the file upload shows the wrong data compared to what's in my account."}
+{"id": "custom-train-0036", "label": "bug_report", "text": "the file upload throws a permissions error even though I'm an admin."}
+{"id": "custom-train-0037", "label": "bug_report", "text": "There's a broken link on the export tool that leads to a missing page."}
+{"id": "custom-train-0038", "label": "how_to", "text": "How do I reset the file upload back to its original configuration?"}
+{"id": "custom-train-0039", "label": "billing", "text": "Can you confirm when my next invoice for the API integration is due?"}
+{"id": "custom-train-0040", "label": "how_to", "text": "Where can I change the default settings for the API integration?"}
+{"id": "custom-train-0041", "label": "billing", "text": "I cancelled my plan last week but was still billed, please look into this."}
+{"id": "custom-train-0042", "label": "billing", "text": "I'd like to update my payment method before the next billing cycle."}
+{"id": "custom-train-0043", "label": "bug_report", "text": "I'm getting an error message when I open the search filter, nothing loads."}
+{"id": "custom-train-0044", "label": "bug_report", "text": "The app crashed twice today while I was using the billing page."}
+{"id": "custom-train-0045", "label": "bug_report", "text": "My changes in the API integration aren't being saved between sessions."}
+{"id": "custom-train-0046", "label": "bug_report", "text": "the dashboard throws a permissions error even though I'm an admin."}
+{"id": "custom-train-0047", "label": "bug_report", "text": "the notification settings shows the wrong data compared to what's in my account."}
+{"id": "custom-train-0048", "label": "bug_report", "text": "the API integration keeps crashing whenever I try to save changes."}
+{"id": "custom-train-0049", "label": "bug_report", "text": "After the last update, the billing page stopped working entirely."}
+{"id": "custom-train-0050", "label": "billing", "text": "I need a copy of last month's invoice for our accounting team."}
+{"id": "custom-train-0051", "label": "billing", "text": "Can you confirm when my next invoice for the calendar sync is due?"}
+{"id": "custom-train-0052", "label": "how_to", "text": "What's the best way to migrate our data into the export tool?"}
+{"id": "custom-train-0053", "label": "how_to", "text": "Where can I change the default settings for the mobile app?"}
+{"id": "custom-train-0054", "label": "bug_report", "text": "I can't log in anymore, the page just spins and never loads."}
+{"id": "custom-train-0055", "label": "how_to", "text": "Where can I change the default settings for the calendar sync?"}
+{"id": "custom-train-0056", "label": "how_to", "text": "How do I reset the mobile app back to its original configuration?"}
+{"id": "custom-train-0057", "label": "billing", "text": "I'd like to update my payment method before the next billing cycle."}
+{"id": "custom-train-0058", "label": "how_to", "text": "How can I give a colleague access to the user roles panel without making them an admin?"}
+{"id": "custom-train-0059", "label": "how_to", "text": "Can you walk me through enabling notifications for the notification settings?"}
+{"id": "custom-train-0060", "label": "bug_report", "text": "There's a broken link on the search filter that leads to a missing page."}
+{"id": "custom-train-0061", "label": "bug_report", "text": "the dashboard keeps crashing whenever I try to save changes."}
+{"id": "custom-train-0062", "label": "bug_report", "text": "the search filter keeps crashing whenever I try to save changes."}
+{"id": "custom-train-0063", "label": "how_to", "text": "How do I reset the user roles panel back to its original configuration?"}
+{"id": "custom-train-0064", "label": "how_to", "text": "Is there a way to export data from the user roles panel to a spreadsheet?"}
+{"id": "custom-train-0065", "label": "bug_report", "text": "the file upload is extremely slow today, taking over a minute to respond."}
+{"id": "custom-train-0066", "label": "billing", "text": "I need a copy of last month's invoice for our accounting team."}
+{"id": "custom-train-0067", "label": "bug_report", "text": "the mobile app shows the wrong data compared to what's in my account."}
+{"id": "custom-train-0068", "label": "how_to", "text": "How do I set up the user roles panel for my whole team?"}
+{"id": "custom-train-0069", "label": "bug_report", "text": "I can't log in anymore, the page just spins and never loads."}
+{"id": "custom-train-0070", "label": "bug_report", "text": "The app crashed twice today while I was using the billing page."}
+{"id": "custom-train-0071", "label": "how_to", "text": "Where can I change the default settings for the mobile app?"}
+{"id": "custom-train-0072", "label": "how_to", "text": "Is it possible to customise the layout of the file upload?"}
+{"id": "custom-train-0073", "label": "bug_report", "text": "The app crashed twice today while I was using the API integration."}
+{"id": "custom-train-0074", "label": "how_to", "text": "How do I reset the mobile app back to its original configuration?"}
+{"id": "custom-train-0075", "label": "bug_report", "text": "the mobile app throws a permissions error even though I'm an admin."}
+{"id": "custom-train-0076", "label": "how_to", "text": "How do I reset the mobile app back to its original configuration?"}
+{"id": "custom-train-0077", "label": "bug_report", "text": "I can't log in anymore, the page just spins and never loads."}
+{"id": "custom-train-0078", "label": "how_to", "text": "Can you walk me through enabling notifications for the dashboard?"}
+{"id": "custom-train-0079", "label": "billing", "text": "We'd like to add a second seat to our plan, how does the pro-rated charge work?"}
+{"id": "custom-train-0080", "label": "bug_report", "text": "There's a broken link on the user roles panel that leads to a missing page."}
+{"id": "custom-train-0081", "label": "bug_report", "text": "The app crashed twice today while I was using the API integration."}
+{"id": "custom-train-0082", "label": "billing", "text": "Can you confirm when my next invoice for the notification settings is due?"}
+{"id": "custom-train-0083", "label": "bug_report", "text": "I'm getting an error message when I open the API integration, nothing loads."}
+{"id": "custom-train-0084", "label": "billing", "text": "My card was declined but the charge still shows as pending, what should I do?"}
+{"id": "custom-train-0085", "label": "billing", "text": "I cancelled my plan last week but was still billed, please look into this."}
+{"id": "custom-train-0086", "label": "bug_report", "text": "the calendar sync throws a permissions error even though I'm an admin."}
+{"id": "custom-train-0087", "label": "billing", "text": "I need a copy of last month's invoice for our accounting team."}
+{"id": "custom-train-0088", "label": "billing", "text": "Can you confirm when my next invoice for the export tool is due?"}
+{"id": "custom-train-0089", "label": "billing", "text": "My card was declined but the charge still shows as pending, what should I do?"}
+{"id": "custom-train-0090", "label": "how_to", "text": "Is it possible to customise the layout of the export tool?"}
+{"id": "custom-train-0091", "label": "how_to", "text": "Where can I change the default settings for the file upload?"}
+{"id": "custom-train-0092", "label": "bug_report", "text": "I'm getting an error message when I open the API integration, nothing loads."}
+{"id": "custom-train-0093", "label": "how_to", "text": "Can you walk me through enabling notifications for the notification settings?"}
+{"id": "custom-train-0094", "label": "how_to", "text": "How do I set up the file upload for my whole team?"}
+{"id": "custom-train-0095", "label": "billing", "text": "I'd like to update my payment method before the next billing cycle."}
+{"id": "custom-train-0096", "label": "billing", "text": "My card was declined but the charge still shows as pending, what should I do?"}
+{"id": "custom-train-0097", "label": "how_to", "text": "Is it possible to customise the layout of the API integration?"}
+{"id": "custom-train-0098", "label": "billing", "text": "I'd like to update my payment method before the next billing cycle."}
+{"id": "custom-train-0099", "label": "how_to", "text": "What's the best way to migrate our data into the mobile app?"}
+{"id": "custom-train-0100", "label": "billing", "text": "Is it possible to switch from monthly to annual billing?"}
+{"id": "custom-train-0101", "label": "how_to", "text": "Is it possible to customise the layout of the dashboard?"}
+{"id": "custom-train-0102", "label": "bug_report", "text": "the file upload is extremely slow today, taking over a minute to respond."}
+{"id": "custom-train-0103", "label": "how_to", "text": "Is there a way to export data from the mobile app to a spreadsheet?"}
+{"id": "custom-train-0104", "label": "billing", "text": "My card was declined but the charge still shows as pending, what should I do?"}
+{"id": "custom-train-0105", "label": "billing", "text": "I cancelled my plan last week but was still billed, please look into this."}
+{"id": "custom-train-0106", "label": "bug_report", "text": "There's a broken link on the API integration that leads to a missing page."}
+{"id": "custom-train-0107", "label": "bug_report", "text": "I'm getting an error message when I open the file upload, nothing loads."}
+{"id": "custom-train-0108", "label": "billing", "text": "My card was declined but the charge still shows as pending, what should I do?"}
+{"id": "custom-train-0109", "label": "billing", "text": "I was charged twice for my the export tool subscription this month, can you refund the extra payment?"}
+{"id": "custom-train-0110", "label": "bug_report", "text": "The app crashed twice today while I was using the dashboard."}
+{"id": "custom-train-0111", "label": "billing", "text": "I cancelled my plan last week but was still billed, please look into this."}
+{"id": "custom-train-0112", "label": "bug_report", "text": "After the last update, the dashboard stopped working entirely."}
+{"id": "custom-train-0113", "label": "bug_report", "text": "the billing page throws a permissions error even though I'm an admin."}
+{"id": "custom-train-0114", "label": "how_to", "text": "What's the best way to migrate our data into the calendar sync?"}
+{"id": "custom-train-0115", "label": "bug_report", "text": "After the last update, the search filter stopped working entirely."}
+{"id": "custom-train-0116", "label": "bug_report", "text": "the mobile app throws a permissions error even though I'm an admin."}
+{"id": "custom-train-0117", "label": "billing", "text": "Can you confirm when my next invoice for the user roles panel is due?"}
+{"id": "custom-train-0118", "label": "how_to", "text": "How do I set up the search filter for my whole team?"}
+{"id": "custom-train-0119", "label": "billing", "text": "My card was declined but the charge still shows as pending, what should I do?"}
+{"id": "custom-train-0120", "label": "how_to", "text": "How can I give a colleague access to the mobile app without making them an admin?"}
+{"id": "custom-train-0121", "label": "how_to", "text": "How do I connect the export tool to our existing tools?"}
+{"id": "custom-train-0122", "label": "how_to", "text": "How do I reset the notification settings back to its original configuration?"}
+{"id": "custom-train-0123", "label": "billing", "text": "I need a copy of last month's invoice for our accounting team."}
+{"id": "custom-train-0124", "label": "billing", "text": "Is it possible to switch from monthly to annual billing?"}
+{"id": "custom-train-0125", "label": "billing", "text": "I need a copy of last month's invoice for our accounting team."}
+{"id": "custom-train-0126", "label": "billing", "text": "I need a copy of last month's invoice for our accounting team."}
+{"id": "custom-train-0127", "label": "billing", "text": "The discount code I applied didn't reduce the total on my invoice."}
+{"id": "custom-train-0128", "label": "bug_report", "text": "the mobile app shows the wrong data compared to what's in my account."}
+{"id": "custom-train-0129", "label": "bug_report", "text": "I can't log in anymore, the page just spins and never loads."}
+{"id": "custom-train-0130", "label": "billing", "text": "I'd like to update my payment method before the next billing cycle."}
+{"id": "custom-train-0131", "label": "how_to", "text": "Is there a way to export data from the search filter to a spreadsheet?"}
+{"id": "custom-train-0132", "label": "how_to", "text": "Can you walk me through enabling notifications for the mobile app?"}
+{"id": "custom-train-0133", "label": "billing", "text": "I need a copy of last month's invoice for our accounting team."}
+{"id": "custom-train-0134", "label": "billing", "text": "I need a copy of last month's invoice for our accounting team."}
+{"id": "custom-train-0135", "label": "how_to", "text": "How do I connect the search filter to our existing tools?"}
+{"id": "custom-train-0136", "label": "how_to", "text": "Where can I change the default settings for the mobile app?"}
+{"id": "custom-train-0137", "label": "billing", "text": "I need a copy of last month's invoice for our accounting team."}
+{"id": "custom-train-0138", "label": "billing", "text": "I cancelled my plan last week but was still billed, please look into this."}
+{"id": "custom-train-0139", "label": "how_to", "text": "How do I connect the dashboard to our existing tools?"}
+{"id": "custom-train-0140", "label": "how_to", "text": "How do I connect the calendar sync to our existing tools?"}
+{"id": "custom-train-0141", "label": "how_to", "text": "Can you point me to documentation on configuring the export tool?"}
+{"id": "custom-train-0142", "label": "bug_report", "text": "I'm getting an error message when I open the notification settings, nothing loads."}
+{"id": "custom-train-0143", "label": "how_to", "text": "Where can I change the default settings for the mobile app?"}
+{"id": "custom-train-0144", "label": "how_to", "text": "How do I set up the mobile app for my whole team?"}
+{"id": "custom-train-0145", "label": "billing", "text": "My invoice shows an amount I don't recognise, can someone explain the charge for the mobile app?"}
+{"id": "custom-train-0146", "label": "billing", "text": "I'd like to update my payment method before the next billing cycle."}
+{"id": "custom-train-0147", "label": "bug_report", "text": "the mobile app shows the wrong data compared to what's in my account."}
+{"id": "custom-train-0148", "label": "billing", "text": "Is it possible to switch from monthly to annual billing?"}
+{"id": "custom-train-0149", "label": "bug_report", "text": "I'm getting an error message when I open the billing page, nothing loads."}
