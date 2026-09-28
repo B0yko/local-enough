@@ -20,7 +20,7 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from local_enough.bench.ledger import BudgetExceeded, Ledger, estimate_tokens
+from local_enough.bench.ledger import BudgetExceeded, Ledger, reservation_usd, settled_cost, usage_meta
 from local_enough.config import RouteConfig
 from local_enough.providers.openai_compat import ChatClient, Endpoint
 from local_enough.route import gates as gates_module
@@ -33,10 +33,9 @@ logger = logging.getLogger("local_enough.route.server")
 
 MODEL_PREFIX = "local-enough/"
 
-# A conservative per-token USD ceiling used only until a model's first settled call teaches the ledger its
-# real price; self-calibrates downward afterwards. Deliberately high so the reservation never undercounts.
-_DEFAULT_PRICE_PER_TOKEN = 2e-5
-_MIN_PRICE_PER_TOKEN = 5e-7
+# Used only when the run has no price snapshot for a cloud model (e.g. a hand-made plan): a deliberately high
+# per-token price so the reservation over-reserves rather than letting the cap be crossed.
+_FALLBACK_PRICE = {"prompt": 2e-5, "completion": 2e-5}
 
 
 def _task_from_model(model: str) -> str:
@@ -126,48 +125,31 @@ def _baseline_answer(gate_ctx: gates_module.GateContext, spec: TaskSpec, user_in
     return None
 
 
-class _PriceBook:
-    """Self-calibrating conservative USD/token ceiling per cloud model, used only to size reservations."""
-
-    def __init__(self) -> None:
-        self._price: dict[str, float] = {}
-
-    def estimate_usd(self, model_id: str, prompt_tokens: int, max_tokens: int) -> float:
-        price = self._price.get(model_id, _DEFAULT_PRICE_PER_TOKEN)
-        return (prompt_tokens + max_tokens) * price * 1.2
-
-    def observe(self, model_id: str, cost_usd: float, total_tokens: int) -> None:
-        if total_tokens <= 0 or cost_usd <= 0:
-            return
-        observed = max(cost_usd / total_tokens, _MIN_PRICE_PER_TOKEN)
-        current = self._price.get(model_id, _DEFAULT_PRICE_PER_TOKEN)
-        self._price[model_id] = max(observed, current) if model_id not in self._price else observed
-
-
 _EMPTY_USAGE: dict[str, int] = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
 
 
 async def _attempt_cloud(
     model_id: str,
+    task: str,
     endpoint: Endpoint,
     messages: list[dict[str, str]],
     max_tokens: int,
     client: ChatClient,
     ledger: Ledger,
-    price_book: _PriceBook,
+    price: dict[str, Any],
 ) -> _Attempt | None:
     """One cloud call, reserved and settled in the ledger; ``None`` if the budget cap would be exceeded."""
-    reserve_usd = price_book.estimate_usd(model_id, estimate_tokens(messages), max_tokens)
+    reserve_usd = reservation_usd(messages, max_tokens, endpoint.reasoning_allowance_tokens, price)
     try:
-        async with ledger.reserve(reserve_usd, {"model_id": model_id, "command": "route"}) as reservation:
+        meta = {"model_id": model_id, "command": "route", "task": task}
+        async with ledger.reserve(reserve_usd, meta) as reservation:
             t0 = time.perf_counter()
             result = await client.complete(endpoint, messages, max_tokens, temperature=0.0)
             latency_ms = (time.perf_counter() - t0) * 1000
-            actual = result.cost_usd if result.cost_usd is not None else 0.0
-            reservation.settle(actual, "usage.cost" if result.cost_usd is not None else "unknown", {})
+            actual, source = settled_cost(result, price)
+            reservation.settle(actual, source, usage_meta(result))
     except BudgetExceeded:
         return None
-    price_book.observe(model_id, actual, result.prompt_tokens + result.completion_tokens)
     usage = {
         "prompt_tokens": result.prompt_tokens,
         "completion_tokens": result.completion_tokens,
@@ -206,7 +188,7 @@ async def _call_chain(
     gate_ctx: gates_module.GateContext,
     ledger: Ledger,
     client: ChatClient,
-    price_book: _PriceBook,
+    prices: dict[str, dict[str, Any]],
 ) -> _ChainOutcome:
     module = registry.get_kind(spec.kind)
     messages = module.render_messages(spec, item)
@@ -233,7 +215,10 @@ async def _call_chain(
                 escalated = True
                 continue
             if kind == "cloud":
-                attempt = await _attempt_cloud(model_id, endpoint, messages, max_tokens, client, ledger, price_book)
+                price = prices.get(model_id, _FALLBACK_PRICE)
+                attempt = await _attempt_cloud(
+                    model_id, spec.name, endpoint, messages, max_tokens, client, ledger, price
+                )
             else:
                 attempt = await _attempt_local(endpoint, messages, max_tokens, client)
 
@@ -281,13 +266,15 @@ def create_app(
     gate_ctx: gates_module.GateContext,
     ledger: Ledger,
     route_cfg: RouteConfig,
+    prices: dict[str, dict[str, Any]] | None = None,
 ) -> FastAPI:
     """Build the FastAPI router app. ``endpoints`` covers every local/cloud model in the plan's chains;
-    baseline candidates are served in-process from ``gate_ctx``'s own baseline objects."""
+    baseline candidates are served in-process from ``gate_ctx``'s own baseline objects. ``prices`` maps cloud
+    model ids to their price-snapshot entry and sizes ledger reservations exactly as in ``bench``."""
     del route_cfg  # timeouts and other policy are already baked into `endpoints` and `plan` by the caller
     app = FastAPI(title="local-enough router", docs_url=None, redoc_url=None)
     stats = _RouterStats()
-    price_book = _PriceBook()
+    price_table = prices or {}
     client = ChatClient()
 
     @app.post("/v1/chat/completions")
@@ -332,7 +319,7 @@ def create_app(
             gate_ctx=gate_ctx,
             ledger=ledger,
             client=client,
-            price_book=price_book,
+            prices=price_table,
         )
         stats.record(
             task_name, escalated=outcome.escalated, latency_ms=outcome.latency_ms, calls_by_class=outcome.calls_by_class

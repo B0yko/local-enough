@@ -130,7 +130,10 @@ async def _serve(
 
         gate_ctx = gates_module.build_gate_context(run_dir, specs)
         ledger = Ledger(cfg.project, cfg.budget_usd, cfg.budget_warn_usd)
-        fastapi_app = create_app(plan, specs, endpoints, gate_ctx, ledger, route_cfg)
+        snapshot = run_dir.read_json("price_snapshot.json", {}) or {}
+        fastapi_app = create_app(
+            plan, specs, endpoints, gate_ctx, ledger, route_cfg, prices=dict(snapshot.get("models", {}))
+        )
 
         uvicorn_config = uvicorn.Config(fastapi_app, host=host, port=port, log_level="info", access_log=False)
         uvicorn_server = uvicorn.Server(uvicorn_config)
