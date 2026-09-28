@@ -93,8 +93,19 @@ def render_setup(data: ReportData) -> str:
     lines.append(f"\n**Cloud models** (price snapshot: {s.get('price_snapshot_date') or fmt.NA})\n")
     lines.append(
         _table(
-            ["id", "role", "model"],
-            [[m["id"], m.get("role") or fmt.NA, m.get("model") or fmt.NA] for m in s.get("cloud_models", [])],
+            ["id", "role", "model", "Pass A calls", "retries", "failed after retries", "spend"],
+            [
+                [
+                    m["id"],
+                    m.get("role") or fmt.NA,
+                    m.get("model") or fmt.NA,
+                    fmt.fmt_int(m.get("calls")),
+                    fmt.fmt_int(m.get("retries")),
+                    fmt.fmt_int(m.get("failed")),
+                    fmt.fmt_usd(m.get("usd")),
+                ]
+                for m in s.get("cloud_models", [])
+            ],
         )
     )
     lines.append("\n**Split sizes**\n")

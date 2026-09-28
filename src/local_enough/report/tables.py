@@ -205,8 +205,17 @@ def _build_setup(run: RunDir, specs: dict[str, TaskSpec], tasks: list[str]) -> d
             repo, _, revision = display.partition("@")
         local_rows.append({"id": m["id"], "repo": repo, "revision": revision, "size_bytes": download.get("bytes")})
 
+    call_stats: dict[str, dict[str, float]] = {}
+    for rec in run.predictions("A"):
+        st = call_stats.setdefault(str(rec["model_id"]), {"calls": 0, "retries": 0, "failed": 0, "usd": 0.0})
+        st["calls"] += 1
+        st["retries"] += int(rec.get("retries") or 0)
+        st["failed"] += 1 if str(rec.get("error") or "").startswith("http") else 0
+        st["usd"] += float(rec.get("cost_usd") or 0.0)
     cloud_rows = [
-        {"id": m["id"], "role": m.get("role"), "model": m.get("model")} for m in models_cfg if m.get("kind") == "cloud"
+        {"id": m["id"], "role": m.get("role"), "model": m.get("model"), **call_stats.get(m["id"], {})}
+        for m in models_cfg
+        if m.get("kind") == "cloud"
     ]
 
     split_sizes: dict[str, dict[str, int | None]] = {}

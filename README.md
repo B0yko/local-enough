@@ -58,8 +58,8 @@ local-enough bench --tasks all --models quickstart.yaml --split calib --limit 10
 local-enough report
 ```
 
-**3. Local, no key (Apple Silicon).** Download the 1.5B model (0.88 GB), benchmark it, serve it behind the router
-and call it with the official `openai` client:
+**3. Local, no key (Apple Silicon).** Download the 1.5B model (0.88 GB; about 40 s on the connection used for the
+reference run), benchmark it, serve it behind the router and call it with the official `openai` client:
 
 ```bash
 local-enough models pull --models local.yaml
@@ -156,12 +156,12 @@ reference` or `local-enough route --simulate --run reference`, and CI fails if t
 
 **Cloud models** (price snapshot: 2026-09-28)
 
-| id | role | model |
-|---|---|---|
-| frontier | frontier | x-ai/grok-4.7 |
-| small-closed | small-closed | openai/gpt-5.4-nano |
-| open-large | open-large | deepseek/deepseek-v3.2 |
-| open-same-family | open-same-family | qwen/qwen3-235b-a22b-2507 |
+| id | role | model | Pass A calls | retries | failed after retries | spend |
+|---|---|---|---|---|---|---|
+| frontier | frontier | x-ai/grok-4.7 | 1,482 | 0 | 0 | $4.35 |
+| small-closed | small-closed | openai/gpt-5.4-nano | 1,482 | 0 | 0 | $0.25 |
+| open-large | open-large | deepseek/deepseek-v3.2 | 1,482 | 0 | 0 | $0.14 |
+| open-same-family | open-same-family | qwen/qwen3-235b-a22b-2507 | 1,482 | 125 | 1 | $0.07 |
 
 
 **Split sizes**
@@ -174,6 +174,10 @@ reference` or `local-enough route --simulate --run reference`, and CI fails if t
 | pii_redaction | 100 | 200 |
 | summarisation | 40 | 80 |
 <!-- le:setup:end -->
+
+`openai/gpt-5.4-nano` does not accept `temperature`, so OpenRouter drops the `temperature: 0` sent to it; every other
+model received it. The four cloud ids, their request settings and the reasons for them are in
+[ADR 7](docs/adr/0007-model-lineup.md).
 
 ### Quality, latency and cost per task
 
@@ -322,6 +326,24 @@ Both local models + router: 5.25 GiB (footprint; local-qwen2.5-1.5b 1.20 GiB, lo
 
 Reproduce: `local-enough bench --local-only --split test --concurrency 4`, `local-enough soak`.
 <!-- le:local_perf:end -->
+
+**Measurement conditions.** All local numbers come from one Mac Studio (desktop, mains power), with `caffeinate`
+spawned by `bench`, `soak` and `power-probe`, and other heavy workloads on the machine paused during the measurement
+windows.
+Before and every 60 s during each local pass (A, B, soak), a sampler recorded the CPU and memory in use by everything
+except local-enough's own processes (system-wide counters, so other users' processes count too); a window is
+`contaminated` when that exceeds one core for more than 10% of its samples, and none of the published windows was.
+Pass A runs local models at concurrency 1, Pass B at 4, and the 20-minute soak at 4 on the `workload_mix`; sustained
+throughput is Pass B × the soak's throttle factor. Even on this fan-cooled desktop the last five minutes of the soak ran
+18–21% slower than the first five; the report applies that ratio as measured and does not attribute it to a cause.
+Peak memory is the server's physical footprint (`/usr/bin/footprint`, which includes Metal allocations; checked by
+comparing a loaded model's footprint with its size on disk). A
+desktop Mac has no battery telemetry, so `power-probe` reports it unavailable and energy uses configured watts: 6 W
+idle and 145 − 6 = 139 W incremental, from Apple's published Mac Studio (2025, M4 Max) figures
+([support.apple.com/en-us/102027](https://support.apple.com/en-us/102027)), an upper bound. Energy is a small part of
+local cost at these volumes either way. The hardware price is the US apple.com list price of this configuration at
+launch ($1,999 base + $300 16-core/40-core chip + $1,200 128 GB + $600 2 TB = $4,099), read from Apple's archived
+configurator on 2025-03-15; the M4 Max model is no longer sold new.
 
 ### Break-even (dedicated machine)
 
