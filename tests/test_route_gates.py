@@ -220,6 +220,28 @@ def test_extraction_gate_fails_amount_digits_not_in_source():
     assert not result.passed and result.reason == "amount_not_in_source:budget_amount"
 
 
+def test_extraction_gate_amount_grounded_despite_a_trailing_zero_decimal():
+    """Gold/model JSON often carries a whole-number amount as a float (``12500.0``); the source never
+    spells out the ".0", so a naive digit-for-digit match on the raw string would reject a correct amount."""
+    spec, ctx = _extraction_spec(), _extraction_ctx()
+    item = {
+        "text": "Acme Widgets Ltd, 07700 900123, UK, Nimbus Workspace, budget 12,500 GBP.",
+        "reference_date": "2026-10-14",
+    }
+    parsed = Parsed(ok=True, value=_base_extraction_value(requested_meeting_date=None, budget_amount="12500.0"))
+    assert gates.gate(spec, item, parsed, ctx).passed
+
+
+def test_extraction_gate_amount_grounded_via_k_shorthand():
+    spec, ctx = _extraction_spec(), _extraction_ctx()
+    item = {
+        "text": "Acme Widgets Ltd, 07700 900123, UK, Nimbus Workspace. We've set aside $8k for the first year.",
+        "reference_date": "2026-10-14",
+    }
+    parsed = Parsed(ok=True, value=_base_extraction_value(requested_meeting_date=None, budget_amount="8000"))
+    assert gates.gate(spec, item, parsed, ctx).passed
+
+
 # -- pii ---------------------------------------------------------------------------------------
 
 

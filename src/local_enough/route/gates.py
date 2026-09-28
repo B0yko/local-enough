@@ -145,6 +145,35 @@ def _digits_in_source(value: str, source: str) -> bool:
     return len(digits) >= _PHONE_SUFFIX_LEN and digits[-_PHONE_SUFFIX_LEN:] in source_digits
 
 
+_ZERO_DECIMAL_RE = re.compile(r"^-?\d+\.(0+)$")
+
+
+def _strip_zero_cents(value: str) -> str:
+    """Drop a trailing all-zero decimal part from an amount value.
+
+    Gold and model JSON both often carry a whole-number amount as a float (``12500.0``); a source
+    document showing "12,500" never spells out the ".0", so matching digit-for-digit on the raw string
+    would inject a spurious trailing zero and make ``_digits_in_source`` miss a correct amount.
+    """
+    stripped = value.strip()
+    match = _ZERO_DECIMAL_RE.match(stripped)
+    return stripped[: -(len(match.group(1)) + 1)] if match else stripped
+
+
+_AMOUNT_K_SHORTHAND_RE = re.compile(r"(\d+(?:\.\d+)?)\s*k\b", re.IGNORECASE)
+
+
+def _amount_in_source(value: str, source: str) -> bool:
+    """Whether an amount is grounded in ``source``, digit-for-digit or as a "$8k" == 8000 shorthand."""
+    if _digits_in_source(value, source):
+        return True
+    try:
+        numeric = float(value)
+    except ValueError:
+        return False
+    return any(float(m.group(1)) * 1000 == numeric for m in _AMOUNT_K_SHORTHAND_RE.finditer(source))
+
+
 def _country_in_source(code: str, source: str, table: dict[str, str]) -> bool:
     code_norm = code.strip().upper()
     if not code_norm:
@@ -420,7 +449,7 @@ def _extraction_field_failure(
         allowed = {v.casefold() for v in fspec.values}
         return None if value.strip().casefold() in allowed else f"not_in_enum:{name}"
     if fspec.type == "amount":
-        return None if _digits_in_source(value, source) else f"amount_not_in_source:{name}"
+        return None if _amount_in_source(_strip_zero_cents(value), source) else f"amount_not_in_source:{name}"
     return None
 
 
