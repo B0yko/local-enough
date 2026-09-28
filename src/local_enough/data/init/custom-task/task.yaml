@@ -1,0 +1,17 @@
+name: custom_support_tickets
+kind: classification
+description: 'Example bring-your-own task: a 3-label support-ticket classifier.'
+calib: calib.jsonl
+test: test.jsonl
+train: train.jsonl
+labels:
+- billing
+- bug_report
+- how_to
+card:
+  source: synthetic example
+  licence: Apache-2.0
+  seed: 7
+  metric: accuracy
+  distinct_templates: 30
+  notes: Tiny made-up 3-label support-ticket classifier demonstrating bring-your-own-task.

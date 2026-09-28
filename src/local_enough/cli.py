@@ -10,6 +10,7 @@ import typer
 from local_enough import __version__
 from local_enough.bench.cli import bench, power_probe, soak
 from local_enough.config import LocalModel, load_config
+from local_enough.init import init
 from local_enough.judge.cli import app as judge_app
 from local_enough.providers.hub import ModelBudgetExceeded, pull_models, write_downloads_json
 from local_enough.report.cli import report
@@ -23,6 +24,7 @@ app = typer.Typer(
     add_completion=False,
 )
 app.add_typer(datasets_app, name="datasets")
+app.command("init")(init)
 app.command("bench")(bench)
 app.command("soak")(soak)
 app.command("power-probe")(power_probe)

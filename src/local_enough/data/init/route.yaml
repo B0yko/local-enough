@@ -1,0 +1,10 @@
+quality_bar:
+  default: {relative_to_best: 0.95}      # 95% of the best candidate's calib score on that task, baselines included
+  pii_redaction: {absolute: 0.95}
+latency_p95_max_s: {default: null, classification: 5}
+constraints: {data_must_stay_local: [pii_redaction]}
+allow_below_bar_local: false
+workload_mix: {classification: 0.30, extraction: 0.25, pii_redaction: 0.20, entity_matching: 0.15, summarisation: 0.10}
+reference_monthly_volume: 50000          # total mixed volume per month; V_t = volume x mix_t
+expected_monthly_volume: {}              # optional per-task override, e.g. {classification: 30000}
+timeouts_s: {local: 60, cloud: 60}
