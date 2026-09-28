@@ -1,4 +1,4 @@
-"""Router live check (spec item 15/7): replay mixed test items through a *running* router with the official
+"""Router live check: replay mixed test items through a *running* router with the official
 ``openai`` client and compare its decisions with an offline :func:`local_enough.route.simulate.simulate` run.
 
 Sends real HTTP requests to ``url`` (a router the caller already started, e.g. with ``local-enough route``),

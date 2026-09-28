@@ -3,7 +3,7 @@
 Cycles ``test``-split items of every task in ``route.yaml``'s ``workload_mix`` in a seeded,
 deterministic interleaving, keeping ``concurrency`` requests in flight until the clock runs out.
 The first-5-minute vs last-5-minute throughput ratio (the throttle factor) feeds the cost model's
-sustained throughput figure; see ``docs/cost-model.md`` and docs/run-directory.md ("Bench").
+sustained throughput figure; see ``docs/cost-model.md``.
 """
 
 from __future__ import annotations

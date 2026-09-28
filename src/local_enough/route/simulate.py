@@ -159,7 +159,7 @@ def _walk_chain(
 
     if served_by is None:
         gate_label = GATE_FAILED
-        # Spec item 15: a task that isn't local-only serves the best-quality candidate's answer anyway when
+        # A task that isn't local-only serves the best-quality candidate's answer anyway when
         # every candidate fails the gate; a local-only task's chain exhausting instead means the router
         # would 503 (``local_only_unavailable``), so it must not be scored as if served -- mirrors server.py.
         if tp.local_only:
@@ -374,7 +374,7 @@ def _weighted_avg(values: dict[str, float], weights: dict[str, float]) -> float 
 def _mixed_cost(
     sim: SimResult, run_dir: RunDir, route_cfg: RouteConfig, local_costs: dict[tuple[str, str], costing.LocalCost]
 ) -> float | None:
-    """USD per 1,000 mixed tasks under the shared-machine scenario (spec item 15, ``simulate.py``)."""
+    """USD per 1,000 mixed tasks under the shared-machine scenario (docs/cost-model.md)."""
     hw = costing.hardware_from_run(run_dir)
     fixed_usd_per_month = 0.0
     if hw is not None:

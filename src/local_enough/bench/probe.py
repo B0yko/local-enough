@@ -4,8 +4,7 @@
 windows while sampling ``ioreg``. It runs on a worker thread here (``asyncio.to_thread``) so the
 rest of the CLI stays async; its ``start_load``/``stop_load`` callbacks start and stop plain
 ``threading.Thread`` workers that make synchronous HTTP calls against the model, independent of the
-asyncio event loop, so there is no cross-thread coordination with it. See docs/run-directory.md ("Bench")
-and spec item 10.
+asyncio event loop, so there is no cross-thread coordination with it.
 """
 
 from __future__ import annotations

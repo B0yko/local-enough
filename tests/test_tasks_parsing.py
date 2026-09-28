@@ -17,7 +17,7 @@ def test_strip_wrappers_removes_unterminated_think_block() -> None:
 
 def test_strip_wrappers_removes_unterminated_think_before_answer() -> None:
     # An unterminated <think> swallows everything after it, including a real answer -
-    # this is the harness-bug case the spec calls out (empty content from a hit cap).
+    # this is the harness-bug case (empty content from a hit cap).
     assert strip_wrappers("<think>reasoning\nlabel") == ""
 
 

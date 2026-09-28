@@ -143,7 +143,7 @@ async def test_local_only_exhaustion_returns_503_and_never_calls_cloud(tmp_path)
 
 @pytest.mark.asyncio
 async def test_local_only_gate_failure_on_last_fallback_returns_503_not_a_degraded_answer(tmp_path):
-    """Spec item 15: the "serve the best-quality candidate's answer with gate: failed" fallback is only for
+    """The "serve the best-quality candidate's answer with gate: failed" fallback is only for
     a task that *isn't* local-only. A local-only task whose gate fails on every candidate (not just an HTTP
     error) must still 503 ``local_only_unavailable`` -- it must not silently return a gate-failing answer."""
     tfidf = _tfidf()

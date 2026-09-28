@@ -1,4 +1,4 @@
-"""The OpenAI-compatible router (spec item 15): ``POST /v1/chat/completions`` plus ``/v1/models``,
+"""The OpenAI-compatible router: ``POST /v1/chat/completions`` plus ``/v1/models``,
 ``/healthz`` and ``/stats``.
 
 The router only ever serves the benchmarked task prompts (ADR 5): the client calls model
@@ -249,7 +249,7 @@ async def _call_chain(
             break
         escalated = True
 
-    # Spec item 15: this "serve the best-quality answer anyway" fallback is only for a task that isn't
+    # This "serve the best-quality answer anyway" fallback is only for a task that isn't
     # local-only. A local-only task whose chain is exhausted (every candidate errored or failed the gate,
     # including a gate failure on the last fallback) must 503 instead -- never serve a degraded answer.
     if served_model_id is None and fallback_parsed is not None and not tp.local_only:

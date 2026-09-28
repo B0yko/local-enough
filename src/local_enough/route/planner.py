@@ -1,4 +1,4 @@
-"""Build a routing plan from a run's ``calib`` results and ``route.yaml`` (spec item 15).
+"""Build a routing plan from a run's ``calib`` results and ``route.yaml``.
 
 Candidates come from :func:`local_enough.candidates.candidate_table` (the same table the report uses), so
 the quality bar and the router's decisions are always read off identical numbers. Everything a gate needs

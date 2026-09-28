@@ -4,8 +4,7 @@ This is the single place that reads run-directory files and shared helpers (``ca
 ``costing``, ``costmodel``, ``judge.stats``) and turns them into plain, JSON-friendly rows that
 ``report.markdown`` renders to Markdown/HTML blocks and ``report.charts`` turns into figures.
 Missing optional files (soak, power, memory, judge, live-check, downloads) degrade to "not
-measured"/"not judged" fields rather than raising, so a partial run always renders (spec item 14 /
-docs/run-directory.md).
+measured"/"not judged" fields rather than raising, so a partial run always renders.
 """
 
 from __future__ import annotations

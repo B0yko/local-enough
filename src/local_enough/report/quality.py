@@ -1,4 +1,4 @@
-"""The quality bar, the per-task verdict rule (spec item 14) and the headline sentence.
+"""The quality bar, the per-task verdict rule and the headline sentence.
 
 Kept independent of the route package (which may not be importable while ``m5`` is still landing):
 callers pass in whatever router-derived facts they have (hybrid eligibility, router savings), or
@@ -89,7 +89,7 @@ def task_verdict(
     v_t: float,
     hybrid_eligible: bool,
 ) -> TaskVerdict:
-    """The deterministic per-task verdict of spec item 14 / ``VERDICT_RULE_TEXT``.
+    """The deterministic per-task verdict (``VERDICT_RULE_TEXT``).
 
     ``breaks_even_within_volume`` is decided by the caller: ``costmodel.break_even`` returning
     ``"break-even"`` with ``V_t`` at or above that volume, or trivially ``True`` when the best local
@@ -144,7 +144,7 @@ def headline_text(
     router_saving_pct: float | None,
     router_saving_vs: str | None,
 ) -> str:
-    """The 2-3 sentence headline verdict computed exactly per spec "Headline"."""
+    """The 2-3 sentence headline verdict computed from the run."""
     task, local_met_a_bar = headline_task(met_bar_tasks, workload_mix)
 
     if local_met_a_bar:

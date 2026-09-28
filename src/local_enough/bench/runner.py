@@ -2,8 +2,7 @@
 
 Every call becomes one prediction record appended to ``predictions.jsonl.gz``; ``--resume`` (or
 simply reusing a run directory) skips whatever ``(model_id, task, split, item_id, pass)`` keys are
-already recorded, so an interrupted run neither repeats work nor re-bills. See ``docs/run-directory.md``
-("Bench") for the exact run-directory file shapes this module writes.
+already recorded, so an interrupted run neither repeats work nor re-bills.
 """
 
 from __future__ import annotations

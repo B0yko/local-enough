@@ -147,7 +147,7 @@ def test_simulate_without_gates_only_escalates_on_error_or_invalid_parse(tmp_pat
 
 def test_simulate_local_only_gate_exhaustion_is_not_served(tmp_path):
     """A local-only task whose chain is exhausted because every candidate fails the gate must not be
-    served with a degraded answer (spec item 15's "local-only exhaustion" -> 503 ``local_only_unavailable``
+    served with a degraded answer (the router's local-only exhaustion rule: 503 ``local_only_unavailable``
     in server.py); simulate.py has to score the item the same way, not as if it were served."""
     root = tmp_path / "cls"
     root.mkdir()

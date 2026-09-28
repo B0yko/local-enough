@@ -1,6 +1,6 @@
 """Redact personal data from business notes.
 
-Scoring follows the spec's PII scoring rules: a predicted ``{type, text}`` is aligned to every
+Scoring rules: a predicted ``{type, text}`` is aligned to every
 whitespace-normalised occurrence of ``text`` in the document; a gold span counts as caught when some
 occurrence covers >=80% of its characters. Catching (recall) ignores type; precision requires the type
 of the covering occurrence to match the gold span's type.

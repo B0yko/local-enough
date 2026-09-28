@@ -1,4 +1,4 @@
-"""Deterministic confidence gates (spec item 16): the same code for ``route.simulate`` and ``route.server``.
+"""Deterministic confidence gates: the same code for ``route.simulate`` and ``route.server``.
 
 Every gate is a pure function of a task spec, the router's own input item (no gold), the parsed output and a
 :class:`GateContext` built from the task's own dataset -- never from the model's self-reported confidence. Two
@@ -390,7 +390,7 @@ def build_gate_context(run: RunDir | str, specs: dict[str, TaskSpec]) -> GateCon
 
 
 def gate(spec: TaskSpec, item: Item, parsed: Parsed, ctx: GateContext, *, format_only: bool = False) -> GateResult:
-    """Spec item 16's deterministic evidence check for one predicted answer.
+    """The deterministic evidence check for one predicted answer.
 
     ``item`` is the router's own view of the request (no gold: what ``item_from_input`` builds, or a dataset
     row when replaying). ``format_only`` is set when the candidate being gated is itself the baseline a gate

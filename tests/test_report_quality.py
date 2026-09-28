@@ -1,4 +1,4 @@
-"""The deterministic per-task verdict rule (spec item 14) and the headline sentence."""
+"""The deterministic per-task verdict rule and the headline sentence."""
 
 from __future__ import annotations
 

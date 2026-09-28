@@ -6,7 +6,7 @@
 ## Context
 
 The reference run compares two local models with four cloud models, one per role, plus three non-LLM baselines.
-The spec caps the `--dry-run` estimate of the full run (both splits, 1,482 calls per model) at $4.50 for the
+The reference-run budget caps the `--dry-run` estimate of the full run (both splits, 1,482 calls per model) at $4.50 for the
 frontier role and $6.50 for the four cloud models together. The dry-run estimate assumes every call uses its full
 visible-output cap plus any reasoning allowance, so it is an upper bound on visible output. Model ids were checked
 against `GET https://openrouter.ai/api/v1/models` on 2026-09-28; the snapshot taken at bench time is stored as
