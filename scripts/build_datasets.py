@@ -17,6 +17,7 @@ import argparse
 import csv
 import hashlib
 import json
+import math
 import random
 import re
 import sys
@@ -808,6 +809,575 @@ def build_pii(seed: int, out_dir: Path) -> DatasetCard:
     return card
 
 
+# --------------------------------------------------------------------------------------
+# summarisation (+ judge-calib / judge-holdout)
+# --------------------------------------------------------------------------------------
+
+MEETING_TOPICS = [
+    "the website migration", "the vendor consolidation", "the office relocation",
+    "the Q4 hiring plan", "the customer onboarding redesign", "the warehouse automation rollout",
+    "the support ticket backlog", "the annual budget review", "the new supplier onboarding",
+    "the security audit follow-up",
+]
+WORKSTREAMS = [
+    "the vendor contract", "the rollout schedule", "the support queue", "the integration testing",
+    "the training materials", "the compliance review", "the budget forecast", "the staffing plan",
+    "the migration plan", "the customer feedback", "the pilot results", "the security review",
+    "the deployment checklist", "the onboarding flow", "the incident backlog", "the license renewal",
+    "the hardware refresh", "the vendor scorecard", "the escalation process", "the reporting dashboard",
+    "the change request queue", "the capacity plan", "the risk register", "the audit findings",
+    "the service catalogue", "the automation backlog", "the network upgrade", "the data migration",
+    "the access review", "the disaster-recovery plan",
+]
+DUE_DATES = [
+    "Friday", "next Wednesday", "the end of the month", "14 April", "the 20th", "next Monday",
+    "the end of the quarter", "Thursday", "the 3rd", "next Friday",
+]
+AMOUNT_VALUES = [3500, 6000, 8500, 12000, 18000, 24000, 32000, 50000, 9500, 15500]
+AMOUNT_SYMBOLS = ["$", "£", "€"]
+DECISION_ACTIONS = [
+    "move forward with the new vendor", "extend the pilot to all regions", "postpone the launch",
+    "consolidate the two systems", "adopt the revised timeline", "proceed with the in-house option",
+    "finalise the contract terms", "roll out the update company-wide", "freeze scope for this quarter",
+    "switch to the new reporting tool",
+]
+TASK_ACTIONS = [
+    "send the updated proposal", "follow up with the vendor", "prepare the migration checklist",
+    "schedule the kickoff session", "draft the revised budget", "coordinate with the facilities team",
+    "circulate the meeting notes", "confirm the go-live date", "update the project tracker",
+    "arrange the site visit",
+]
+ALT_APPROACHES = [
+    "a phased rollout", "an in-house build", "the previous vendor", "a manual process",
+    "outsourcing the work", "a smaller pilot", "the legacy system", "a same-day migration",
+]
+OPENING_TURNS = [
+    "{speaker}: Thanks everyone for joining, let's get started on {topic}.",
+    "{speaker}: Good morning all, let's dive straight into {topic}.",
+    "{speaker}: Quick reminder that we're on a tight schedule today, so let's cover {topic} first.",
+    "{speaker}: Appreciate everyone making time, today is mostly about {topic}.",
+]
+CLOSING_TURNS = [
+    "{speaker}: Great, thanks everyone, I'll circulate notes by end of day.",
+    "{speaker}: Sounds good, same time next week?",
+    "{speaker}: Appreciate everyone's time, that's a wrap.",
+    "{speaker}: I'll follow up over email with any loose ends.",
+]
+SMALL_TALK = [
+    "{speaker}: Sorry I'm a few minutes late, previous call ran over.",
+    "{speaker}: Can everyone hear me okay?",
+    "{speaker}: I'll share my screen in a second.",
+    "{speaker}: Before we dive in, congrats on the milestone last week.",
+    "{speaker}: Let's take five minutes at the end for questions.",
+    "{speaker}: I grabbed coffee on the way, hope that's fine.",
+    "{speaker}: Glad we're not commuting today, the weather's been rough.",
+    "{speaker}: Let's keep this to thirty minutes if we can.",
+    "{speaker}: I'll send the notes around afterwards.",
+    "{speaker}: Can we push the deep dive to next week's sync?",
+    "{speaker}: Mind if I join from my phone, I'm between rooms.",
+    "{speaker}: Let's mute when we're not talking, there's some echo.",
+]
+SUPERSEDED = [
+    "{speaker}: We originally looked at {alt}, but that's now off the table.",
+    "{speaker}: The earlier plan involving {alt} didn't pan out, so we moved on.",
+    "{speaker}: We'd considered {alt} last quarter, but priorities shifted.",
+    "{speaker}: That approach around {alt} was shelved after the last review.",
+]
+REJECTED = [
+    "{speaker}: We looked at {alt} and decided against it, cost was too high.",
+    "{speaker}: {alt} was on the shortlist but didn't meet the requirements.",
+    "{speaker}: We ruled out {alt} early on.",
+    "{speaker}: The option of {alt} couldn't meet our timeline, so we passed.",
+]
+ELABORATIONS = [
+    "{speaker}: On {ws}, we're roughly {pct}% through and tracking close to plan.",
+    "{speaker}: The main risk on {ws} is still {reason}, but there's a mitigation in place.",
+    "{speaker}: We had a good conversation with stakeholders about {ws} earlier this week.",
+    "{speaker}: {ws_cap} is taking a bit longer than expected, mostly due to {reason}.",
+    "{speaker}: I think {ws} is in decent shape, just a few loose ends to tie up.",
+    "{speaker}: There's some dependency between {ws} and the wider rollout worth flagging.",
+    "{speaker}: Feedback on {ws} has been mostly positive so far.",
+    "{speaker}: We'll need another sync specifically on {ws} before we can close it out.",
+    "{speaker}: {ws_cap} came up a few times in customer conversations this month.",
+    "{speaker}: Let's make sure {ws} doesn't slip, it's on the critical path.",
+    "{speaker}: I don't have much to add on {ws}, it's progressing as expected.",
+    "{speaker}: The numbers on {ws} look reasonable, nothing alarming there.",
+    "{speaker}: We should loop in another team on {ws} at some point.",
+    "{speaker}: {ws_cap} is mostly a resourcing question at this stage.",
+    "{speaker}: Once {ws} wraps up we can shift focus to the next item.",
+    "{speaker}: There were a couple of questions on {ws} in the last review.",
+    "{speaker}: {ws_cap} has been the smoothest part of this whole effort, honestly.",
+    "{speaker}: We're keeping a close eye on {ws} given how visible it is.",
+    "{speaker}: A quick update on {ws}: still on track, no blockers right now.",
+    "{speaker}: {ws_cap} might need a bit more budget, we'll confirm next week.",
+    "{speaker}: Worth noting that {ws} depends on sign-off from another team.",
+    "{speaker}: Nothing new on {ws} since last time, just steady progress.",
+    "{speaker}: We're a little behind on {ws}, but nothing we can't recover from.",
+    "{speaker}: {ws_cap} is ahead of schedule, which frees up time for the rest.",
+    "{speaker}: The team working on {ws} could use another pair of hands.",
+]
+REASON_WORDS = [
+    "a staffing gap", "a vendor delay", "a scope change", "a dependency on another team",
+    "a data-quality issue", "a permissions issue", "an unexpected outage", "a licensing hold-up",
+]
+
+SUMMARY_STYLES: dict[str, list[str]] = {
+    "decision": [
+        "The team decided to {action} by {date}.",
+        "A decision was made to {action}, targeting {date}.",
+        "Decision: {action}, by {date}.",
+    ],
+    "action_item": [
+        "{owner} will {action} by {date}.",
+        "It was agreed that {owner} would {action} by {date}.",
+        "Action: {owner} to {action}, due {date}.",
+    ],
+    "amount": [
+        "Budget for {ws} was set at {amount}.",
+        "The team agreed to allocate {amount} for {ws}.",
+        "Budget: {amount} for {ws}.",
+    ],
+}
+
+
+def _amount_text(rng: random.Random, value: int) -> str:
+    return f"{rng.choice(AMOUNT_SYMBOLS)}{value:,}"
+
+
+def build_required_facts(rng: random.Random, speakers: list[str], n_facts: int) -> list[dict[str, Any]]:
+    kinds = ["decision", "action_item", "amount"]
+    plan = kinds[:] + rng.choices(kinds, k=n_facts - len(kinds))
+    rng.shuffle(plan)
+    facts = []
+    for idx, kind in enumerate(plan):
+        speaker = rng.choice(speakers)
+        if kind == "decision":
+            action = rng.choice(DECISION_ACTIONS)
+            due = rng.choice(DUE_DATES)
+            turn = f"{speaker}: We've decided to {action} by {due}."
+            fact_text = f"The team decided to {action} by {due}."
+            key_tokens = {"date": due}
+            internal = {"action": action, "date": due, "ws": None, "amount": None, "owner": None}
+        elif kind == "action_item":
+            owner = rng.choice(speakers)
+            action = rng.choice(TASK_ACTIONS)
+            due = rng.choice(DUE_DATES)
+            turn = f"{speaker}: {owner} will {action} by {due}."
+            fact_text = f"{owner} will {action} by {due}."
+            key_tokens = {"owner": owner, "date": due}
+            internal = {"action": action, "date": due, "ws": None, "amount": None, "owner": owner}
+        else:
+            ws = rng.choice(WORKSTREAMS)
+            value = rng.choice(AMOUNT_VALUES)
+            amount_text = _amount_text(rng, value)
+            turn = f"{speaker}: The budget for {ws} is set at {amount_text}."
+            fact_text = f"Budget for {ws} was set at {amount_text}."
+            key_tokens = {"amount": amount_text}
+            internal = {"action": None, "date": None, "ws": ws, "amount": amount_text, "owner": None}
+        facts.append(
+            {
+                "index": idx,
+                "kind": kind,
+                "fact": fact_text,
+                "key_tokens": key_tokens,
+                "turn": turn,
+                "_internal": internal,
+            }
+        )
+    return facts
+
+
+def public_fact(f: dict[str, Any]) -> dict[str, Any]:
+    return {"index": f["index"], "kind": f["kind"], "fact": f["fact"], "key_tokens": f["key_tokens"]}
+
+
+def build_transcript(rng: random.Random, item_id: str) -> dict[str, Any]:
+    speakers = rng.sample(FIRST_NAMES, k=rng.choice([3, 4]))
+    topic = rng.choice(MEETING_TOPICS)
+    workstreams = rng.sample(WORKSTREAMS, k=4)
+    n_facts = rng.choice([4, 5, 6])
+    n_distractors = rng.randint(5, 10)
+
+    facts = build_required_facts(rng, speakers, n_facts)
+
+    turns: list[str] = []
+    for f in facts:
+        turns.append(f["turn"])
+
+    kind_pool = ["small_talk"] * 5 + ["superseded"] * 3 + ["rejected"] * 3
+    for _ in range(n_distractors):
+        speaker = rng.choice(speakers)
+        kind = rng.choice(kind_pool)
+        if kind == "small_talk":
+            turns.append(rng.choice(SMALL_TALK).format(speaker=speaker))
+        elif kind == "superseded":
+            turns.append(rng.choice(SUPERSEDED).format(speaker=speaker, alt=rng.choice(ALT_APPROACHES)))
+        else:
+            turns.append(rng.choice(REJECTED).format(speaker=speaker, alt=rng.choice(ALT_APPROACHES)))
+
+    rng.shuffle(turns)
+    opening = rng.choice(OPENING_TURNS).format(speaker=rng.choice(speakers), topic=topic)
+    closing = rng.choice(CLOSING_TURNS).format(speaker=rng.choice(speakers))
+    all_turns = [opening, *turns, closing]
+
+    def word_count(ts: list[str]) -> int:
+        return sum(len(t.split()) for t in ts)
+
+    target = rng.randint(650, 950)
+    guard = 0
+    while word_count(all_turns) < target and guard < 200:
+        guard += 1
+        speaker = rng.choice(speakers)
+        ws = rng.choice(workstreams)
+        tmpl = rng.choice(ELABORATIONS)
+        line = tmpl.format(speaker=speaker, ws=ws, ws_cap=ws[0].upper() + ws[1:], pct=rng.choice([15, 20, 30, 40, 55, 60, 70, 80, 90]), reason=rng.choice(REASON_WORDS))
+        all_turns.insert(rng.randint(1, len(all_turns) - 1), line)
+
+    text = "\n".join(all_turns)
+    return {"id": item_id, "text": text, "max_words": 120, "required_facts": [public_fact(f) for f in facts], "_facts": facts}
+
+
+def render_fact_sentence(f: dict[str, Any], style: int, mutate: str | None = None, mutated_value: str | None = None) -> str:
+    internal = f["_internal"]
+    tmpl = SUMMARY_STYLES[f["kind"]][style]
+    slots = dict(internal)
+    if mutate and mutated_value is not None:
+        slots[mutate] = mutated_value
+    return tmpl.format(
+        action=slots.get("action"), date=slots.get("date"), owner=slots.get("owner"),
+        ws=slots.get("ws"), amount=slots.get("amount"),
+    )
+
+
+def build_judge_summaries(
+    rng: random.Random, transcript: dict[str, Any], style_counter: list[int], id_prefix: str
+) -> list[dict[str, Any]]:
+    facts = transcript["_facts"]
+    n = len(facts)
+    records = []
+    variants = ["faithful", "fact_dropped", "wrong_number_or_date", "wrong_owner", "invented_commitment"]
+    for v_idx, variant in enumerate(variants):
+        style = style_counter[0] % 3
+        style_counter[0] += 1
+        sentences = []
+        labels = []
+        unsupported = 0
+        if variant == "faithful":
+            for f in facts:
+                sentences.append(render_fact_sentence(f, style))
+                labels.append({"index": f["index"], "present": True, "correct": True})
+        elif variant == "fact_dropped":
+            drop_idx = rng.randrange(n)
+            for f in facts:
+                if f["index"] == drop_idx:
+                    labels.append({"index": f["index"], "present": False, "correct": False})
+                    continue
+                sentences.append(render_fact_sentence(f, style))
+                labels.append({"index": f["index"], "present": True, "correct": True})
+        elif variant == "wrong_number_or_date":
+            target_idx = rng.randrange(n)
+            for f in facts:
+                if f["index"] == target_idx:
+                    if f["kind"] == "amount":
+                        wrong = _amount_text(rng, rng.choice([v for v in AMOUNT_VALUES if v != int(re.sub(r"[^0-9]", "", f["_internal"]["amount"]))]))
+                        sentences.append(render_fact_sentence(f, style, mutate="amount", mutated_value=wrong))
+                    else:
+                        wrong = rng.choice([d for d in DUE_DATES if d != f["_internal"]["date"]])
+                        sentences.append(render_fact_sentence(f, style, mutate="date", mutated_value=wrong))
+                    labels.append({"index": f["index"], "present": True, "correct": False})
+                else:
+                    sentences.append(render_fact_sentence(f, style))
+                    labels.append({"index": f["index"], "present": True, "correct": True})
+        elif variant == "wrong_owner":
+            owner_facts = [f for f in facts if f["kind"] == "action_item"]
+            target = rng.choice(owner_facts)
+            for f in facts:
+                if f["index"] == target["index"]:
+                    wrong = rng.choice([n for n in FIRST_NAMES if n != f["_internal"]["owner"]])
+                    sentences.append(render_fact_sentence(f, style, mutate="owner", mutated_value=wrong))
+                    labels.append({"index": f["index"], "present": True, "correct": False})
+                else:
+                    sentences.append(render_fact_sentence(f, style))
+                    labels.append({"index": f["index"], "present": True, "correct": True})
+        else:  # invented_commitment
+            for f in facts:
+                sentences.append(render_fact_sentence(f, style))
+                labels.append({"index": f["index"], "present": True, "correct": True})
+            owner = rng.choice(FIRST_NAMES)
+            action = rng.choice(TASK_ACTIONS)
+            due = rng.choice(DUE_DATES)
+            sentences.append(f"{owner} also committed to {action} by {due}.")
+            unsupported = 1
+
+        summary = " ".join(sentences)
+        wc = len(summary.split())
+        assert wc <= 120, f"summary too long ({wc} words): {summary!r}"
+        present_correct = sum(1 for label in labels if label["present"] and label["correct"])
+        label_pass = present_correct >= math.ceil(0.8 * n) and unsupported == 0 and wc <= 120
+        records.append(
+            {
+                "id": f"{id_prefix}-{transcript['id']}-{variant}",
+                "transcript_id": transcript["id"],
+                "variant": variant,
+                "style": style,
+                "summary": summary,
+                "facts": labels,
+                "unsupported_claims": unsupported,
+                "label_pass": label_pass,
+            }
+        )
+    return records
+
+
+def build_summarisation(seed: int, out_dir: Path) -> DatasetCard:
+    rng = random.Random(f"summarisation:{seed}")
+    calib = [build_transcript(rng, f"summarisation-calib-{i:04d}") for i in range(40)]
+    test = [build_transcript(rng, f"summarisation-test-{i:04d}") for i in range(80)]
+    holdout = [build_transcript(rng, f"summarisation-holdout-{i:04d}") for i in range(40)]
+
+    task_dir = out_dir / "summarisation"
+
+    def strip_internal(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        return [{k: v for k, v in it.items() if k != "_facts"} for it in items]
+
+    write_jsonl(task_dir / "calib.jsonl", strip_internal(calib))
+    write_jsonl(task_dir / "test.jsonl", strip_internal(test))
+    write_jsonl(task_dir / "judge_holdout_transcripts.jsonl", strip_internal(holdout))
+
+    style_counter = [0]
+    judge_calib_records = []
+    for t in calib:
+        judge_calib_records.extend(build_judge_summaries(rng, t, style_counter, "jc"))
+    write_jsonl(task_dir / "judge_calib.jsonl", judge_calib_records)
+
+    style_counter = [0]
+    judge_holdout_records = []
+    for t in holdout:
+        judge_holdout_records.extend(build_judge_summaries(rng, t, style_counter, "jh"))
+    write_jsonl(task_dir / "judge_holdout.jsonl", judge_holdout_records)
+
+    card = DatasetCard(
+        source="synthetic",
+        licence="Apache-2.0",
+        seed=seed,
+        metric="pass_rate",
+        distinct_templates=(
+            len(MEETING_TOPICS) + len(WORKSTREAMS) + len(DUE_DATES) + len(AMOUNT_VALUES)
+            + len(DECISION_ACTIONS) + len(TASK_ACTIONS) + len(ALT_APPROACHES) + len(OPENING_TURNS)
+            + len(CLOSING_TURNS) + len(SMALL_TALK) + len(SUPERSEDED) + len(REJECTED) + len(ELABORATIONS)
+            + sum(len(v) for v in SUMMARY_STYLES.values())
+        ),
+        notes=(
+            "600-1000 word meeting transcripts with 4-6 required facts and 5-10 distractors; "
+            "judge-calib/judge-holdout summaries are construction-labelled, not human-labelled."
+        ),
+    )
+    spec = TaskSpec(
+        name="summarisation",
+        kind="summarisation",
+        description="Meeting transcript to an action summary.",
+        calib="calib.jsonl",
+        test="test.jsonl",
+        max_words=120,
+        card=card,
+    )
+    write_yaml_task(task_dir / "task.yaml", spec)
+    return card
+
+
+# --------------------------------------------------------------------------------------
+# entity_matching
+# --------------------------------------------------------------------------------------
+
+ENTITY_COUNTRIES = ["GB", "US", "CA"]
+TRANSLITERATION_PAIRS = [
+    ("Müller", "Mueller"), ("Björk", "Bjork"), ("Søren", "Soren"), ("François", "Francois"), ("Håkon", "Hakon"),
+]
+QUALIFIERS = ["International", "Group", "& Partners", "Holdings"]
+QUALIFIER_ABBR = {"International": "Intl", "Group": "Grp", "& Partners": "& Ptnrs", "Holdings": "Hldgs"}
+LEGAL_FORM_LONG = {"Ltd": "Limited", "LLP": "Limited Liability Partnership", "Inc.": "Incorporated", "LLC": "L.L.C."}
+REGIONS = ["European", "North American", "APAC", "UK", "Nordic"]
+
+
+def public_record(r: dict[str, Any]) -> dict[str, Any]:
+    return {k: v for k, v in r.items() if not k.startswith("_")}
+
+
+def make_master(rng: random.Random) -> dict[str, Any]:
+    country = rng.choice(ENTITY_COUNTRIES)
+    sector = rng.choice(SECTORS)
+    surname_style = rng.random() < 0.2
+    base, base_ascii = rng.choice(TRANSLITERATION_PAIRS) if surname_style else (rng.choice(COMPANY_PREFIXES),) * 2
+    qualifier = rng.choice(QUALIFIERS) if rng.random() < 0.4 else None
+    suffix = rng.choice(SECTOR_SUFFIXES[sector])
+    legal = rng.choice(LEGAL_FORMS[country])
+    bits = [base, qualifier, suffix, legal]
+    name = " ".join(b for b in bits if b)
+    check_no_blocklisted_brand(name)
+    street, city = address_line(rng, country)
+    slug = slugify(f"{base_ascii} {suffix}")
+    tld = rng.choice(["com", "org", "net"])
+    return {
+        "name": name, "street": street, "postcode": postcode_for(rng, country), "city": city, "country": country,
+        "domain": f"{slug}.example.{tld}", "vat_id": f"{country}{rng.randint(100000000, 999999999)}",
+        "phone": phone_for_country(rng, country)[0],
+        "_base": base, "_base_ascii": base_ascii, "_qualifier": qualifier, "_suffix": suffix, "_legal": legal,
+        "_surname_style": surname_style,
+    }
+
+
+def transform_legal_form(rng: random.Random, m: dict[str, Any]) -> dict[str, Any]:
+    r = dict(m)
+    long_form = LEGAL_FORM_LONG.get(m["_legal"])
+    new_legal = long_form if long_form and rng.random() < 0.7 else m["_legal"]
+    bits = [m["_base"], m["_qualifier"], m["_suffix"], new_legal]
+    r["name"] = " ".join(b for b in bits if b)
+    return r
+
+
+def transform_abbreviation(rng: random.Random, m: dict[str, Any]) -> dict[str, Any]:
+    r = dict(m)
+    abbr = QUALIFIER_ABBR[m["_qualifier"]]
+    bits = [m["_base"], abbr, m["_suffix"], m["_legal"]]
+    r["name"] = " ".join(b for b in bits if b)
+    return r
+
+
+def transform_typo(rng: random.Random, m: dict[str, Any]) -> dict[str, Any]:
+    r = dict(m)
+    name = m["name"]
+    candidates = [i for i in range(len(name) - 1) if name[i] != " " and name[i + 1] != " "]
+    pos = rng.choice(candidates) if candidates else 0
+    chars = list(name)
+    if rng.random() < 0.5:
+        chars[pos], chars[pos + 1] = chars[pos + 1], chars[pos]
+    else:
+        del chars[pos]
+    r["name"] = "".join(chars)
+    return r
+
+
+def transform_transliteration(rng: random.Random, m: dict[str, Any]) -> dict[str, Any]:
+    r = dict(m)
+    r["name"] = m["name"].replace(m["_base"], m["_base_ascii"])
+    return r
+
+
+def transform_missing_fields(rng: random.Random, m: dict[str, Any]) -> dict[str, Any]:
+    r = dict(m)
+    for field in rng.sample(["phone", "street"], k=rng.choice([1, 2])):
+        r[field] = None
+    return r
+
+
+def transform_moved_office(rng: random.Random, m: dict[str, Any]) -> dict[str, Any]:
+    r = dict(m)
+    street, city = address_line(rng, m["country"])
+    r["street"], r["city"], r["postcode"] = street, city, postcode_for(rng, m["country"])
+    return r
+
+
+def negative_other_country(rng: random.Random, m: dict[str, Any]) -> dict[str, Any]:
+    country = rng.choice([c for c in ENTITY_COUNTRIES if c != m["country"]])
+    street, city = address_line(rng, country)
+    return {
+        "name": m["name"], "street": street, "city": city, "postcode": postcode_for(rng, country),
+        "country": country, "domain": m["domain"], "vat_id": f"{country}{rng.randint(100000000, 999999999)}",
+        "phone": phone_for_country(rng, country)[0],
+    }
+
+
+def negative_parent_subsidiary(rng: random.Random, m: dict[str, Any]) -> dict[str, Any]:
+    r = dict(m)
+    r["name"] = f"{m['name']} ({rng.choice(REGIONS)} Division)"
+    r["vat_id"] = f"{m['country']}{rng.randint(100000000, 999999999)}"
+    street, city = address_line(rng, m["country"])
+    r["street"], r["city"], r["postcode"] = street, city, postcode_for(rng, m["country"])
+    return r
+
+
+def negative_similar_name_same_street(rng: random.Random, m: dict[str, Any]) -> dict[str, Any]:
+    other = rng.choice([p for p in COMPANY_PREFIXES if p != m["_base"]])
+    name = " ".join([other, m["_suffix"], m["_legal"]])
+    check_no_blocklisted_brand(name)
+    slug = slugify(f"{other} {m['_suffix']}")
+    tld = rng.choice(["com", "org", "net"])
+    return {
+        "name": name, "street": m["street"], "city": m["city"], "postcode": m["postcode"], "country": m["country"],
+        "domain": f"{slug}.example.{tld}", "vat_id": f"{m['country']}{rng.randint(100000000, 999999999)}",
+        "phone": phone_for_country(rng, m["country"])[0],
+    }
+
+
+POSITIVE_TRANSFORMS = [
+    ("legal_form_variant", transform_legal_form),
+    ("abbreviation", transform_abbreviation),
+    ("typo", transform_typo),
+    ("transliteration", transform_transliteration),
+    ("missing_fields", transform_missing_fields),
+    ("moved_office", transform_moved_office),
+]
+NEGATIVE_TRANSFORMS = [
+    ("other_country", negative_other_country),
+    ("parent_subsidiary", negative_parent_subsidiary),
+    ("similar_name_same_street", negative_similar_name_same_street),
+]
+
+
+def build_entity_item(rng: random.Random, item_id: str, match: bool) -> dict[str, Any]:
+    master = make_master(rng)
+    if match:
+        options = [
+            (k, fn) for k, fn in POSITIVE_TRANSFORMS
+            if (k != "abbreviation" or master["_qualifier"]) and (k != "transliteration" or master["_surname_style"])
+        ]
+        _, fn = rng.choice(options)
+        right = fn(rng, master)
+    else:
+        if rng.random() < 0.45:
+            right = make_master(rng)
+        else:
+            _, fn = rng.choice(NEGATIVE_TRANSFORMS)
+            right = fn(rng, master)
+    return {"id": item_id, "left": public_record(master), "right": public_record(right), "match": match}
+
+
+def build_entity_split(rng: random.Random, n: int, prefix: str) -> list[dict[str, Any]]:
+    n_match = round(n * 0.4)
+    flags = [True] * n_match + [False] * (n - n_match)
+    rng.shuffle(flags)
+    return [build_entity_item(rng, f"{prefix}-{i:04d}", m) for i, m in enumerate(flags)]
+
+
+def build_entity_matching(seed: int, out_dir: Path) -> DatasetCard:
+    rng = random.Random(f"entity_matching:{seed}")
+    calib = build_entity_split(rng, 100, "entity-calib")
+    test = build_entity_split(rng, 200, "entity-test")
+
+    task_dir = out_dir / "entity_matching"
+    write_jsonl(task_dir / "calib.jsonl", calib)
+    write_jsonl(task_dir / "test.jsonl", test)
+
+    card = DatasetCard(
+        source="synthetic",
+        licence="Apache-2.0",
+        seed=seed,
+        metric="f1",
+        distinct_templates=len(POSITIVE_TRANSFORMS) + len(NEGATIVE_TRANSFORMS) + 1,
+        notes="Vendor/customer master dedupe pairs, about 40% matches.",
+    )
+    spec = TaskSpec(
+        name="entity_matching",
+        kind="entity_matching",
+        description="Two company records to a match/no-match decision.",
+        calib="calib.jsonl",
+        test="test.jsonl",
+        card=card,
+    )
+    write_yaml_task(task_dir / "task.yaml", spec)
+    return card
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seed", type=int, default=7)
@@ -820,6 +1390,10 @@ def main(argv: list[str] | None = None) -> int:
     print("extraction: ok")
     build_pii(args.seed, args.out)
     print("pii_redaction: ok")
+    build_summarisation(args.seed, args.out)
+    print("summarisation: ok")
+    build_entity_matching(args.seed, args.out)
+    print("entity_matching: ok")
     return 0
 
 
