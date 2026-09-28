@@ -41,7 +41,7 @@ def models_pull(
     models: Annotated[Path, typer.Option("--models", exists=True, help="Path to config.yaml.")],
     run: Annotated[Path | None, typer.Option("--run", help="Run directory to write downloads.json into.")] = None,
 ) -> None:
-    """Download every ``launch: mlx`` model in ``config.yaml``, under ``local_models_max_gb``."""
+    """Download every 'launch: mlx' model in config.yaml, refusing over local_models_max_gb."""
     run_dir = run or Path()
     cfg = load_config(models)
     launches = [(m.id, m.launch) for m in cfg.models if isinstance(m, LocalModel) and m.launch is not None]
