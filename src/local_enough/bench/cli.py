@@ -126,3 +126,23 @@ def power_probe(
     except _ERRORS as exc:
         raise _fail(exc) from exc
     typer.echo(f"power-probe results written to {run / 'power.json'}")
+
+
+def memory_check(
+    models: Annotated[Path, typer.Option("--models", exists=True, help="Path to config.yaml.")],
+    run: Annotated[Path, typer.Option("--run", help="Run directory to write memory.json into.")],
+    route: Annotated[
+        Path | None, typer.Option("--route", help="route.yaml (default: ./route.yaml if present).")
+    ] = None,
+) -> None:
+    """Memory with every local model and the router loaded (no cloud calls)."""
+    from local_enough.bench.memcheck import run_memory_check
+    from local_enough.bench.rundir import RunDir
+
+    try:
+        entry = run_memory_check(load_config(models), _resolve_route(route), RunDir(run))
+    except _ERRORS as exc:
+        raise _fail(exc) from exc
+    gib = 2**30
+    ours, system = entry["ours_bytes"] / gib, entry["system_used_bytes"] / gib
+    typer.echo(f"models + router: {ours:.2f} GiB; system in use: {system:.2f} GiB -> {run / 'memory.json'}")

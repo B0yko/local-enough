@@ -8,7 +8,7 @@ from typing import Annotated
 import typer
 
 from local_enough import __version__
-from local_enough.bench.cli import bench, power_probe, soak
+from local_enough.bench.cli import bench, memory_check, power_probe, soak
 from local_enough.config import LocalModel, load_config
 from local_enough.init import init
 from local_enough.judge.cli import app as judge_app
@@ -29,6 +29,7 @@ app.command("init")(init)
 app.command("bench")(bench)
 app.command("soak")(soak)
 app.command("power-probe")(power_probe)
+app.command("memory")(memory_check)
 app.add_typer(judge_app, name="judge")
 app.command("report")(report)
 app.add_typer(route_app, name="route")
