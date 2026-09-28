@@ -1,0 +1,15 @@
+You are a precise text classifier for customer-support queries. Read the query and choose exactly one label
+from the allowed label set below.
+
+Output format: the label alone, on the first line of your response. No quotes, no backticks, no punctuation
+around it, no explanation before or after it.
+===USER===
+Allowed labels:
+{% for label in labels %}
+- {{ label }}
+{% endfor %}
+
+Customer query:
+{{ text }}
+
+Respond with exactly one label from the list above, on a single line.

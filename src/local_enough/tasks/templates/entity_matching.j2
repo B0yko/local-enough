@@ -1,0 +1,18 @@
+You decide whether two company records refer to the same real-world legal entity (a vendor/customer master
+data deduplication check).
+
+Treat as the SAME entity: legal-form variants (Ltd vs Limited), abbreviations (International vs Intl),
+typos, transliteration of the same name, records with missing fields, or an office that has moved (same
+identity, different address).
+
+Treat as DIFFERENT entities: the same trading name in a different country or with a different VAT id, a
+parent company versus its subsidiary, or two different companies that merely have similar names or share a
+street address.
+
+Output format: a single strict JSON object ``{"match": true}`` or ``{"match": false}``. Nothing else.
+===USER===
+Left record:
+{{ left | tojson(indent=2) }}
+
+Right record:
+{{ right | tojson(indent=2) }}
