@@ -318,9 +318,10 @@ def build_plan(
     local_only_tasks = set(route_cfg.constraints.data_must_stay_local) if constraints is None else set(constraints)
 
     table = candidates_module.candidate_table(run_dir, specs, route_cfg, split="calib")
-    gate_ctx = gates_module.build_gate_context(run_dir, specs) if gates else None
+    task_names = sorted({*table.keys(), *route_cfg.workload_mix.keys()})
+    relevant_specs = {name: specs[name] for name in task_names if name in specs}
+    gate_ctx = gates_module.build_gate_context(run_dir, relevant_specs) if gates else None
 
-    task_names = sorted({*table.keys(), *route_cfg.workload_mix.keys(), *specs.keys()})
     tasks = {
         name: _plan_task(name, specs.get(name), table.get(name, []), route_cfg, local_only_tasks, gate_ctx)
         for name in task_names
