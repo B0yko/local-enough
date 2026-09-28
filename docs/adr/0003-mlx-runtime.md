@@ -21,6 +21,7 @@ server) and tested with a fake server, but not measured.
 ## Consequences
 
 - Local numbers describe MLX on one machine; llama.cpp or Ollama on the same machine may differ.
-- The server can echo a local model path in the response `model` field, so every response `model` field
-  is rewritten to `<repo>@<sha>` before it is written or returned.
+- The server lists its `--model` value, an absolute cache path, as the model id in `GET /v1/models`, and echoes
+  the request's `model` value in responses. Every `model` value is rewritten to `<repo>@<sha>` before it is written
+  or returned, and `/v1/models` output of the model server is never stored.
 - MLX needs Metal, so it cannot run inside Docker on macOS; the router container reaches it on the host.
