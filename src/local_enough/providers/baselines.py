@@ -64,6 +64,15 @@ _PHONE_RE = re.compile(
 
 _IBAN_CANDIDATE_RE = re.compile(r"\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b")
 
+# A phone-shaped number labelled as a company switchboard/office line is a documented hard negative (never
+# personal data), not something the model should redact -- so it must not count as PII the baseline "caught".
+_NON_PERSONAL_PHONE_LABEL_RE = re.compile(
+    # A trunk/country prefix (e.g. the "1-" of "1-204-555-0167") can sit between the label and the digits
+    # ``_PHONE_RE`` actually matches, so tolerate a short run of dial-prefix characters before the number.
+    r"(?:switchboard|office line|main line|general enquir(?:y|ies))\s*[:-]?\s*[+0-9\s-]{0,6}$",
+    re.IGNORECASE,
+)
+
 _DOB_CUE_RE = re.compile(r"born|dob|date of birth", re.IGNORECASE)
 _DATE_RE = re.compile(
     r"\b\d{4}-\d{2}-\d{2}\b"
@@ -86,11 +95,24 @@ def _iban_valid(candidate: str) -> bool:
     return int(digits) % 97 == 1
 
 
-def _find_dates_of_birth(text: str, window: int = 40) -> list[dict[str, str]]:
+def _sentence_span(text: str, start: int, end: int) -> tuple[int, int]:
+    """The ``.``/newline-delimited sentence containing ``text[start:end]``.
+
+    A DOB cue word earlier in the document can otherwise fall within a fixed character window of an
+    unrelated date in the next sentence (e.g. "Ticket opened on 21/08/2026. Born on ...").
+    """
+    sent_start = max(text.rfind(".", 0, start), text.rfind("\n", 0, start)) + 1
+    dot_end = text.find(".", end)
+    nl_end = text.find("\n", end)
+    ends = [e for e in (dot_end, nl_end) if e != -1]
+    sent_end = (min(ends) + 1) if ends else len(text)
+    return sent_start, sent_end
+
+
+def _find_dates_of_birth(text: str) -> list[dict[str, str]]:
     hits: list[dict[str, str]] = []
     for match in _DATE_RE.finditer(text):
-        start = max(0, match.start() - window)
-        end = min(len(text), match.end() + window)
+        start, end = _sentence_span(text, match.start(), match.end())
         if _DOB_CUE_RE.search(text[start:end]):
             hits.append({"type": "DATE_OF_BIRTH", "text": match.group(0)})
     return hits
@@ -102,7 +124,11 @@ class RegexPiiBaseline:
     def find(self, text: str) -> list[dict[str, str]]:
         found: list[dict[str, str]] = []
         found.extend({"type": "EMAIL", "text": m.group(0)} for m in _EMAIL_RE.finditer(text))
-        found.extend({"type": "PHONE", "text": m.group(0)} for m in _PHONE_RE.finditer(text))
+        found.extend(
+            {"type": "PHONE", "text": m.group(0)}
+            for m in _PHONE_RE.finditer(text)
+            if not _NON_PERSONAL_PHONE_LABEL_RE.search(text[max(0, m.start() - 40) : m.start()])
+        )
         found.extend(
             {"type": "IBAN", "text": m.group(0)} for m in _IBAN_CANDIDATE_RE.finditer(text) if _iban_valid(m.group(0))
         )
@@ -158,13 +184,6 @@ def _f1(scored: list[tuple[float, bool]], threshold: float) -> float:
     return 2 * precision * recall / (precision + recall)
 
 
-def _accuracy(scored: list[tuple[float, bool]], threshold: float) -> float:
-    if not scored:
-        return 0.0
-    correct = sum(1 for score, match in scored if (score >= threshold) == match)
-    return correct / len(scored)
-
-
 class FuzzyMatchBaseline:
     """Rapidfuzz field-similarity matcher with a threshold and uncertainty band tuned on calib."""
 
@@ -183,14 +202,25 @@ class FuzzyMatchBaseline:
         return self.similarity(item["left"], item["right"])
 
     def tune(self, calib_pairs: list[dict[str, Any]]) -> None:
-        """Pick the F1-maximising threshold; the uncertainty band spans thresholds whose own
-        split accuracy on ``calib_pairs`` is below 0.9."""
+        """Pick the F1-maximising threshold; the uncertainty band is the score range where matches and
+        non-matches actually overlap in ``calib_pairs`` (from the lowest-scoring gold match to the
+        highest-scoring gold non-match) -- outside it, calib never observed the wrong class at that score.
+
+        A band swept over *global* single-threshold accuracy instead would include every threshold whenever
+        the two classes are not perfectly separable overall (this task's hard negatives guarantee some
+        overlap), collapsing the band to the whole [0, 1] range and making the entity-matching gate's
+        baseline-agreement check pass unconditionally regardless of the model's answer.
+        """
         scored = [(self.similarity(pair["left"], pair["right"]), bool(pair["match"])) for pair in calib_pairs]
         candidates = sorted({round(score, 6) for score, _ in scored} | {0.0, 1.0})
         best_threshold = max(candidates, key=lambda t: (_f1(scored, t), -t)) if candidates else 0.5
         self.threshold = best_threshold
-        uncertain = [t for t in candidates if _accuracy(scored, t) < 0.9]
-        self.band = (min(uncertain), max(uncertain)) if uncertain else (best_threshold, best_threshold)
+        pos_scores = [score for score, match in scored if match]
+        neg_scores = [score for score, match in scored if not match]
+        if pos_scores and neg_scores and min(pos_scores) <= max(neg_scores):
+            self.band = (min(pos_scores), max(neg_scores))
+        else:
+            self.band = (best_threshold, best_threshold)
 
     def predict(self, left: dict[str, Any], right: dict[str, Any]) -> bool:
         if self.threshold is None:

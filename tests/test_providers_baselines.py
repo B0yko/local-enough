@@ -72,6 +72,28 @@ def test_regex_pii_dob_needs_a_cue_word() -> None:
     assert not any(item["type"] == "DATE_OF_BIRTH" for item in baseline.find(without_cue))
 
 
+def test_regex_pii_does_not_flag_a_labelled_switchboard_number() -> None:
+    """ "Company switchboard"/"Main office line"/"General enquiries" numbers are documented hard negatives
+    (never personal data); flagging them made the pii_redaction gate reject correct, gold-quality output."""
+    baseline = RegexPiiBaseline()
+    text = "Company switchboard: +1 512 555 0116. General enquiries: 1-204-555-0167. Main office line: 07700 900668."
+    assert not any(item["type"] == "PHONE" for item in baseline.find(text))
+
+
+def test_regex_pii_still_finds_a_personal_phone_number() -> None:
+    baseline = RegexPiiBaseline()
+    text = "The customer's direct line is 1-613-555-0149."
+    assert any(item["type"] == "PHONE" for item in baseline.find(text))
+
+
+def test_regex_pii_dob_cue_does_not_cross_a_sentence_boundary() -> None:
+    """A cue word ("Born on ...") must not make an unrelated date in the *next* sentence count as a DOB."""
+    baseline = RegexPiiBaseline()
+    text = "Ticket opened on 21/08/2026. Born on September 6, 1992 per the HR file."
+    found = [item["text"] for item in baseline.find(text) if item["type"] == "DATE_OF_BIRTH"]
+    assert "21/08/2026" not in found
+
+
 def test_regex_pii_respond_is_json_list() -> None:
     baseline = RegexPiiBaseline()
     out = baseline.respond("Email me at a@example.com")
@@ -184,6 +206,38 @@ def test_fuzzy_match_tunes_threshold_and_band_in_range() -> None:
     assert baseline.band is not None
     lo, hi = baseline.band
     assert 0.0 <= lo <= hi <= 1.0
+
+
+def test_fuzzy_match_band_is_the_observed_class_overlap_not_the_full_range() -> None:
+    """A band computed from *global* single-threshold accuracy includes 0.0 and 1.0 whenever the two
+    classes are not perfectly separable overall (guaranteed by this task's hard negatives), which made the
+    entity-matching gate's baseline-agreement check pass unconditionally -- regression for that bug."""
+    acme = {"name": "Acme Ltd", "street": "1 High St"}
+    acme_moved = {"name": "Acme Ltd", "street": "99 Low Rd"}
+    beta = {"name": "Beta Supplies", "street": "5 Park Ave"}
+    gamma = {"name": "Gamma Facilities", "street": "77 Mill Ln"}
+    zenith = {"name": "Zenith Corp", "street": "9 Low Rd"}
+    delta = {"name": "Delta Traders", "street": "12 Elm St"}
+    omega = {"name": "Omega Freight", "street": "3 Oak Way"}
+    pairs = [
+        {"left": acme, "right": acme, "match": True},
+        {"left": beta, "right": beta, "match": True},
+        # A hard negative that scores close to the matches (same name, different address) keeps the classes
+        # from being perfectly separable, so a global-accuracy sweep would still call every threshold
+        # "uncertain".
+        {"left": acme, "right": acme_moved, "match": False},
+        {"left": gamma, "right": zenith, "match": False},
+        {"left": delta, "right": omega, "match": False},
+    ]
+    baseline = FuzzyMatchBaseline()
+    baseline.tune(pairs)
+    assert baseline.band is not None
+    lo, hi = baseline.band
+    assert (lo, hi) != (0.0, 1.0)
+    # A clearly-distinct pair (no field overlap at all) sits outside the band: the gate should be able to
+    # trust the baseline there, not treat every possible score as too uncertain to check.
+    clear_negative = baseline.similarity(delta, omega)
+    assert not (lo <= clear_negative <= hi)
 
 
 def test_fuzzy_match_predicts_matches_and_nonmatches() -> None:
