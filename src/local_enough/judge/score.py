@@ -12,7 +12,7 @@ import math
 from pathlib import Path
 from typing import Any
 
-from local_enough.bench.ledger import Ledger
+from local_enough.bench.ledger import Ledger, usage_meta
 from local_enough.bench.rundir import RunDir
 from local_enough.config import Config
 from local_enough.judge import judge as judge_core
@@ -120,8 +120,7 @@ async def run_score(run_dir: str | Path, cfg: Config) -> list[dict[str, Any]]:
             async with ledger.reserve(estimate, meta) as reservation:
                 result = await client.complete(endpoint, messages, max_tokens)
                 actual, source = pricing.settle_cost(result, price)
-                usage = {"prompt_tokens": result.prompt_tokens, "completion_tokens": result.completion_tokens}
-                reservation.settle(actual, source, usage)
+                reservation.settle(actual, source, usage_meta(result))
 
         verdict = judge_core.parse_verdict(result.text, n_facts)
         words = len(summary.split())

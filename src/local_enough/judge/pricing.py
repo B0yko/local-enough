@@ -9,7 +9,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from local_enough.bench.ledger import estimate_tokens
+from local_enough.bench.ledger import reservation_usd, settled_cost
 from local_enough.config import JudgeConfig
 from local_enough.providers.openai_compat import ChatResult, Endpoint, Message, MissingApiKey
 
@@ -37,18 +37,10 @@ def judge_endpoint(judge_cfg: JudgeConfig, candidate: str) -> Endpoint:
 def reserve_estimate(
     messages: list[Message], max_tokens: int, reasoning_allowance: int, price: dict[str, Any]
 ) -> float:
-    """Upper-bound reservation: ``(prompt_estimate * in_price + (max_tokens + allowance) * out_price) * 1.2``."""
-    input_price = price.get("prompt") or 0.0
-    output_price = price.get("completion") or 0.0
-    prompt_estimate = estimate_tokens(messages)
-    return (prompt_estimate * input_price + (max_tokens + reasoning_allowance) * output_price) * 1.2
+    """Upper-bound reservation (see ``bench.ledger.reservation_usd``)."""
+    return reservation_usd(messages, max_tokens, reasoning_allowance, price)
 
 
 def settle_cost(result: ChatResult, price: dict[str, Any]) -> tuple[float, str]:
-    """Actual cost: ``usage.cost`` when the provider reports it, else tokens priced from the snapshot."""
-    if result.cost_usd is not None:
-        return result.cost_usd, "usage.cost"
-    input_price = price.get("prompt") or 0.0
-    output_price = price.get("completion") or 0.0
-    cost = result.prompt_tokens * input_price + (result.completion_tokens + result.reasoning_tokens) * output_price
-    return cost, "snapshot"
+    """Actual cost (see ``bench.ledger.settled_cost``)."""
+    return settled_cost(result, price)

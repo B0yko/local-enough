@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from local_enough.paths import ledger_path
-from local_enough.providers.openai_compat import Message
+from local_enough.providers.openai_compat import ChatResult, Message
 
 _ENV_BUDGET_VAR = "LOCAL_ENOUGH_BUDGET_USD"
 
@@ -38,6 +38,38 @@ class BudgetExceeded(RuntimeError):
 def estimate_tokens(messages: Sequence[Message]) -> int:
     """A conservative token estimate: ``sum(ceil(len(content) / 3.0) + 8)`` over the messages."""
     return sum(math.ceil(len(m.get("content", "")) / 3.0) + 8 for m in messages)
+
+
+def reservation_usd(
+    messages: Sequence[Message], max_tokens: int, reasoning_allowance: int, price: dict[str, Any]
+) -> float:
+    """``(prompt_estimate × input_price + (max_tokens + reasoning_allowance) × output_price) × 1.2``."""
+    input_price = float(price.get("prompt") or 0.0)
+    output_price = float(price.get("completion") or 0.0)
+    return (estimate_tokens(messages) * input_price + (max_tokens + reasoning_allowance) * output_price) * 1.2
+
+
+def settled_cost(result: ChatResult, price: dict[str, Any]) -> tuple[float, str]:
+    """``usage.cost`` when the provider reports it, else tokens × snapshot price.
+
+    ``completion_tokens`` already includes reasoning tokens (OpenAI usage convention), so they are not added twice.
+    """
+    if result.cost_usd is not None:
+        return result.cost_usd, "usage.cost"
+    input_price = float(price.get("prompt") or 0.0)
+    output_price = float(price.get("completion") or 0.0)
+    return result.prompt_tokens * input_price + result.completion_tokens * output_price, "tokens x snapshot"
+
+
+def usage_meta(result: ChatResult) -> dict[str, Any]:
+    """Token counts and upstream provider for a ledger line; never request or response text."""
+    return {
+        "prompt_tokens": result.prompt_tokens,
+        "completion_tokens": result.completion_tokens,
+        "reasoning_tokens": result.reasoning_tokens,
+        "cached_tokens": result.cached_tokens,
+        "provider": result.provider,
+    }
 
 
 def _read_settled_total(path: Path) -> float:

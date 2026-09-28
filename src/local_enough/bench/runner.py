@@ -20,7 +20,7 @@ from typing import Any
 
 from local_enough import evaluate, paths
 from local_enough.bench import envinfo, prices
-from local_enough.bench.ledger import BudgetExceeded, Ledger, estimate_tokens
+from local_enough.bench.ledger import BudgetExceeded, Ledger, estimate_tokens, reservation_usd, settled_cost, usage_meta
 from local_enough.bench.load import LoadSampler
 from local_enough.bench.memory import sample_footprint, sample_system_delta, system_used_bytes
 from local_enough.bench.rundir import PREDICTIONS, RunDir
@@ -493,21 +493,11 @@ class _Runner:
     def _reserve_estimate(
         self, messages: list[dict[str, str]], max_tokens: int, endpoint: Endpoint, price: dict[str, float | None]
     ) -> float:
-        prompt_tokens_estimate = estimate_tokens(messages)
-        output_tokens_estimate = max_tokens + endpoint.reasoning_allowance_tokens
-        input_price = price.get("prompt") or 0.0
-        output_price = price.get("completion") or 0.0
-        return (prompt_tokens_estimate * input_price + output_tokens_estimate * output_price) * 1.2
+        return reservation_usd(messages, max_tokens, endpoint.reasoning_allowance_tokens, price)
 
     def _settle(self, reservation: Any, result: ChatResult, price: dict[str, float | None]) -> None:
-        usage_meta = {"prompt_tokens": result.prompt_tokens, "completion_tokens": result.completion_tokens}
-        if result.cost_usd is not None:
-            reservation.settle(result.cost_usd, "usage.cost", usage_meta)
-            return
-        input_price = price.get("prompt") or 0.0
-        output_price = price.get("completion") or 0.0
-        actual = result.prompt_tokens * input_price + result.completion_tokens * output_price
-        reservation.settle(actual, "snapshot", usage_meta)
+        actual, source = settled_cost(result, price)
+        reservation.settle(actual, source, usage_meta(result))
 
     def _require_ledger(self) -> Ledger:
         if self.ledger is None:

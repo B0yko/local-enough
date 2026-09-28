@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from local_enough.bench.ledger import Ledger
+from local_enough.bench.ledger import Ledger, usage_meta
 from local_enough.bench.prices import snapshot_prices
 from local_enough.bench.rundir import RunDir
 from local_enough.config import Config, JudgeConfig
@@ -79,8 +79,7 @@ async def _judge_one(
     async with ledger.reserve(estimate, meta) as reservation:
         result = await client.complete(endpoint, messages, max_tokens)
         actual, source = pricing.settle_cost(result, price)
-        usage = {"prompt_tokens": result.prompt_tokens, "completion_tokens": result.completion_tokens}
-        reservation.settle(actual, source, usage)
+        reservation.settle(actual, source, usage_meta(result))
 
     n_facts = len(item["required_facts"])
     verdict = judge_core.parse_verdict(result.text, n_facts)
