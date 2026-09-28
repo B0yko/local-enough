@@ -161,6 +161,7 @@ def run_replay(
     per_task_total: dict[str, int] = {}
     per_task_match: dict[str, int] = {}
     matched = 0
+    refusals: dict[str, int] = {}
     direct_calls: list[tuple[str, list[dict[str, str]], int]] = []
 
     for task_name, item in sample:
@@ -177,6 +178,14 @@ def run_replay(
             )
         except openai.APIStatusError as exc:
             router_latencies_ms.append((time.perf_counter() - t0) * 1000)
+            expected = expected_by_key.get((task_name, item_id))
+            # A refusal is a decision too: the offline replay serves nothing (unservable or exhausted local-only
+            # chain) exactly when the router answers 503.
+            if exc.status_code == 503 and expected is not None and expected.served_by is None:
+                matched += 1
+                per_task_match[task_name] = per_task_match.get(task_name, 0) + 1
+                refusals[task_name] = refusals.get(task_name, 0) + 1
+                continue
             mismatches.append(Mismatch(task_name, item_id, f"router returned HTTP {exc.status_code}"))
             continue
 
@@ -220,7 +229,11 @@ def run_replay(
     direct_p50 = p50_p95(direct_latencies_ms)[0] if direct_latencies_ms else None
 
     per_task = {
-        name: {"n": total, "decision_match_rate": per_task_match.get(name, 0) / total if total else float("nan")}
+        name: {
+            "n": total,
+            "decision_match_rate": per_task_match.get(name, 0) / total if total else float("nan"),
+            "refused_503": refusals.get(name, 0),
+        }
         for name, total in per_task_total.items()
     }
 

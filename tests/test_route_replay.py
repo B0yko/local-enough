@@ -14,7 +14,7 @@ import uvicorn
 
 from local_enough.bench.ledger import Ledger
 from local_enough.bench.rundir import PREDICTIONS, RunDir
-from local_enough.config import Constraints, RouteConfig
+from local_enough.config import Constraints, QualityBar, RouteConfig
 from local_enough.providers.openai_compat import Endpoint
 from local_enough.route import gates, planner, replay
 from local_enough.route.server import create_app
@@ -54,7 +54,7 @@ class _LiveServer:
         self._thread.join(timeout=5.0)
 
 
-def _build_scenario(tmp_path):
+def _build_scenario(tmp_path, *, pii_unservable=False):
     # classification: served by a (fake) cloud model.
     cls_root = tmp_path / "cls"
     cls_root.mkdir()
@@ -77,8 +77,11 @@ def _build_scenario(tmp_path):
     pii_root.mkdir()
     pii_spec = TaskSpec(name="pii_redaction", kind="pii_redaction")
     pii_spec.root = pii_root
+    pii_text = "Contact john.smith@example.com about it."
+    email = "john.smith@example.com"
+    pt1_spans = [{"start": pii_text.index(email), "end": pii_text.index(email) + len(email), "type": "EMAIL"}]
     pii_test = [
-        {"id": "pt1", "text": "Contact john.smith@example.com about it.", "spans": []},
+        {"id": "pt1", "text": pii_text, "spans": pt1_spans if pii_unservable else []},
         {"id": "pt2", "text": "No personal data appears in this note.", "spans": []},
     ]
     _write_jsonl(pii_root / "test.jsonl", pii_test)
@@ -132,6 +135,10 @@ def _build_scenario(tmp_path):
         workload_mix={"classification": 0.5, "pii_redaction": 0.5},
         reference_monthly_volume=1000,
         constraints=Constraints(data_must_stay_local=["pii_redaction"]),
+        quality_bar={
+            "default": QualityBar(relative_to_best=0.95),
+            **({"pii_redaction": QualityBar(absolute=0.95)} if pii_unservable else {}),
+        },
     )
     plan = planner.build_plan(run, specs, route_cfg, gates=True)
     gate_ctx = gates.build_gate_context(run, specs)
@@ -209,3 +216,33 @@ def test_replay_decisions_match_the_offline_simulate_run(tmp_path):
     # should match the offline replay on every sampled item.
     assert live_check.decision_match_rate == 1.0
     assert live_check.mismatches == []
+
+
+def test_a_refusal_the_simulation_also_predicts_counts_as_a_matching_decision(tmp_path):
+    # The regex baseline misses the gold email, so no local candidate reaches the absolute PII bar: the plan marks
+    # pii_redaction unservable, the router answers 503 and the offline replay serves nothing either.
+    run, specs, route_cfg, plan, app = _build_scenario(tmp_path, pii_unservable=True)
+    assert plan.tasks["pii_redaction"].status == planner.STATUS_UNSERVABLE
+    server = _LiveServer(app)
+    server.start()
+    try:
+        with respx.mock(assert_all_called=False) as mock:
+            mock.route(host="127.0.0.1").pass_through()
+            mock.post(f"{CLOUD_URL}/chat/completions").mock(
+                return_value=httpx.Response(
+                    200,
+                    json={
+                        "id": "gen-1",
+                        "model": "ignored",
+                        "choices": [{"message": {"content": "a"}, "finish_reason": "stop"}],
+                        "usage": {"prompt_tokens": 5, "completion_tokens": 1},
+                    },
+                )
+            )
+            live_check = replay.run_replay(server.url, run, specs, route_cfg, plan, n=8, seed=7)
+    finally:
+        server.stop()
+
+    assert live_check.mismatches == []
+    assert live_check.decision_match_rate == 1.0
+    assert live_check.per_task["pii_redaction"]["refused_503"] >= 1
