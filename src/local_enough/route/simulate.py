@@ -55,6 +55,9 @@ class TaskSimResult:
     calls_by_model: dict[str, int]
     cloud_cost_by_model: dict[str, float]
     latencies_s: list[float] = field(default_factory=list, repr=False)
+    items: list[ItemResult] = field(default_factory=list, repr=False)
+    """Per-item decisions (not serialised by ``to_dict``): used by ``route.replay`` to compare a live run
+    against this replay."""
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -206,14 +209,22 @@ def _simulate_task(
     escalations = 0
     calls_by_model: dict[str, int] = {}
     cloud_cost_by_model: dict[str, float] = {}
+    item_results: list[ItemResult] = []
 
     if tp.status == STATUS_UNSERVABLE:
         for item in items:
-            scores.append(module.score(spec, item, Parsed(ok=False, error="unservable"), None))
+            score = module.score(spec, item, Parsed(ok=False, error="unservable"), None)
+            scores.append(score)
             latencies.append(0.0)
+            item_results.append(
+                ItemResult(
+                    str(item["id"]), None, False, GATE_NA, 0.0, [], score, calls_by_model={}, cloud_cost_by_model={}
+                )
+            )
     else:
         for item in items:
             result = _walk_chain(tp, spec, module, item, predictions, gate_ctx, gates_enabled, judge_verdicts, split)
+            item_results.append(result)
             scores.append(result.score)
             latencies.append(result.latency_s)
             if result.escalated:
@@ -246,6 +257,7 @@ def _simulate_task(
         calls_by_model=calls_by_model,
         cloud_cost_by_model=cloud_cost_by_model,
         latencies_s=latencies,
+        items=item_results,
     )
 
 
