@@ -21,6 +21,7 @@ import math
 import random
 import re
 import sys
+import tempfile
 import urllib.request
 from datetime import date, timedelta
 from pathlib import Path
@@ -36,9 +37,7 @@ DEFAULT_EXAMPLES_OUT = REPO_ROOT / "examples" / "custom-task"
 BANKING77_TRAIN_URL = (
     "https://raw.githubusercontent.com/PolyAI-LDN/task-specific-datasets/master/banking_data/train.csv"
 )
-BANKING77_TEST_URL = (
-    "https://raw.githubusercontent.com/PolyAI-LDN/task-specific-datasets/master/banking_data/test.csv"
-)
+BANKING77_TEST_URL = "https://raw.githubusercontent.com/PolyAI-LDN/task-specific-datasets/master/banking_data/test.csv"
 BANKING77_LICENSE_URL = "https://raw.githubusercontent.com/PolyAI-LDN/task-specific-datasets/master/LICENSE"
 BANKING77_TRAIN_SHA256 = "b06e26ac675513959a63135f11b94ea7786ed02da65db93a5650d8838cbc664b"
 BANKING77_TEST_SHA256 = "d12d6e3bc4c3103966ae786dc435913c0c563dfa328f5a3646d0e62cfeeb474d"
@@ -50,24 +49,146 @@ BANKING77_TEST_SHA256 = "d12d6e3bc4c3103966ae786dc435913c0c563dfa328f5a3646d0e62
 # ~100 well-known real brands: generated names are checked against this list so no
 # fictional pool entry can accidentally collide with a real company.
 BLOCKLIST_BRANDS = [
-    "google", "alphabet", "microsoft", "amazon", "apple", "meta", "facebook", "netflix",
-    "tesla", "spacex", "ibm", "oracle", "sap", "salesforce", "adobe", "intel", "amd",
-    "nvidia", "samsung", "sony", "lg", "huawei", "xiaomi", "dell", "hp", "hewlett-packard",
-    "lenovo", "cisco", "vmware", "servicenow", "workday", "zoom", "slack", "atlassian",
-    "shopify", "stripe", "paypal", "visa", "mastercard", "americanexpress", "coca-cola",
-    "pepsi", "pepsico", "nestle", "unilever", "procter&gamble", "p&g", "walmart", "target",
-    "costco", "ikea", "nike", "adidas", "puma", "reebok", "underarmour", "mcdonalds",
-    "burgerking", "kfc", "starbucks", "subway", "dominos", "pizzahut", "fedex", "ups",
-    "dhl", "maersk", "boeing", "airbus", "lockheedmartin", "generalelectric", "ge",
-    "siemens", "bosch", "3m", "caterpillar", "johndeere", "toyota", "honda", "ford",
-    "generalmotors", "gm", "volkswagen", "bmw", "mercedes-benz", "audi", "renault",
-    "hyundai", "kia", "chevron", "exxonmobil", "exxon", "shell", "bp", "totalenergies",
-    "deloitte", "pwc", "ey", "kpmg", "mckinsey", "accenture", "goldmansachs", "jpmorgan",
-    "citigroup", "hsbc", "barclays", "santander", "ups", "airbnb", "uber", "lyft",
-    "linkedin", "twitter", "x-corp", "tiktok", "bytedance", "snapchat", "pinterest",
-    "reddit", "wikipedia", "ebay", "alibaba", "tencent", "baidu", "spotify", "disney",
-    "warnerbros", "universal", "sony-pictures", "verizon", "at&t", "tmobile", "vodafone",
-    "orange", "bt", "sky", "samsungelectronics", "canon", "nikon", "panasonic",
+    "google",
+    "alphabet",
+    "microsoft",
+    "amazon",
+    "apple",
+    "meta",
+    "facebook",
+    "netflix",
+    "tesla",
+    "spacex",
+    "ibm",
+    "oracle",
+    "sap",
+    "salesforce",
+    "adobe",
+    "intel",
+    "amd",
+    "nvidia",
+    "samsung",
+    "sony",
+    "lg",
+    "huawei",
+    "xiaomi",
+    "dell",
+    "hp",
+    "hewlett-packard",
+    "lenovo",
+    "cisco",
+    "vmware",
+    "servicenow",
+    "workday",
+    "zoom",
+    "slack",
+    "atlassian",
+    "shopify",
+    "stripe",
+    "paypal",
+    "visa",
+    "mastercard",
+    "americanexpress",
+    "coca-cola",
+    "pepsi",
+    "pepsico",
+    "nestle",
+    "unilever",
+    "procter&gamble",
+    "p&g",
+    "walmart",
+    "target",
+    "costco",
+    "ikea",
+    "nike",
+    "adidas",
+    "puma",
+    "reebok",
+    "underarmour",
+    "mcdonalds",
+    "burgerking",
+    "kfc",
+    "starbucks",
+    "subway",
+    "dominos",
+    "pizzahut",
+    "fedex",
+    "ups",
+    "dhl",
+    "maersk",
+    "boeing",
+    "airbus",
+    "lockheedmartin",
+    "generalelectric",
+    "ge",
+    "siemens",
+    "bosch",
+    "3m",
+    "caterpillar",
+    "johndeere",
+    "toyota",
+    "honda",
+    "ford",
+    "generalmotors",
+    "gm",
+    "volkswagen",
+    "bmw",
+    "mercedes-benz",
+    "audi",
+    "renault",
+    "hyundai",
+    "kia",
+    "chevron",
+    "exxonmobil",
+    "exxon",
+    "shell",
+    "bp",
+    "totalenergies",
+    "deloitte",
+    "pwc",
+    "ey",
+    "kpmg",
+    "mckinsey",
+    "accenture",
+    "goldmansachs",
+    "jpmorgan",
+    "citigroup",
+    "hsbc",
+    "barclays",
+    "santander",
+    "ups",
+    "airbnb",
+    "uber",
+    "lyft",
+    "linkedin",
+    "twitter",
+    "x-corp",
+    "tiktok",
+    "bytedance",
+    "snapchat",
+    "pinterest",
+    "reddit",
+    "wikipedia",
+    "ebay",
+    "alibaba",
+    "tencent",
+    "baidu",
+    "spotify",
+    "disney",
+    "warnerbros",
+    "universal",
+    "sony-pictures",
+    "verizon",
+    "at&t",
+    "tmobile",
+    "vodafone",
+    "orange",
+    "bt",
+    "sky",
+    "samsungelectronics",
+    "canon",
+    "nikon",
+    "panasonic",
 ]
 
 
@@ -92,26 +213,116 @@ def check_no_blocklisted_brand(name: str) -> None:
 
 
 FIRST_NAMES = [
-    "Priya", "Marcus", "Elena", "Tomasz", "Aisha", "Noah", "Freya", "Kwame", "Sofia",
-    "Liam", "Ingrid", "Dmitri", "Hana", "Callum", "Yuki", "Rosa", "Declan", "Mei",
-    "Owen", "Zara", "Felix", "Amara", "Bjorn", "Nadia", "Theo", "Layla", "Gareth",
-    "Ines", "Milo", "Chiara", "Anders", "Fatima", "Jonas", "Wren", "Tariq", "Esme",
-    "Rafael", "Ottilie", "Kenji", "Maya",
+    "Priya",
+    "Marcus",
+    "Elena",
+    "Tomasz",
+    "Aisha",
+    "Noah",
+    "Freya",
+    "Kwame",
+    "Sofia",
+    "Liam",
+    "Ingrid",
+    "Dmitri",
+    "Hana",
+    "Callum",
+    "Yuki",
+    "Rosa",
+    "Declan",
+    "Mei",
+    "Owen",
+    "Zara",
+    "Felix",
+    "Amara",
+    "Bjorn",
+    "Nadia",
+    "Theo",
+    "Layla",
+    "Gareth",
+    "Ines",
+    "Milo",
+    "Chiara",
+    "Anders",
+    "Fatima",
+    "Jonas",
+    "Wren",
+    "Tariq",
+    "Esme",
+    "Rafael",
+    "Ottilie",
+    "Kenji",
+    "Maya",
 ]
 LAST_NAMES = [
-    "Hartley", "Novak", "Oduya", "Berglund", "Castellano", "Whitfield", "Moreau",
-    "Lindqvist", "Okafor", "Bergman", "Sorensen", "Delacroix", "Marchetti", "Kowalski",
-    "Renner", "Abara", "Fenwick", "Larkin", "Vasquez", "Holloway", "Sato", "Brandt",
-    "Costa", "Nakamura", "Hendricks", "Solberg", "Iqbal", "Tremblay", "Weiss", "Duarte",
-    "Ashworth", "Callahan", "Ferraro", "Mbeki", "Santini", "Boucher", "Ravensworth",
-    "Adeyemi", "Lindgren", "Petrova",
+    "Hartley",
+    "Novak",
+    "Oduya",
+    "Berglund",
+    "Castellano",
+    "Whitfield",
+    "Moreau",
+    "Lindqvist",
+    "Okafor",
+    "Bergman",
+    "Sorensen",
+    "Delacroix",
+    "Marchetti",
+    "Kowalski",
+    "Renner",
+    "Abara",
+    "Fenwick",
+    "Larkin",
+    "Vasquez",
+    "Holloway",
+    "Sato",
+    "Brandt",
+    "Costa",
+    "Nakamura",
+    "Hendricks",
+    "Solberg",
+    "Iqbal",
+    "Tremblay",
+    "Weiss",
+    "Duarte",
+    "Ashworth",
+    "Callahan",
+    "Ferraro",
+    "Mbeki",
+    "Santini",
+    "Boucher",
+    "Ravensworth",
+    "Adeyemi",
+    "Lindgren",
+    "Petrova",
 ]
 
 COMPANY_PREFIXES = [
-    "Harrow", "Kestrel", "Brightfield", "Thorncliff", "Meridian", "Oakstead",
-    "Silverline", "Cobalt", "Larkspur", "Fenwick", "Ashgrove", "Northgate", "Amberwood",
-    "Foxglove", "Hazelmere", "Sterling Vale", "Copperfield", "Elmridge", "Ravenscroft",
-    "Wrenfield", "Moorbank", "Sandpiper", "Briarwood", "Cinderford", "Thistledown",
+    "Harrow",
+    "Kestrel",
+    "Brightfield",
+    "Thorncliff",
+    "Meridian",
+    "Oakstead",
+    "Silverline",
+    "Cobalt",
+    "Larkspur",
+    "Fenwick",
+    "Ashgrove",
+    "Northgate",
+    "Amberwood",
+    "Foxglove",
+    "Hazelmere",
+    "Sterling Vale",
+    "Copperfield",
+    "Elmridge",
+    "Ravenscroft",
+    "Wrenfield",
+    "Moorbank",
+    "Sandpiper",
+    "Briarwood",
+    "Cinderford",
+    "Thistledown",
 ]
 SECTOR_SUFFIXES: dict[str, list[str]] = {
     "software": ["Software", "Systems", "Digital", "Data Labs", "Cloud Works"],
@@ -124,9 +335,21 @@ LEGAL_FORMS = {"GB": ["Ltd", "LLP"], "US": ["Inc.", "LLC"], "CA": ["Inc.", "Ltd.
 COUNTRY_NAMES = {"GB": "United Kingdom", "US": "United States", "CA": "Canada"}
 
 STREETS = [
-    "Elm Street", "Victoria Road", "Kings Parade", "Mill Lane", "Harbour View",
-    "Chapel Row", "Foundry Street", "Orchard Close", "Station Approach", "Bridge Street",
-    "Maple Avenue", "Riverside Drive", "Commerce Way", "Union Street", "Wellington Road",
+    "Elm Street",
+    "Victoria Road",
+    "Kings Parade",
+    "Mill Lane",
+    "Harbour View",
+    "Chapel Row",
+    "Foundry Street",
+    "Orchard Close",
+    "Station Approach",
+    "Bridge Street",
+    "Maple Avenue",
+    "Riverside Drive",
+    "Commerce Way",
+    "Union Street",
+    "Wellington Road",
 ]
 CITIES = {
     "GB": ["London", "Manchester", "Bristol", "Leeds", "Glasgow", "Birmingham", "Cardiff"],
@@ -175,10 +398,7 @@ def sha256_of(path: Path) -> str:
 
 
 def ordinal(n: int) -> str:
-    if 10 <= n % 100 <= 20:
-        suffix = "th"
-    else:
-        suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    suffix = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
     return f"{n}{suffix}"
 
 
@@ -326,11 +546,15 @@ def make_person_name(rng: random.Random) -> tuple[str, str]:
 def postcode_for(rng: random.Random, country: str) -> str:
     if country == "GB":
         area = rng.choice(["BS", "M", "LS", "EC", "SW", "B", "CF", "G"])
-        return f"{area}{rng.randint(1, 20)} {rng.randint(1, 9)}{rng.choice('ABDEFGHJLNPQRSTUWXYZ')}{rng.choice('ABDEFGHJLNPQRSTUWXYZ')}"
+        gb_letters = "ABDEFGHJLNPQRSTUWXYZ"
+        return f"{area}{rng.randint(1, 20)} {rng.randint(1, 9)}{rng.choice(gb_letters)}{rng.choice(gb_letters)}"
     if country == "US":
         return f"{rng.randint(10000, 99999)}"
     letters = "ABCEGHJKLMNPRSTVXY"
-    return f"{rng.choice(letters)}{rng.randint(0, 9)}{rng.choice(letters)} {rng.randint(0, 9)}{rng.choice(letters)}{rng.randint(0, 9)}"
+    return (
+        f"{rng.choice(letters)}{rng.randint(0, 9)}{rng.choice(letters)} "
+        f"{rng.randint(0, 9)}{rng.choice(letters)}{rng.randint(0, 9)}"
+    )
 
 
 def address_line(rng: random.Random, country: str) -> tuple[str, str]:
@@ -348,7 +572,7 @@ def address_line(rng: random.Random, country: str) -> tuple[str, str]:
 EXTRACTION_TEMPLATES = [
     "We came across {company} while comparing options for {product} and would like to learn more.",
     "Our team at {company} is evaluating {product} for a rollout across the {sector} side of the business.",
-    "I'm reaching out on behalf of {company}; we need a replacement for our current tooling and {product} looks promising.",
+    "I'm reaching out for {company}; we need a replacement for our current tooling and {product} looks promising.",
     "{company} is expanding and we're now looking at {product} to support the growth.",
     "Following a recommendation from a partner, {company} would like a demo of {product}.",
     "We're renewing our stack this quarter and {company} wants to shortlist {product}.",
@@ -428,7 +652,7 @@ def build_extraction_item(rng: random.Random, item_id: str) -> dict[str, Any]:
         f"From: {contact_name} <{contact_email}>",
         f"Subject: Enquiry about {product}",
         "",
-        f"Hi there,",
+        "Hi there,",
         "",
         rng.choice(EXTRACTION_TEMPLATES).format(company=company, product=product, sector=sector),
     ]
@@ -525,29 +749,77 @@ def build_extraction(seed: int, out_dir: Path) -> DatasetCard:
 # --------------------------------------------------------------------------------------
 
 FULL_MONTHS = [
-    "January", "February", "March", "April", "May", "June", "July", "August",
-    "September", "October", "November", "December",
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
 ]
 PII_TYPES = ["PERSON", "EMAIL", "PHONE", "IBAN", "ADDRESS", "DATE_OF_BIRTH"]
 PII_CATEGORIES = ["support_ticket", "hr_note", "invoice_dispute", "call_note"]
 
 CATEGORY_TYPE_WEIGHTS: dict[str, dict[str, float]] = {
-    "support_ticket": {"PERSON": 0.25, "EMAIL": 0.25, "PHONE": 0.20, "ADDRESS": 0.15, "IBAN": 0.05, "DATE_OF_BIRTH": 0.10},
-    "hr_note": {"PERSON": 0.30, "DATE_OF_BIRTH": 0.25, "ADDRESS": 0.20, "PHONE": 0.10, "EMAIL": 0.10, "IBAN": 0.05},
-    "invoice_dispute": {"PERSON": 0.20, "EMAIL": 0.15, "PHONE": 0.10, "IBAN": 0.35, "ADDRESS": 0.15, "DATE_OF_BIRTH": 0.05},
-    "call_note": {"PERSON": 0.35, "PHONE": 0.35, "EMAIL": 0.15, "ADDRESS": 0.10, "IBAN": 0.03, "DATE_OF_BIRTH": 0.02},
+    "support_ticket": {
+        "PERSON": 0.25,
+        "EMAIL": 0.25,
+        "PHONE": 0.20,
+        "ADDRESS": 0.15,
+        "IBAN": 0.05,
+        "DATE_OF_BIRTH": 0.10,
+    },
+    "hr_note": {
+        "PERSON": 0.30,
+        "DATE_OF_BIRTH": 0.25,
+        "ADDRESS": 0.20,
+        "PHONE": 0.10,
+        "EMAIL": 0.10,
+        "IBAN": 0.05,
+    },
+    "invoice_dispute": {
+        "PERSON": 0.20,
+        "EMAIL": 0.15,
+        "PHONE": 0.10,
+        "IBAN": 0.35,
+        "ADDRESS": 0.15,
+        "DATE_OF_BIRTH": 0.05,
+    },
+    "call_note": {
+        "PERSON": 0.35,
+        "PHONE": 0.35,
+        "EMAIL": 0.15,
+        "ADDRESS": 0.10,
+        "IBAN": 0.03,
+        "DATE_OF_BIRTH": 0.02,
+    },
 }
 
 SUPPORT_ISSUES = [
-    "Delayed delivery", "Damaged item on arrival", "Login access issue", "Billing discrepancy",
-    "Missing invoice", "Product setup help",
+    "Delayed delivery",
+    "Damaged item on arrival",
+    "Login access issue",
+    "Billing discrepancy",
+    "Missing invoice",
+    "Product setup help",
 ]
 HR_TOPICS = [
-    "Onboarding checklist", "Leave request follow-up", "Benefits enrolment", "Reference check",
+    "Onboarding checklist",
+    "Leave request follow-up",
+    "Benefits enrolment",
+    "Reference check",
     "Payroll correction",
 ]
 CALL_TOPICS = [
-    "Inbound enquiry", "Follow-up call", "Renewal discussion", "Complaint handling",
+    "Inbound enquiry",
+    "Follow-up call",
+    "Renewal discussion",
+    "Complaint handling",
     "Technical support call",
 ]
 PII_OPENINGS = {
@@ -585,33 +857,46 @@ PII_FILLERS: dict[str, list[str]] = {
 
 TYPE_TEMPLATES: dict[str, list[str]] = {
     "PERSON": [
-        "Reported by {v}.", "{v} called in about this.", "Please loop in {v} from the account team.",
+        "Reported by {v}.",
+        "{v} called in about this.",
+        "Please loop in {v} from the account team.",
         "Contact: {v}.",
     ],
     "EMAIL": [
-        "You can reach the customer at {v}.", "Please cc {v} on all correspondence.",
-        "Confirmation was sent to {v}.", "Reply-to address on file: {v}.",
+        "You can reach the customer at {v}.",
+        "Please cc {v} on all correspondence.",
+        "Confirmation was sent to {v}.",
+        "Reply-to address on file: {v}.",
     ],
     "PHONE": [
-        "Callback number: {v}.", "The customer's direct line is {v}.", "We tried reaching {v} twice.",
+        "Callback number: {v}.",
+        "The customer's direct line is {v}.",
+        "We tried reaching {v} twice.",
         "Preferred contact number: {v}.",
     ],
     "IBAN": [
-        "Refund account: {v}.", "Please process the reimbursement to {v}.", "Bank details on file: {v}.",
+        "Refund account: {v}.",
+        "Please process the reimbursement to {v}.",
+        "Bank details on file: {v}.",
         "Payment should be returned to {v}.",
     ],
     "ADDRESS": [
-        "Shipping address: {v}.", "The site visit is scheduled at {v}.", "Correspondence address: {v}.",
+        "Shipping address: {v}.",
+        "The site visit is scheduled at {v}.",
+        "Correspondence address: {v}.",
         "Please update our records to {v}.",
     ],
     "DATE_OF_BIRTH": [
-        "Date of birth: {v}.", "Identity verified against DOB {v}.", "Born on {v} per the HR file.",
+        "Date of birth: {v}.",
+        "Identity verified against DOB {v}.",
+        "Born on {v} per the HR file.",
         "DOB on record: {v}.",
     ],
 }
 HARD_NEGATIVE_TEMPLATES: dict[str, list[str]] = {
     "company": [
-        "This relates to our contract with {v}.", "The escalation was raised by {v}.",
+        "This relates to our contract with {v}.",
+        "The escalation was raised by {v}.",
         "{v} is the account in question.",
     ],
     "product": ["The issue concerns the {v} module.", "This ticket is about {v}.", "{v} usage triggered the alert."],
@@ -786,7 +1071,9 @@ def build_pii(seed: int, out_dir: Path) -> DatasetCard:
         sum(len(v) for v in TYPE_TEMPLATES.values())
         + sum(len(v) for v in HARD_NEGATIVE_TEMPLATES.values())
         + sum(len(v) for v in PII_FILLERS.values())
-        + len(SUPPORT_ISSUES) + len(HR_TOPICS) + len(CALL_TOPICS)
+        + len(SUPPORT_ISSUES)
+        + len(HR_TOPICS)
+        + len(CALL_TOPICS)
     )
     card = DatasetCard(
         source="synthetic",
@@ -814,42 +1101,96 @@ def build_pii(seed: int, out_dir: Path) -> DatasetCard:
 # --------------------------------------------------------------------------------------
 
 MEETING_TOPICS = [
-    "the website migration", "the vendor consolidation", "the office relocation",
-    "the Q4 hiring plan", "the customer onboarding redesign", "the warehouse automation rollout",
-    "the support ticket backlog", "the annual budget review", "the new supplier onboarding",
+    "the website migration",
+    "the vendor consolidation",
+    "the office relocation",
+    "the Q4 hiring plan",
+    "the customer onboarding redesign",
+    "the warehouse automation rollout",
+    "the support ticket backlog",
+    "the annual budget review",
+    "the new supplier onboarding",
     "the security audit follow-up",
 ]
 WORKSTREAMS = [
-    "the vendor contract", "the rollout schedule", "the support queue", "the integration testing",
-    "the training materials", "the compliance review", "the budget forecast", "the staffing plan",
-    "the migration plan", "the customer feedback", "the pilot results", "the security review",
-    "the deployment checklist", "the onboarding flow", "the incident backlog", "the license renewal",
-    "the hardware refresh", "the vendor scorecard", "the escalation process", "the reporting dashboard",
-    "the change request queue", "the capacity plan", "the risk register", "the audit findings",
-    "the service catalogue", "the automation backlog", "the network upgrade", "the data migration",
-    "the access review", "the disaster-recovery plan",
+    "the vendor contract",
+    "the rollout schedule",
+    "the support queue",
+    "the integration testing",
+    "the training materials",
+    "the compliance review",
+    "the budget forecast",
+    "the staffing plan",
+    "the migration plan",
+    "the customer feedback",
+    "the pilot results",
+    "the security review",
+    "the deployment checklist",
+    "the onboarding flow",
+    "the incident backlog",
+    "the license renewal",
+    "the hardware refresh",
+    "the vendor scorecard",
+    "the escalation process",
+    "the reporting dashboard",
+    "the change request queue",
+    "the capacity plan",
+    "the risk register",
+    "the audit findings",
+    "the service catalogue",
+    "the automation backlog",
+    "the network upgrade",
+    "the data migration",
+    "the access review",
+    "the disaster-recovery plan",
 ]
 DUE_DATES = [
-    "Friday", "next Wednesday", "the end of the month", "14 April", "the 20th", "next Monday",
-    "the end of the quarter", "Thursday", "the 3rd", "next Friday",
+    "Friday",
+    "next Wednesday",
+    "the end of the month",
+    "14 April",
+    "the 20th",
+    "next Monday",
+    "the end of the quarter",
+    "Thursday",
+    "the 3rd",
+    "next Friday",
 ]
 AMOUNT_VALUES = [3500, 6000, 8500, 12000, 18000, 24000, 32000, 50000, 9500, 15500]
 AMOUNT_SYMBOLS = ["$", "£", "€"]
 DECISION_ACTIONS = [
-    "move forward with the new vendor", "extend the pilot to all regions", "postpone the launch",
-    "consolidate the two systems", "adopt the revised timeline", "proceed with the in-house option",
-    "finalise the contract terms", "roll out the update company-wide", "freeze scope for this quarter",
+    "move forward with the new vendor",
+    "extend the pilot to all regions",
+    "postpone the launch",
+    "consolidate the two systems",
+    "adopt the revised timeline",
+    "proceed with the in-house option",
+    "finalise the contract terms",
+    "roll out the update company-wide",
+    "freeze scope for this quarter",
     "switch to the new reporting tool",
 ]
 TASK_ACTIONS = [
-    "send the updated proposal", "follow up with the vendor", "prepare the migration checklist",
-    "schedule the kickoff session", "draft the revised budget", "coordinate with the facilities team",
-    "circulate the meeting notes", "confirm the go-live date", "update the project tracker",
+    "send the updated proposal",
+    "follow up with the vendor",
+    "prepare the migration checklist",
+    "schedule the kickoff session",
+    "draft the revised budget",
+    "coordinate with the facilities team",
+    "circulate the meeting notes",
+    "confirm the go-live date",
+    "update the project tracker",
     "arrange the site visit",
 ]
 ALT_APPROACHES = [
-    "a phased rollout", "an in-house build", "the previous vendor", "a manual process",
-    "outsourcing the work", "a smaller pilot", "the legacy system", "a same-day migration",
+    "a phased rollout",
+    "an in-house build",
+    "the previous vendor",
+    "a manual process",
+    "outsourcing the work",
+    "a smaller pilot",
+    "the legacy system",
+    "a same-day migration",
 ]
 OPENING_TURNS = [
     "{speaker}: Thanks everyone for joining, let's get started on {topic}.",
@@ -917,8 +1258,14 @@ ELABORATIONS = [
     "{speaker}: The team working on {ws} could use another pair of hands.",
 ]
 REASON_WORDS = [
-    "a staffing gap", "a vendor delay", "a scope change", "a dependency on another team",
-    "a data-quality issue", "a permissions issue", "an unexpected outage", "a licensing hold-up",
+    "a staffing gap",
+    "a vendor delay",
+    "a scope change",
+    "a dependency on another team",
+    "a data-quality issue",
+    "a permissions issue",
+    "an unexpected outage",
+    "a licensing hold-up",
 ]
 
 SUMMARY_STYLES: dict[str, list[str]] = {
@@ -1030,22 +1377,36 @@ def build_transcript(rng: random.Random, item_id: str) -> dict[str, Any]:
         speaker = rng.choice(speakers)
         ws = rng.choice(workstreams)
         tmpl = rng.choice(ELABORATIONS)
-        line = tmpl.format(speaker=speaker, ws=ws, ws_cap=ws[0].upper() + ws[1:], pct=rng.choice([15, 20, 30, 40, 55, 60, 70, 80, 90]), reason=rng.choice(REASON_WORDS))
+        pct = rng.choice([15, 20, 30, 40, 55, 60, 70, 80, 90])
+        line = tmpl.format(
+            speaker=speaker, ws=ws, ws_cap=ws[0].upper() + ws[1:], pct=pct, reason=rng.choice(REASON_WORDS)
+        )
         all_turns.insert(rng.randint(1, len(all_turns) - 1), line)
 
     text = "\n".join(all_turns)
-    return {"id": item_id, "text": text, "max_words": 120, "required_facts": [public_fact(f) for f in facts], "_facts": facts}
+    return {
+        "id": item_id,
+        "text": text,
+        "max_words": 120,
+        "required_facts": [public_fact(f) for f in facts],
+        "_facts": facts,
+    }
 
 
-def render_fact_sentence(f: dict[str, Any], style: int, mutate: str | None = None, mutated_value: str | None = None) -> str:
+def render_fact_sentence(
+    f: dict[str, Any], style: int, mutate: str | None = None, mutated_value: str | None = None
+) -> str:
     internal = f["_internal"]
     tmpl = SUMMARY_STYLES[f["kind"]][style]
     slots = dict(internal)
     if mutate and mutated_value is not None:
         slots[mutate] = mutated_value
     return tmpl.format(
-        action=slots.get("action"), date=slots.get("date"), owner=slots.get("owner"),
-        ws=slots.get("ws"), amount=slots.get("amount"),
+        action=slots.get("action"),
+        date=slots.get("date"),
+        owner=slots.get("owner"),
+        ws=slots.get("ws"),
+        amount=slots.get("amount"),
     )
 
 
@@ -1056,7 +1417,7 @@ def build_judge_summaries(
     n = len(facts)
     records = []
     variants = ["faithful", "fact_dropped", "wrong_number_or_date", "wrong_owner", "invented_commitment"]
-    for v_idx, variant in enumerate(variants):
+    for variant in variants:
         style = style_counter[0] % 3
         style_counter[0] += 1
         sentences = []
@@ -1079,7 +1440,8 @@ def build_judge_summaries(
             for f in facts:
                 if f["index"] == target_idx:
                     if f["kind"] == "amount":
-                        wrong = _amount_text(rng, rng.choice([v for v in AMOUNT_VALUES if v != int(re.sub(r"[^0-9]", "", f["_internal"]["amount"]))]))
+                        current = int(re.sub(r"[^0-9]", "", f["_internal"]["amount"]))
+                        wrong = _amount_text(rng, rng.choice([v for v in AMOUNT_VALUES if v != current]))
                         sentences.append(render_fact_sentence(f, style, mutate="amount", mutated_value=wrong))
                     else:
                         wrong = rng.choice([d for d in DUE_DATES if d != f["_internal"]["date"]])
@@ -1162,9 +1524,19 @@ def build_summarisation(seed: int, out_dir: Path) -> DatasetCard:
         seed=seed,
         metric="pass_rate",
         distinct_templates=(
-            len(MEETING_TOPICS) + len(WORKSTREAMS) + len(DUE_DATES) + len(AMOUNT_VALUES)
-            + len(DECISION_ACTIONS) + len(TASK_ACTIONS) + len(ALT_APPROACHES) + len(OPENING_TURNS)
-            + len(CLOSING_TURNS) + len(SMALL_TALK) + len(SUPERSEDED) + len(REJECTED) + len(ELABORATIONS)
+            len(MEETING_TOPICS)
+            + len(WORKSTREAMS)
+            + len(DUE_DATES)
+            + len(AMOUNT_VALUES)
+            + len(DECISION_ACTIONS)
+            + len(TASK_ACTIONS)
+            + len(ALT_APPROACHES)
+            + len(OPENING_TURNS)
+            + len(CLOSING_TURNS)
+            + len(SMALL_TALK)
+            + len(SUPERSEDED)
+            + len(REJECTED)
+            + len(ELABORATIONS)
             + sum(len(v) for v in SUMMARY_STYLES.values())
         ),
         notes=(
@@ -1191,7 +1563,11 @@ def build_summarisation(seed: int, out_dir: Path) -> DatasetCard:
 
 ENTITY_COUNTRIES = ["GB", "US", "CA"]
 TRANSLITERATION_PAIRS = [
-    ("Müller", "Mueller"), ("Björk", "Bjork"), ("Søren", "Soren"), ("François", "Francois"), ("Håkon", "Hakon"),
+    ("Müller", "Mueller"),
+    ("Björk", "Bjork"),
+    ("Søren", "Soren"),
+    ("François", "Francois"),
+    ("Håkon", "Hakon"),
 ]
 QUALIFIERS = ["International", "Group", "& Partners", "Holdings"]
 QUALIFIER_ABBR = {"International": "Intl", "Group": "Grp", "& Partners": "& Ptnrs", "Holdings": "Hldgs"}
@@ -1218,10 +1594,19 @@ def make_master(rng: random.Random) -> dict[str, Any]:
     slug = slugify(f"{base_ascii} {suffix}")
     tld = rng.choice(["com", "org", "net"])
     return {
-        "name": name, "street": street, "postcode": postcode_for(rng, country), "city": city, "country": country,
-        "domain": f"{slug}.example.{tld}", "vat_id": f"{country}{rng.randint(100000000, 999999999)}",
+        "name": name,
+        "street": street,
+        "postcode": postcode_for(rng, country),
+        "city": city,
+        "country": country,
+        "domain": f"{slug}.example.{tld}",
+        "vat_id": f"{country}{rng.randint(100000000, 999999999)}",
         "phone": phone_for_country(rng, country)[0],
-        "_base": base, "_base_ascii": base_ascii, "_qualifier": qualifier, "_suffix": suffix, "_legal": legal,
+        "_base": base,
+        "_base_ascii": base_ascii,
+        "_qualifier": qualifier,
+        "_suffix": suffix,
+        "_legal": legal,
         "_surname_style": surname_style,
     }
 
@@ -1281,8 +1666,13 @@ def negative_other_country(rng: random.Random, m: dict[str, Any]) -> dict[str, A
     country = rng.choice([c for c in ENTITY_COUNTRIES if c != m["country"]])
     street, city = address_line(rng, country)
     return {
-        "name": m["name"], "street": street, "city": city, "postcode": postcode_for(rng, country),
-        "country": country, "domain": m["domain"], "vat_id": f"{country}{rng.randint(100000000, 999999999)}",
+        "name": m["name"],
+        "street": street,
+        "city": city,
+        "postcode": postcode_for(rng, country),
+        "country": country,
+        "domain": m["domain"],
+        "vat_id": f"{country}{rng.randint(100000000, 999999999)}",
         "phone": phone_for_country(rng, country)[0],
     }
 
@@ -1303,8 +1693,13 @@ def negative_similar_name_same_street(rng: random.Random, m: dict[str, Any]) -> 
     slug = slugify(f"{other} {m['_suffix']}")
     tld = rng.choice(["com", "org", "net"])
     return {
-        "name": name, "street": m["street"], "city": m["city"], "postcode": m["postcode"], "country": m["country"],
-        "domain": f"{slug}.example.{tld}", "vat_id": f"{m['country']}{rng.randint(100000000, 999999999)}",
+        "name": name,
+        "street": m["street"],
+        "city": m["city"],
+        "postcode": m["postcode"],
+        "country": m["country"],
+        "domain": f"{slug}.example.{tld}",
+        "vat_id": f"{m['country']}{rng.randint(100000000, 999999999)}",
         "phone": phone_for_country(rng, m["country"])[0],
     }
 
@@ -1328,7 +1723,8 @@ def build_entity_item(rng: random.Random, item_id: str, match: bool) -> dict[str
     master = make_master(rng)
     if match:
         options = [
-            (k, fn) for k, fn in POSITIVE_TRANSFORMS
+            (k, fn)
+            for k, fn in POSITIVE_TRANSFORMS
             if (k != "abbreviation" or master["_qualifier"]) and (k != "transliteration" or master["_surname_style"])
         ]
         _, fn = rng.choice(options)
@@ -1378,11 +1774,221 @@ def build_entity_matching(seed: int, out_dir: Path) -> DatasetCard:
     return card
 
 
+# --------------------------------------------------------------------------------------
+# classification (BANKING77)
+# --------------------------------------------------------------------------------------
+
+
+def _download(url: str, dest: Path) -> None:
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    with urllib.request.urlopen(url, timeout=30) as resp:
+        dest.write_bytes(resp.read())
+
+
+def ensure_banking77_files(banking77_dir: Path) -> tuple[Path, Path, Path]:
+    banking77_dir.mkdir(parents=True, exist_ok=True)
+    train_path, test_path, license_path = (
+        banking77_dir / "train.csv",
+        banking77_dir / "test.csv",
+        banking77_dir / "LICENSE",
+    )
+    if not train_path.exists():
+        _download(BANKING77_TRAIN_URL, train_path)
+    if not test_path.exists():
+        _download(BANKING77_TEST_URL, test_path)
+    if not license_path.exists():
+        _download(BANKING77_LICENSE_URL, license_path)
+    train_sha, test_sha = sha256_of(train_path), sha256_of(test_path)
+    if train_sha != BANKING77_TRAIN_SHA256:
+        raise ValueError(f"train.csv sha256 mismatch: got {train_sha}, expected {BANKING77_TRAIN_SHA256}")
+    if test_sha != BANKING77_TEST_SHA256:
+        raise ValueError(f"test.csv sha256 mismatch: got {test_sha}, expected {BANKING77_TEST_SHA256}")
+    return train_path, test_path, license_path
+
+
+def _read_banking_csv(path: Path) -> list[tuple[str, str]]:
+    with path.open(newline="", encoding="utf-8") as fh:
+        reader = csv.reader(fh)
+        next(reader)
+        return [(row[0], row[1]) for row in reader]
+
+
+def default_banking77_dir() -> Path:
+    return Path(tempfile.gettempdir()) / "local-enough-banking77-cache"
+
+
+def build_classification(seed: int, out_dir: Path, banking77_dir: Path | None) -> DatasetCard:
+    banking77_dir = banking77_dir or default_banking77_dir()
+    train_path, test_path, license_path = ensure_banking77_files(banking77_dir)
+    train_rows = _read_banking_csv(train_path)
+    test_rows = _read_banking_csv(test_path)
+
+    by_label: dict[str, list[str]] = {}
+    for text, label in test_rows:
+        by_label.setdefault(label, []).append(text)
+    labels = sorted(by_label)
+
+    rng = random.Random(f"classification:{seed}")
+    calib_records, test_records = [], []
+    for label in labels:
+        texts = by_label[label][:]
+        rng.shuffle(texts)
+        calib_records.extend({"text": t, "label": label} for t in texts[:2])
+        test_records.extend({"text": t, "label": label} for t in texts[2:6])
+    rng.shuffle(calib_records)
+    rng.shuffle(test_records)
+    for i, r in enumerate(calib_records):
+        r["id"] = f"banking77-calib-{i:04d}"
+    for i, r in enumerate(test_records):
+        r["id"] = f"banking77-test-{i:04d}"
+    train_records = [
+        {"id": f"banking77-train-{i:04d}", "text": t, "label": lbl} for i, (t, lbl) in enumerate(train_rows)
+    ]
+
+    task_dir = out_dir / "classification"
+    write_jsonl(task_dir / "calib.jsonl", calib_records)
+    write_jsonl(task_dir / "test.jsonl", test_records)
+    write_jsonl(task_dir / "train.jsonl", train_records)
+    license_dest = task_dir / "LICENSE-BANKING77.txt"
+    license_dest.parent.mkdir(parents=True, exist_ok=True)
+    license_dest.write_bytes(license_path.read_bytes())
+
+    card = DatasetCard(
+        source="BANKING77 (PolyAI); Casanueva, Temcinas, Gerz, Henderson, Vulic (2020)",
+        licence="CC-BY-4.0",
+        seed=seed,
+        metric="accuracy",
+        notes=(
+            f"calib=2/intent and test=4/intent sampled disjoint from the official test split (154/308 rows); "
+            f"train.jsonl is the full 10,003-row train split. Source sha256: train.csv={BANKING77_TRAIN_SHA256}, "
+            f"test.csv={BANKING77_TEST_SHA256}."
+        ),
+    )
+    spec = TaskSpec(
+        name="classification",
+        kind="classification",
+        description="Banking customer intent classification (BANKING77).",
+        calib="calib.jsonl",
+        test="test.jsonl",
+        train="train.jsonl",
+        labels=labels,
+        card=card,
+    )
+    write_yaml_task(task_dir / "task.yaml", spec)
+    return card
+
+
+# --------------------------------------------------------------------------------------
+# bring-your-own example: a tiny 3-label support-ticket classifier
+# --------------------------------------------------------------------------------------
+
+CUSTOM_LABELS = ["billing", "bug_report", "how_to"]
+CUSTOM_FEATURES = [
+    "the dashboard",
+    "the export tool",
+    "the mobile app",
+    "the notification settings",
+    "the search filter",
+    "the billing page",
+    "the API integration",
+    "the calendar sync",
+    "the file upload",
+    "the user roles panel",
+]
+CUSTOM_TEMPLATES: dict[str, list[str]] = {
+    "billing": [
+        "I was charged twice for my {feature} subscription this month, can you refund the extra payment?",
+        "My invoice shows an amount I don't recognise, can someone explain the charge for {feature}?",
+        "I'd like to update my payment method before the next billing cycle.",
+        "Can you confirm when my next invoice for {feature} is due?",
+        "I cancelled my plan last week but was still billed, please look into this.",
+        "The discount code I applied didn't reduce the total on my invoice.",
+        "I need a copy of last month's invoice for our accounting team.",
+        "Is it possible to switch from monthly to annual billing?",
+        "My card was declined but the charge still shows as pending, what should I do?",
+        "We'd like to add a second seat to our plan, how does the pro-rated charge work?",
+    ],
+    "bug_report": [
+        "{feature} keeps crashing whenever I try to save changes.",
+        "I'm getting an error message when I open {feature}, nothing loads.",
+        "{feature} shows the wrong data compared to what's in my account.",
+        "After the last update, {feature} stopped working entirely.",
+        "I can't log in anymore, the page just spins and never loads.",
+        "{feature} is extremely slow today, taking over a minute to respond.",
+        "There's a broken link on {feature} that leads to a missing page.",
+        "My changes in {feature} aren't being saved between sessions.",
+        "{feature} throws a permissions error even though I'm an admin.",
+        "The app crashed twice today while I was using {feature}.",
+    ],
+    "how_to": [
+        "How do I set up {feature} for my whole team?",
+        "Is there a way to export data from {feature} to a spreadsheet?",
+        "Can you point me to documentation on configuring {feature}?",
+        "What's the best way to migrate our data into {feature}?",
+        "How can I give a colleague access to {feature} without making them an admin?",
+        "Is it possible to customise the layout of {feature}?",
+        "How do I connect {feature} to our existing tools?",
+        "Where can I change the default settings for {feature}?",
+        "How do I reset {feature} back to its original configuration?",
+        "Can you walk me through enabling notifications for {feature}?",
+    ],
+}
+
+
+def build_custom_split(rng: random.Random, n_per_label: int, prefix: str) -> list[dict[str, Any]]:
+    records = []
+    for label in CUSTOM_LABELS:
+        for _ in range(n_per_label):
+            tmpl = rng.choice(CUSTOM_TEMPLATES[label])
+            text = tmpl.format(feature=rng.choice(CUSTOM_FEATURES)) if "{feature}" in tmpl else tmpl
+            records.append({"text": text, "label": label})
+    rng.shuffle(records)
+    for i, r in enumerate(records):
+        r["id"] = f"{prefix}-{i:04d}"
+    return records
+
+
+def build_custom_example(seed: int, out_dir: Path) -> DatasetCard:
+    rng = random.Random(f"custom_support_tickets:{seed}")
+    calib = build_custom_split(rng, 10, "custom-calib")
+    test = build_custom_split(rng, 20, "custom-test")
+    train = build_custom_split(rng, 50, "custom-train")
+
+    write_jsonl(out_dir / "calib.jsonl", calib)
+    write_jsonl(out_dir / "test.jsonl", test)
+    write_jsonl(out_dir / "train.jsonl", train)
+
+    card = DatasetCard(
+        source="synthetic example",
+        licence="Apache-2.0",
+        seed=seed,
+        metric="accuracy",
+        distinct_templates=sum(len(v) for v in CUSTOM_TEMPLATES.values()),
+        notes="Tiny made-up 3-label support-ticket classifier demonstrating bring-your-own-task.",
+    )
+    spec = TaskSpec(
+        name="custom_support_tickets",
+        kind="classification",
+        description="Example bring-your-own task: a 3-label support-ticket classifier.",
+        calib="calib.jsonl",
+        test="test.jsonl",
+        train="train.jsonl",
+        labels=CUSTOM_LABELS,
+        card=card,
+    )
+    write_yaml_task(out_dir / "task.yaml", spec)
+    return card
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--banking77-dir", type=Path, default=None)
+    parser.add_argument("--examples-out", type=Path, default=DEFAULT_EXAMPLES_OUT)
+    parser.add_argument(
+        "--skip-banking77", action="store_true", help="Skip the classification task (needs network access once)."
+    )
     args = parser.parse_args(argv)
 
     args.out.mkdir(parents=True, exist_ok=True)
@@ -1394,6 +2000,13 @@ def main(argv: list[str] | None = None) -> int:
     print("summarisation: ok")
     build_entity_matching(args.seed, args.out)
     print("entity_matching: ok")
+    if args.skip_banking77:
+        print("classification: skipped")
+    else:
+        build_classification(args.seed, args.out, args.banking77_dir)
+        print("classification: ok")
+    build_custom_example(args.seed, args.examples_out)
+    print("custom-task example: ok")
     return 0
 
 
