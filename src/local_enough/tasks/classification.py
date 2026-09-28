@@ -30,7 +30,9 @@ def parse(spec: TaskSpec, raw_text: str) -> Parsed:
         label = parsing.first_line_label(raw_text)
     except ValueError as exc:
         return Parsed(ok=False, error=str(exc))
-    canonical = {lbl.casefold(): lbl for lbl in spec.labels or []}
+    # Labels are compared without trailing punctuation on both sides: BANKING77's official label set has
+    # "reverted_card_payment?", which a model may or may not reproduce with the question mark.
+    canonical = {lbl.casefold().strip(parsing.LABEL_STRIP_CHARS): lbl for lbl in spec.labels or []}
     match = canonical.get(label.casefold())
     if match is None:
         return Parsed(ok=False, error=f"label {label!r} not in label set", value=label)

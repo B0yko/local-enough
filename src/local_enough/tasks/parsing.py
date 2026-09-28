@@ -9,7 +9,7 @@ from typing import Any
 _THINK_CLOSED = re.compile(r"<think>.*?</think>", re.IGNORECASE | re.DOTALL)
 _THINK_UNCLOSED = re.compile(r"<think>.*", re.IGNORECASE | re.DOTALL)
 _FENCE = re.compile(r"```[a-zA-Z0-9_+-]*\s*\n?(.*?)```", re.DOTALL)
-_LABEL_STRIP_CHARS = " \t\n\r`'\".,;:!?"
+LABEL_STRIP_CHARS = " \t\n\r`'\".,;:!?"
 
 
 def strip_wrappers(text: str) -> str:
@@ -26,7 +26,7 @@ def first_line_label(text: str) -> str:
     """First non-empty line, quotes/backticks/trailing punctuation stripped."""
     cleaned = strip_wrappers(text)
     for line in cleaned.splitlines():
-        label = line.strip().strip(_LABEL_STRIP_CHARS)
+        label = line.strip().strip(LABEL_STRIP_CHARS)
         if label:
             return label
     raise ValueError("no label found in output")

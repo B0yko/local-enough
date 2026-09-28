@@ -86,3 +86,13 @@ def test_item_from_input_and_user_input_roundtrip() -> None:
     assert mod.user_input(SPEC, item) == "hello"
     rebuilt = mod.item_from_input(SPEC, "hello")
     assert rebuilt["text"] == "hello"
+
+
+def test_label_with_trailing_punctuation_in_the_label_set_is_valid() -> None:
+    from local_enough.tasks import classification
+    from local_enough.tasks.base import TaskSpec
+
+    spec = TaskSpec(name="c", kind="classification", labels=["reverted_card_payment?", "card_arrival"])
+    assert classification.parse(spec, "reverted_card_payment?").content == "reverted_card_payment?"
+    assert classification.parse(spec, "`card_arrival`.").content == "card_arrival"
+    assert classification.parse(spec, "reverted_card_payment").content == "reverted_card_payment?"
