@@ -131,7 +131,12 @@ def _sanitise_config(cfg: Config) -> dict[str, Any]:
             models.append(entry)
         else:
             models.append({"id": m.id, "kind": "baseline", "task": m.task})
-    out: dict[str, Any] = {"project": cfg.project, "models": models}
+    out: dict[str, Any] = {
+        "project": cfg.project,
+        "budget_usd": cfg.budget_usd,
+        "budget_warn_usd": cfg.budget_warn_usd,
+        "models": models,
+    }
     if cfg.hardware is not None:
         hw = cfg.hardware
         out["hardware"] = {

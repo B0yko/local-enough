@@ -285,3 +285,20 @@ def test_later_passes_keep_the_models_earlier_passes_recorded() -> None:
     assert [m["id"] for m in merged["models"]] == ["cloud-a", "local-b"]
     assert merged["models"][1]["revision"] == "abc"
     assert _merge_config(None, later) == later
+
+
+def test_sanitised_config_records_the_budget_cap_and_warning_level() -> None:
+    from local_enough.bench.runner import _sanitise_config
+
+    cfg = Config(
+        project="p",
+        budget_usd=12.0,
+        budget_warn_usd=9.5,
+        models=[BaselineModel(id="tfidf-baseline", task="classification")],
+    )
+    out = _sanitise_config(cfg)
+    assert out["budget_usd"] == 12.0
+    assert out["budget_warn_usd"] == 9.5
+    unset = _sanitise_config(Config(project="p", models=[BaselineModel(id="tfidf-baseline", task="classification")]))
+    assert unset["budget_usd"] == 5.0
+    assert unset["budget_warn_usd"] is None
