@@ -98,21 +98,25 @@ def _ledger_by_command(run: RunDir) -> dict[str, float]:
 
     Known commands come first in pipeline order, any others after them alphabetically.
     """
-    path = run.file("cost_ledger.jsonl")
-    if not path.exists():
+    records: list[dict[str, Any]] = []
+    if run.exists("cost_ledger.jsonl.gz"):  # the committed reference run stores its ledger copy compressed
+        records = list(run.iter_records("cost_ledger.jsonl.gz"))
+    elif run.exists("cost_ledger.jsonl"):
+        with run.file("cost_ledger.jsonl").open(encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    records.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+    if not records:
         return {}
     totals: dict[str, float] = {}
-    with path.open(encoding="utf-8") as fh:
-        for line in fh:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                record = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            command = str(record.get("command") or "unknown")
-            totals[command] = totals.get(command, 0.0) + float(record.get("actual_usd") or 0.0)
+    for record in records:
+        command = str(record.get("command") or "unknown")
+        totals[command] = totals.get(command, 0.0) + float(record.get("actual_usd") or 0.0)
     known = [c for c in LEDGER_COMMAND_ORDER if c in totals]
     return {c: totals[c] for c in [*known, *sorted(set(totals) - set(known))]}
 
