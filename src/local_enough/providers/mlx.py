@@ -8,6 +8,7 @@ install (which never installs the ``mlx``/``mlx-lm`` marker dependencies) does n
 from __future__ import annotations
 
 import os
+import socket
 import subprocess
 import sys
 import time
@@ -67,7 +68,18 @@ class MlxServer:
         path = snapshot_download(self.repo, revision=self.revision, local_files_only=True)
         return Path(path)
 
+    def _check_port_free(self) -> None:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+            try:
+                probe.bind((self.host, self.port))
+            except OSError as exc:
+                raise MlxServerError(
+                    f"port {self.port} on {self.host} is already in use; set launch.port for {self.repo!r} "
+                    "to a free port"
+                ) from exc
+
     def start(self) -> MlxServer:
+        self._check_port_free()
         self.snapshot_dir = self._resolve_snapshot()
         self.sha = self.snapshot_dir.name
 
@@ -105,7 +117,13 @@ class MlxServer:
                     )
                 try:
                     response = client.get(f"{self.base_url}/models")
-                    if response.status_code == 200:
+                    # Ready only when the server lists our own snapshot, so another service that happens to
+                    # answer on the port is never mistaken for this model.
+                    if (
+                        response.status_code == 200
+                        and self.snapshot_dir is not None
+                        and (str(self.snapshot_dir) in response.text)
+                    ):
                         return
                 except httpx.HTTPError as exc:
                     last_error = exc

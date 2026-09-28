@@ -60,7 +60,9 @@ def test_start_resolves_snapshot_and_waits_for_ready(monkeypatch: pytest.MonkeyP
 
     server = MlxServer("mlx-community/Qwen3-4B-Instruct-2507-4bit", revision="main", port=8081, poll_interval_s=0.01)
     with respx.mock(assert_all_called=True) as mock:
-        mock.get("http://127.0.0.1:8081/v1/models").mock(return_value=httpx.Response(200, json={"data": []}))
+        mock.get("http://127.0.0.1:8081/v1/models").mock(
+            return_value=httpx.Response(200, json={"data": [{"id": str(snapshot_dir)}]})
+        )
         server.start()
 
     assert server.sha == snapshot_dir.name
@@ -105,7 +107,9 @@ def test_stop_kills_after_terminate_timeout(monkeypatch: pytest.MonkeyPatch, sna
 
     server = MlxServer("mlx-community/Qwen3-4B-Instruct-2507-4bit", port=8084, poll_interval_s=0.01)
     with respx.mock(assert_all_called=True) as mock:
-        mock.get("http://127.0.0.1:8084/v1/models").mock(return_value=httpx.Response(200, json={"data": []}))
+        mock.get("http://127.0.0.1:8084/v1/models").mock(
+            return_value=httpx.Response(200, json={"data": [{"id": str(snapshot_dir)}]})
+        )
         server.start()
     server.stop(timeout_s=0.01)
     assert fake.terminate_calls == 1
@@ -118,7 +122,39 @@ def test_context_manager_starts_and_stops(monkeypatch: pytest.MonkeyPatch, snaps
     monkeypatch.setattr("local_enough.providers.mlx.subprocess.Popen", lambda *a, **k: fake)
 
     with respx.mock(assert_all_called=True) as mock:
-        mock.get("http://127.0.0.1:8085/v1/models").mock(return_value=httpx.Response(200, json={"data": []}))
+        mock.get("http://127.0.0.1:8085/v1/models").mock(
+            return_value=httpx.Response(200, json={"data": [{"id": str(snapshot_dir)}]})
+        )
         with MlxServer("mlx-community/Qwen3-4B-Instruct-2507-4bit", port=8085, poll_interval_s=0.01) as server:
             assert server.pid == 4242
     assert fake.terminate_calls == 1
+
+
+def test_start_refuses_a_port_that_is_already_in_use(monkeypatch: pytest.MonkeyPatch, snapshot_dir: Path) -> None:
+    import socket
+
+    _patch_snapshot_download(monkeypatch, snapshot_dir)
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as busy:
+        busy.bind(("127.0.0.1", 0))
+        busy.listen()
+        port = busy.getsockname()[1]
+        server = MlxServer("mlx-community/Qwen3-4B-Instruct-2507-4bit", port=port, startup_timeout_s=0.05)
+        with pytest.raises(MlxServerError, match="already in use"):
+            server.start()
+
+
+def test_a_foreign_service_on_the_port_is_not_taken_for_the_model(
+    monkeypatch: pytest.MonkeyPatch, snapshot_dir: Path
+) -> None:
+    _patch_snapshot_download(monkeypatch, snapshot_dir)
+    fake = FakeProcess()
+    monkeypatch.setattr("local_enough.providers.mlx.subprocess.Popen", lambda *a, **k: fake)
+    server = MlxServer(
+        "mlx-community/Qwen3-4B-Instruct-2507-4bit", port=8085, startup_timeout_s=0.05, poll_interval_s=0.01
+    )
+    with respx.mock() as mock:
+        mock.get("http://127.0.0.1:8085/v1/models").mock(
+            return_value=httpx.Response(200, json={"data": [{"id": "some-other-model"}]})
+        )
+        with pytest.raises(MlxServerError, match="did not become ready"):
+            server.start()
