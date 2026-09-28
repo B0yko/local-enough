@@ -134,11 +134,11 @@ def test_headline_text_when_some_tasks_meet_the_bar() -> None:
         router_saving_pct=None,
         router_saving_vs=None,
     )
-    assert "Local met the quality bar on 3 of 5 tasks (calib)" in text
+    assert "a local candidate met the quality bar on 3 of 5 tasks" in text
     assert "classification" in text
-    assert "Local failed the bar on most tasks" not in text
+    assert "Local failed the quality bar on most tasks" not in text
     assert "10,000 tasks/month" in text
-    assert "not available in this build" in text
+    assert "not available for this run" in text
 
 
 def test_headline_text_when_no_task_meets_the_bar() -> None:
@@ -152,8 +152,8 @@ def test_headline_text_when_no_task_meets_the_bar() -> None:
         router_saving_pct=None,
         router_saving_vs=None,
     )
-    assert "Local met the quality bar on none of the 5 measured tasks (calib)" in text
-    assert "Local failed the bar on most tasks" in text
+    assert "no local candidate met it on any of the 5 tasks" in text
+    assert "Local failed the quality bar on every task" in text
     assert "classification" in text  # the fallback headline task
 
 
@@ -169,7 +169,7 @@ def test_headline_text_reports_router_saving_when_available() -> None:
         router_saving_vs="the cheapest single cloud model meeting every bar",
     )
     # The saving is already a percentage: it must not be scaled a second time (76.9 used to read "+7690.0%").
-    assert "saves 32.0% on the mixed workload" in text
+    assert "costs 32.0% less on the mixed workload" in text
     assert "%" in text and "3200" not in text
 
 
@@ -221,7 +221,7 @@ def _headline(**overrides: Any) -> str:
 
 def test_headline_saving_is_not_scaled_twice() -> None:
     text = _headline(router_saving_pct=94.98)
-    assert "saves 95.0% on the mixed workload" in text
+    assert "costs 95.0% less on the mixed workload" in text
     assert "9498" not in text
 
 
@@ -238,7 +238,7 @@ def test_headline_names_the_local_winner_per_task_and_flags_a_non_llm_baseline()
 
 def test_headline_says_no_break_even_when_no_cloud_model_met_the_bar() -> None:
     text = _headline()
-    assert "there is no break-even to compute because no cloud model met the bar" in text
+    assert "has no break-even volume to compute: no cloud model met its bar" in text
     assert "n/a — no cloud model meets the bar" not in text
 
 
@@ -247,10 +247,10 @@ def test_headline_names_the_refused_task_and_its_gap_to_the_bar() -> None:
         router_saving_scope="gates, no route.yaml constraints",
         refusals=[Refusal("pii_redaction", "f2", 0.92, 0.95)],
     )
-    assert "The router (gates, no route.yaml constraints) saves 76.9%" in text
+    assert "The router (gates, no route.yaml constraints) costs 76.9% less" in text
     assert (
-        "Keeping pii_redaction local is not possible at its bar: best local f2 92.0% vs 95.0%, "
-        "so the router refuses it with HTTP 503." in text
+        "pii_redaction, which must stay local, missed its bar (best local f2 92.0% vs 95.0%), "
+        "so the router refuses it" in text
     )
 
 

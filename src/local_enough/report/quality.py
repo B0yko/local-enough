@@ -220,53 +220,64 @@ def headline_text(
     """
     task, local_met_a_bar = headline_task(met_bar_tasks, workload_mix)
 
+    # Sentence 1: where local met the bar (calib), and any task that must stay local but cannot.
+    n_met = len(met_bar_tasks)
     if local_met_a_bar:
         winners = local_winners or {}
         parts = [
             f"{t} ({local_winner_text(winners[t].model_id, winners[t].kind)})" if t in winners else t
             for t in sorted(met_bar_tasks)
         ]
-        sentence1 = (
-            f"Local met the quality bar on {len(met_bar_tasks)} of {total_tasks} tasks (calib): {', '.join(parts)}."
-        )
+        joined = parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + f" and {parts[-1]}"
+        if n_met * 2 < total_tasks:
+            sentence1 = (
+                f"Local failed the quality bar on most tasks: on the calib split a local candidate met it on only "
+                f"{n_met} of {total_tasks}, {joined}"
+            )
+        else:
+            sentence1 = (
+                f"On the calib split a local candidate met the quality bar on {n_met} of {total_tasks} tasks: {joined}"
+            )
     else:
-        sentence1 = f"Local met the quality bar on none of the {total_tasks} measured tasks (calib)."
-    if len(met_bar_tasks) * 2 < total_tasks:
-        sentence1 += " Local failed the bar on most tasks."
+        sentence1 = (
+            f"Local failed the quality bar on every task: on the calib split no local candidate met it on any of the "
+            f"{total_tasks} tasks"
+        )
+    refusal_clauses = [
+        f"{r.task}, which must stay local, missed its bar (best local {r.metric_name} {fmt_pct(r.best_local)} vs "
+        f"{fmt_pct(r.bar)}), so the router refuses it"
+        for r in refusals
+    ]
+    sentence1 += ("; " + "; ".join(refusal_clauses) if refusal_clauses else "") + "."
 
+    # Sentence 2: the headline task's break-even.
     be = break_even_by_task.get(task)
     v_t = v_t_by_task.get(task, math.nan)
+    prefix = f"The headline task, {task}," if local_met_a_bar else f"The fallback headline task, {task},"
     if be is not None and be.verdict == "break-even" and be.volume is not None:
         sentence2 = (
-            f"For the headline task ({task}), local breaks even against the cheapest cloud model meeting the bar "
-            f"at {fmt_number(be.volume)} tasks/month, against this task's {fmt_number(v_t)} tasks/month volume."
+            f"{prefix} breaks even against the cheapest cloud model meeting the bar at {fmt_number(be.volume)} "
+            f"tasks/month (its volume: {fmt_number(v_t)} tasks/month)."
         )
     elif be is not None and be.verdict == VERDICT_NO_CLOUD_BAR:
         sentence2 = (
-            f"For the headline task ({task}), there is no break-even to compute because no cloud model met the bar "
-            f"(this task runs {fmt_number(v_t)} tasks/month)."
+            f"{prefix} has no break-even volume to compute: no cloud model met its bar "
+            f"(volume: {fmt_number(v_t)} tasks/month)."
         )
     else:
         verdict_label = be.verdict if be is not None else NA
-        sentence2 = (
-            f'For the headline task ({task}), the break-even verdict is "{verdict_label}" '
-            f"at its {fmt_number(v_t)} tasks/month volume."
-        )
+        sentence2 = f'{prefix} gets the break-even verdict "{verdict_label}" at {fmt_number(v_t)} tasks/month.'
 
+    # Sentence 3: the router's saving on the mixed workload.
     if not router_available:
-        sentence3 = (
-            "Router savings on the mixed workload are not available in this build (the route package is not present)."
-        )
+        sentence3 = "The router table is not available for this run."
     elif router_saving_pct is None:
-        sentence3 = (
-            "No cloud model meets every task's bar, and the router table could not compute a mixed-workload saving."
-        )
+        sentence3 = "No cloud model meets every task's bar, and the router table could not compute a saving."
     else:
         vs = router_saving_vs or "the cheapest single cloud model meeting every bar"
         who = f"The router ({router_saving_scope})" if router_saving_scope else "The router"
         if router_saving_pct >= 0:
-            sentence3 = f"{who} saves {router_saving_pct:.1f}% on the mixed workload against {vs}."
+            sentence3 = f"{who} costs {router_saving_pct:.1f}% less on the mixed workload than {vs}."
         else:
             sentence3 = f"{who} costs {-router_saving_pct:.1f}% more on the mixed workload than {vs}."
-    sentences = [sentence1, sentence2, sentence3, *(_refusal_sentence(r) for r in refusals)]
-    return " ".join(sentences)
+    return " ".join([sentence1, sentence2, sentence3])

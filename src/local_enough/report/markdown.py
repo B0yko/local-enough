@@ -256,7 +256,7 @@ def render_break_even(data: ReportData) -> str:
         [
             "task",
             "V_t (tasks/mo)",
-            "best local model",
+            "best local LLM",
             "cheapest cloud (meets bar)",
             "cloud $/1k",
             "local energy $/1k",
@@ -407,9 +407,24 @@ def render_live_check(data: ReportData) -> str:
         ["local-only requests that reached cloud", fmt.fmt_int(lc.get("local_only_cloud_calls"))],
     ]
     body = _table(["metric", "value"], rows)
+    notes: list[str] = []
+    if lc.get("direct_p50_ms") is None:
+        notes.append(
+            "No sampled request was answered by a local LLM in this plan, so there was nothing to call directly; "
+            "overhead is the client latency minus the router's own upstream time."
+        )
+    refused = sum(int(t.get("refused_503") or 0) for t in (lc.get("per_task") or {}).values())
+    if refused:
+        notes.append(f"{refused} request(s) were refused with HTTP 503, as the simulation predicts for them.")
     mismatches = lc.get("mismatches") or []
-    note = f"\n{len(mismatches)} mismatch(es) between the live run and the simulation.\n" if mismatches else ""
-    return body + note
+    for m in mismatches:
+        notes.append(f"Mismatch on {m.get('task')} item {m.get('item_id')}: {m.get('reason')}.")
+    if mismatches:
+        notes.append(
+            "A cloud answer can differ between the recorded bench call and the live call even at temperature 0, "
+            "which can change a gate outcome and the escalation step."
+        )
+    return body + ("\n" + "\n\n".join(notes) + "\n" if notes else "")
 
 
 def render_judge(data: ReportData) -> str:

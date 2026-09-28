@@ -10,6 +10,7 @@ writes a decision report with a filled-in ADR, then serves an OpenAI-compatible 
 cheapest model that met the quality bar and escalates when deterministic evidence checks fail.
 
 <!-- le:headline:start -->
+Local failed the quality bar on most tasks: on the calib split a local candidate met it on only 2 of 5, classification (the TF-IDF baseline, no LLM) and entity_matching (local-qwen2.5-1.5b); pii_redaction, which must stay local, missed its bar (best local f2 92.2% vs 95.0%), so the router refuses it. The headline task, classification, has no break-even volume to compute: no cloud model met its bar (volume: 15,000 tasks/month). The router (gates, no route.yaml constraints) costs 76.9% less on the mixed workload than all traffic to the frontier model (no single cloud model meets every bar).
 <!-- le:headline:end -->
 
 ![Classification: accuracy vs USD per 1,000 tasks](docs/img/classification.png)
@@ -17,6 +18,15 @@ cheapest model that met the quality bar and escalates when deterministic evidenc
 The routing plan the reference run produces (`local-enough route --print-plan --run reference`):
 
 <!-- le:plan:start -->
+```text
+TASK             STATUS      BAR    PRIMARY           FALLBACKS            GATE         USD/1K
+---------------  ----------  -----  ----------------  -------------------  -----------  ------
+classification   served      0.827  tfidf-baseline    -                    format-only  0.00  
+entity_matching  served      0.950  open-same-family  open-large           passed       0.03  
+extraction       served      0.944  open-same-family  open-large,frontier  passed       0.08  
+pii_redaction    unservable  0.950  -                 -                    disabled     n/a   
+summarisation    served      0.689  frontier          -                    passed       5.57  
+```
 <!-- le:plan:end -->
 
 ## Quickstart
@@ -120,6 +130,49 @@ reference` or `local-enough route --simulate --run reference`, and CI fails if t
 ### Setup
 
 <!-- le:setup:start -->
+| field | value |
+|---|---|
+| hardware | mac-studio-m4-max-128gb |
+| machine | Mac Studio (Mac16,9), Apple M4 Max, 128 GB |
+| macOS | 26.5.2 (25F84) |
+| mlx | 0.32.2 |
+| mlx-lm | 0.31.3 |
+| judge model | openai/gpt-4.1-mini |
+| run date | 2026-09-28 |
+| hardware price | $4,099 (list price), source: https://web.archive.org/web/20250315063017/https://www.apple.com/shop/buy-mac/mac-studio/apple-m4-max-with-14-core-cpu-32-core-gpu-16-core-neural-engine-36gb-memory-512gb, 2025-03-15 |
+| electricity price (assumption) | 0.30 USD/kWh |
+| power | configured: 6 W idle, 139 W incremental, from Apple's published figures; no battery telemetry on a desktop |
+| measurement windows | 6 load-sample windows, 0 flagged contaminated |
+| total API spend | $5.77 |
+
+
+**Local models**
+
+| id | repo | revision | size on disk |
+|---|---|---|---|
+| local-qwen3-4b | mlx-community/Qwen3-4B-Instruct-2507-4bit | 50d427756c6b1b2fe0c0a10f67fbda1fc8e82c1b | 2.28 GB |
+| local-qwen2.5-1.5b | mlx-community/Qwen2.5-1.5B-Instruct-4bit | 8b403126fc14f14cfc99bb4cfa72ecbc129ea677 | 0.88 GB |
+
+
+**Cloud models** (price snapshot: 2026-09-28)
+
+| id | role | model |
+|---|---|---|
+| frontier | frontier | x-ai/grok-4.7 |
+| small-closed | small-closed | openai/gpt-5.4-nano |
+| open-large | open-large | deepseek/deepseek-v3.2 |
+| open-same-family | open-same-family | qwen/qwen3-235b-a22b-2507 |
+
+
+**Split sizes**
+
+| task | calib | test |
+|---|---|---|
+| classification | 154 | 308 |
+| entity_matching | 100 | 200 |
+| extraction | 100 | 200 |
+| pii_redaction | 100 | 200 |
+| summarisation | 40 | 80 |
 <!-- le:setup:end -->
 
 ### Quality, latency and cost per task
@@ -127,6 +180,94 @@ reference` or `local-enough route --simulate --run reference`, and CI fails if t
 `calib` decides every routing choice and verdict; every number shown is on `test`.
 
 <!-- le:results:start -->
+#### classification
+
+Quality bar (calib): 82.7%. Split: test. Scenario: local dedicated at V_t.
+
+| model | kind | accuracy (95% CI) | invalid % | p50 | p95 | $/1k tasks | meets bar (calib) | holds (test) |
+|---|---|---|---|---|---|---|---|---|
+| local-qwen2.5-1.5b | local | 42.5% [37.0%, 48.1%] | 3.2% | 0.10s | 0.12s | $7.68 (energy $0.0012) | no | no |
+| local-qwen3-4b | local | 64.6% [59.4%, 69.8%] | 1.0% | 0.14s | 0.17s | $7.68 (energy $0.0017) | no | no |
+| frontier | cloud | 85.1% [80.8%, 89.0%] | 0.0% | 2.62s | 9.23s | $2.08 | no | yes |
+| open-large | cloud | 79.9% [75.0%, 84.4%] | 0.0% | 1.75s | 2.96s | $0.05 | no | no |
+| open-same-family | cloud | 76.0% [70.8%, 80.5%] | 0.6% | 1.80s | 9.63s | $0.02 | no | no |
+| small-closed | cloud | 73.7% [68.8%, 78.6%] | 0.0% | 0.76s | 1.13s | $0.12 | no | no |
+| tfidf-baseline | baseline | 88.0% [84.1%, 91.6%] | 0.0% | 0.00s | 0.00s | $0.0000 | yes | yes |
+
+
+Reproduce: `local-enough report --run reference`.
+
+#### entity_matching
+
+Quality bar (calib): 95.0%. Split: test. Scenario: local dedicated at V_t.
+
+| model | kind | f1 (95% CI) | invalid % | p50 | p95 | $/1k tasks | meets bar (calib) | holds (test) |
+|---|---|---|---|---|---|---|---|---|
+| local-qwen2.5-1.5b | local | 92.6% [87.8%, 96.5%] | 0.0% | 0.14s | 0.14s | $15.36 (energy $0.0017) | yes | no |
+| local-qwen3-4b | local | 92.9% [88.1%, 96.4%] | 0.0% | 0.25s | 0.26s | $15.36 (energy $0.0029) | no | no |
+| frontier | cloud | 100.0% [100.0%, 100.0%] | 0.0% | 3.20s | 8.08s | $2.07 | yes | yes |
+| open-large | cloud | 99.4% [97.9%, 100.0%] | 0.0% | 1.75s | 3.22s | $0.07 | yes | yes |
+| open-same-family | cloud | 100.0% [100.0%, 100.0%] | 0.0% | 1.72s | 8.28s | $0.02 | yes | yes |
+| small-closed | cloud | 95.4% [92.0%, 98.2%] | 0.0% | 0.76s | 1.15s | $0.08 | yes | yes |
+| rapidfuzz-baseline | baseline | 83.0% [76.5%, 88.4%] | 0.0% | 0.00s | 0.00s | $0.0000 | no | no |
+
+
+Calib-pass/test-fail: local-qwen2.5-1.5b.
+
+
+Reproduce: `local-enough report --run reference`.
+
+#### extraction
+
+Quality bar (calib): 94.4%. Split: test. Scenario: local dedicated at V_t.
+
+| model | kind | field_accuracy (95% CI) | invalid % | p50 | p95 | $/1k tasks | meets bar (calib) | holds (test) |
+|---|---|---|---|---|---|---|---|---|
+| local-qwen2.5-1.5b | local | 89.4% [88.6%, 90.2%] | 0.0% | 0.67s | 0.71s | $9.22 (energy $0.0064) | no | no |
+| local-qwen3-4b | local | 93.0% [92.3%, 93.8%] | 0.0% | 1.20s | 1.30s | $9.22 (energy $0.0087) | no | no |
+| frontier | cloud | 99.6% [99.3%, 99.8%] | 0.0% | 6.30s | 19.59s | $4.06 | yes | yes |
+| open-large | cloud | 98.4% [97.9%, 98.8%] | 0.0% | 3.82s | 5.60s | $0.11 | yes | yes |
+| open-same-family | cloud | 97.7% [97.1%, 98.3%] | 0.0% | 4.99s | 13.30s | $0.08 | yes | yes |
+| small-closed | cloud | 98.6% [98.1%, 99.0%] | 0.0% | 1.52s | 2.07s | $0.26 | yes | yes |
+
+
+Reproduce: `local-enough report --run reference`.
+
+#### pii_redaction
+
+Quality bar (calib): 95.0%. Split: test. Scenario: local dedicated at V_t.
+
+| model | kind | f2 (95% CI) | invalid % | p50 | p95 | $/1k tasks | meets bar (calib) | holds (test) |
+|---|---|---|---|---|---|---|---|---|
+| local-qwen2.5-1.5b | local | 43.4% [38.2%, 47.9%] | 0.5% | 0.21s | 0.50s | $11.52 (energy $0.0025) | no | no |
+| local-qwen3-4b | local | 92.0% [89.7%, 94.0%] | 0.0% | 0.60s | 1.36s | $11.52 (energy $0.0053) | no | no |
+| frontier | cloud | 100.0% [100.0%, 100.0%] | 0.0% | 4.48s | 10.13s | $2.69 | yes | yes |
+| open-large | cloud | 88.9% [85.2%, 92.1%] | 0.0% | 2.52s | 3.98s | $0.07 | no | no |
+| open-same-family | cloud | 97.0% [95.6%, 98.2%] | 0.0% | 3.23s | 11.54s | $0.03 | yes | yes |
+| small-closed | cloud | 98.4% [97.7%, 99.0%] | 0.0% | 1.32s | 2.08s | $0.13 | yes | yes |
+| regex-baseline | baseline | 56.7% [51.9%, 61.7%] | 0.0% | 0.00s | 0.00s | $0.0000 | no | no |
+
+
+Reproduce: `local-enough report --run reference`.
+
+#### summarisation
+
+Quality bar (calib): 68.9%. Split: test. Scenario: local dedicated at V_t.
+
+| model | kind | pass_rate (95% CI) | invalid % | p50 | p95 | $/1k tasks | meets bar (calib) | holds (test) |
+|---|---|---|---|---|---|---|---|---|
+| local-qwen2.5-1.5b | local | 0.2% [0.0%, 5.8%] | 0.0% | 1.64s | 1.82s | $23.04 (energy $0.01) | no | no |
+| local-qwen3-4b | local | 40.7% [28.8%, 53.7%] | 0.0% | 1.73s | 1.87s | $23.05 (energy $0.02) | no | no |
+| frontier | cloud | 63.9% [51.1%, 77.5%] | 0.0% | 7.54s | 16.63s | $5.64 | yes | no |
+| open-large | cloud | 11.8% [3.1%, 20.4%] | 0.0% | 3.45s | 4.37s | $0.29 | no | no |
+| open-same-family | cloud | 50.8% [37.7%, 63.4%] | 0.0% | 6.05s | 12.36s | $0.16 | no | no |
+| small-closed | cloud | 26.2% [14.2%, 38.4%] | 0.0% | 1.59s | 2.15s | $0.40 | no | no |
+
+
+Calib-pass/test-fail: frontier.
+
+
+Reproduce: `local-enough report --run reference`.
 <!-- le:results:end -->
 
 | | | |
@@ -137,42 +278,178 @@ reference` or `local-enough route --simulate --run reference`, and CI fails if t
 ### Local performance
 
 <!-- le:local_perf:start -->
+#### local-qwen2.5-1.5b
+
+| task | tasks/hour (c=1, Pass A) | tasks/hour (c=4, Pass B) |
+|---|---|---|
+| classification | 34,674 | 42,939 |
+| entity_matching | 25,646 | 31,828 |
+| extraction | 5,379 | 8,275 |
+| pii_redaction | 15,005 | 20,702 |
+| summarisation | 2,660 | 4,700 |
+
+| metric | value |
+|---|---|
+| first-5-min throughput (soak) | 12,072 |
+| last-5-min throughput (soak) | 9,576 |
+| throttle factor (last5/first5) | 0.793 |
+| peak memory | 4.71 GB (footprint) |
+| incremental watts | 139.0 W (configured) |
+| idle watts | 6.0 W (configured) |
+
+#### local-qwen3-4b
+
+| task | tasks/hour (c=1, Pass A) | tasks/hour (c=4, Pass B) |
+|---|---|---|
+| classification | 25,546 | 30,555 |
+| entity_matching | 14,582 | 17,718 |
+| extraction | 2,989 | 5,834 |
+| pii_redaction | 5,319 | 9,540 |
+| summarisation | 2,107 | 2,887 |
+
+| metric | value |
+|---|---|
+| first-5-min throughput (soak) | 6,852 |
+| last-5-min throughput (soak) | 5,640 |
+| throttle factor (last5/first5) | 0.823 |
+| peak memory | 13.96 GB (footprint) |
+| incremental watts | 139.0 W (configured) |
+| idle watts | 6.0 W (configured) |
+
+
+Both local models + router: 5.25 GiB (footprint; local-qwen2.5-1.5b 1.20 GiB, local-qwen3-4b 3.25 GiB, router 0.79 GiB); system memory in use at the time: 62.37 GiB of 128 GiB, 60.16 GiB before loading them (includes other workloads).
+
+
+Reproduce: `local-enough bench --local-only --split test --concurrency 4`, `local-enough soak`.
 <!-- le:local_perf:end -->
 
 ### Break-even (dedicated machine)
 
 <!-- le:break_even:start -->
+Scenario: dedicated (one machine per task at V_t).
+
+| task | V_t (tasks/mo) | best local LLM | cheapest cloud (meets bar) | cloud $/1k | local energy $/1k | local fixed $/mo | break-even (tasks/mo) | capacity (tasks/mo) | machines needed | verdict |
+|---|---|---|---|---|---|---|---|---|---|---|
+| classification | 15,000 | local-qwen3-4b | none meets the bar | n/a | $0.0017 | $115.16 | n/a | 6,036,080 | 1 | n/a — no cloud model meets the bar |
+| entity_matching | 7,500 | local-qwen2.5-1.5b | open-same-family | $0.02 | $0.0017 | $115.16 | 5,064,689 | 6,059,270 | 1 | break-even |
+| extraction | 12,500 | local-qwen3-4b | open-same-family | $0.08 | $0.0087 | $115.16 | n/a | 1,152,532 | 1 | n/a — local below bar |
+| pii_redaction | 10,000 | local-qwen3-4b | open-same-family | $0.03 | $0.0053 | $115.16 | n/a | 1,884,664 | 1 | n/a — local below bar |
+| summarisation | 5,000 | local-qwen3-4b | frontier | $5.64 | $0.02 | $115.16 | n/a | 570,286 | 1 | n/a — local below bar |
+
+Reproduce: `local-enough report --run reference`.
 <!-- le:break_even:end -->
 
 <!-- le:sensitivity:start -->
+*(sensitivity grid not applicable: no cloud model meets the classification bar, so there is no break-even volume to vary)*
 <!-- le:sensitivity:end -->
 
 ### Verdict per task
 
 <!-- le:verdicts:start -->
+Verdict rule, decided on the calib split: **local** when a local candidate meets the quality bar and this task's monthly volume is at or above the break-even volume against the cheapest cloud model meeting the bar (itself at or below this machine's capacity); **local (constraint)** when the task is in `data_must_stay_local` and a local candidate meets the bar, whatever the break-even; **local — below bar (constraint)** when the task is in `data_must_stay_local` and no local candidate meets the bar; **hybrid** when local meets the bar only through the router, with escalation to cloud at or below 20%; otherwise **cloud**.
+
+| task | verdict | detail |
+|---|---|---|
+| classification | local | the TF-IDF baseline (no LLM) meets the bar at about $0 per task, so there is no hardware to pay back at this task's volume (15,000 tasks/month). |
+| entity_matching | hybrid | local alone is cheaper only above 5,064,689 tasks/month; with gates and escalation to open-same-family the router meets the bar with 0% escalation. |
+| extraction | cloud | no local candidate meets the bar and breaks even within volume/capacity, and the hybrid router path does not qualify either. |
+| pii_redaction | local — below bar (constraint) | data_must_stay_local; no local candidate meets the bar (gap to bar: -2.8%). |
+| summarisation | cloud | no local candidate meets the bar and breaks even within volume/capacity, and the hybrid router path does not qualify either. |
 <!-- le:verdicts:end -->
 
 ### Router on the mixed workload (shared machine)
 
 <!-- le:router:start -->
+Scenario: shared machine (mixed workload, `workload_mix` weights, full test split). Source: `local-enough route --simulate --run reference`.
+
+| configuration | USD / 1k mixed tasks | tasks meeting bar | served locally | escalated | p50 / p95 s | saving vs all-frontier | saving vs cheapest cloud |
+|---|---|---|---|---|---|---|---|
+| All traffic to frontier (`frontier`) | $3.051 | 4/5 | 0.0% | 0.0% | 4.48 / 14.76 | n/a | n/a |
+| Cheapest single cloud model meeting every bar: none | n/a | n/a | n/a | n/a | n/a / n/a | n/a | n/a |
+| Router, primary only (no gates), no constraints | $0.594 | 4/5 | 30.0% | 0.0% | 2.72 / 11.20 | +80.5% | n/a |
+| Router with gates, no constraints | $0.706 | 4/5 | 30.0% | 3.7% | 2.76 / 13.83 | +76.9% | n/a |
+| Router with gates + data_must_stay_local (4/5 tasks served) | $0.873 | 3/5 | 37.5% | 4.1% | 1.98 / 14.58 | +72.2% | n/a |
+
+Per-task primary metric against its calib bar:
+
+| configuration | classification | entity_matching | extraction | pii_redaction | summarisation |
+|---|---|---|---|---|---|
+| All traffic to frontier (`frontier`) | 0.851 vs 0.827 (meets) | 1.000 vs 0.950 (meets) | 0.996 vs 0.944 (meets) | 1.000 vs 0.950 (meets) | 0.639 vs 0.689 (below) |
+| Cheapest single cloud model meeting every bar: none | n/a | n/a | n/a | n/a | n/a |
+| Router, primary only (no gates), no constraints | 0.880 vs 0.827 (meets) | 1.000 vs 0.950 (meets) | 0.977 vs 0.944 (meets) | 0.970 vs 0.950 (meets) | 0.575 vs 0.689 (below) |
+| Router with gates, no constraints | 0.880 vs 0.827 (meets) | 1.000 vs 0.950 (meets) | 0.986 vs 0.944 (meets) | 0.980 vs 0.950 (meets) | 0.575 vs 0.689 (below) |
+| Router with gates + data_must_stay_local (4/5 tasks served) | 0.880 vs 0.827 (meets) | 1.000 vs 0.950 (meets) | 0.986 vs 0.944 (meets) | unservable (503) | 0.575 vs 0.689 (below) |
 <!-- le:router:end -->
 
 ### Router live check
 
 <!-- le:live_check:start -->
+| metric | value |
+|---|---|
+| n | 100 |
+| seed | 7 |
+| created | 2026-09-28T20:53:56Z |
+| router overhead p50 | 6 ms |
+| direct call p50 | n/a |
+| router call p50 | 1430 ms |
+| decision match rate | 99.0% |
+| local-only requests that reached cloud | 0 |
+
+No sampled request was answered by a local LLM in this plan, so there was nothing to call directly; overhead is the client latency minus the router's own upstream time.
+
+21 request(s) were refused with HTTP 503, as the simulation predicts for them.
+
+Mismatch on extraction item extraction-test-0090: router answered as 'x-ai/grok-4.7' (escalated=True), offline replay expected 'deepseek/deepseek-v3.2' (escalated=True).
+
+A cloud answer can differ between the recorded bench call and the live call even at temperature 0, which can change a gate outcome and the escalation step.
 <!-- le:live_check:end -->
 
 ### Summarisation judge
 
 <!-- le:judge:start -->
+| field | value |
+|---|---|
+| judge model | openai/gpt-4.1-mini |
+| n (judge-calib, selection) | 200 |
+| n (judge-holdout, reported rates) | 200 |
+| TPR | 88.7% |
+| TNR | 97.6% |
+| balanced accuracy | 93.2% |
+| Cohen's kappa | 0.849 |
+| target (>= 0.90 balanced accuracy) met? | yes |
+
+**Per-model summarisation pass rates (test split)**
+
+| model | n | raw pass rate | bias-corrected pass rate | 95% CI | key-token agreement |
+|---|---|---|---|---|---|
+| frontier | 80 | 57.5% | 63.9% | [51.1%, 77.5%] | 99.7% |
+| local-qwen2.5-1.5b | 80 | 2.5% | 0.2% | [0.0%, 5.8%] | 69.3% |
+| local-qwen3-4b | 80 | 37.5% | 40.7% | [28.8%, 53.7%] | 69.7% |
+| open-large | 80 | 12.5% | 11.8% | [3.1%, 20.4%] | 92.7% |
+| open-same-family | 80 | 46.2% | 50.8% | [37.7%, 63.4%] | 92.4% |
+| small-closed | 80 | 25.0% | 26.2% | [14.2%, 38.4%] | 89.7% |
 <!-- le:judge:end -->
 
 ### Downloads and spend
 
 <!-- le:downloads:start -->
+| model | repo | revision | size | licence |
+|---|---|---|---|---|
+| local-qwen2.5-1.5b | mlx-community/Qwen2.5-1.5B-Instruct-4bit | 8b403126fc14f14cfc99bb4cfa72ecbc129ea677 | 0.88 GB | apache-2.0 |
+| local-qwen3-4b | mlx-community/Qwen3-4B-Instruct-2507-4bit | 50d427756c6b1b2fe0c0a10f67fbda1fc8e82c1b | 2.28 GB | apache-2.0 |
+
+Total downloaded: 3.16 GB.
 <!-- le:downloads:end -->
 
 <!-- le:spend:start -->
+| field | value |
+|---|---|
+| total API spend | $5.77 |
+| spend: bench | $4.80 |
+| spend: judge calibrate | $0.41 |
+| spend: judge score | $0.55 |
+| budget cap | $14.50 |
+| budget warning level | $12.00 |
 <!-- le:spend:end -->
 
 ## Bring your own task
@@ -222,6 +499,13 @@ workload mix and the monthly volume. Every field is documented in [docs/configur
 ## Data
 
 <!-- le:data:start -->
+| task | source | licence | primary metric | distinct templates |
+|---|---|---|---|---|
+| classification | BANKING77 (PolyAI); Casanueva, Temcinas, Gerz, Henderson, Vulic (2020) | CC-BY-4.0 | accuracy | n/a |
+| entity_matching | synthetic | Apache-2.0 | f1 | 10 |
+| extraction | synthetic | Apache-2.0 | field_accuracy | 24 |
+| pii_redaction | synthetic | Apache-2.0 | f2 | 71 |
+| summarisation | synthetic | Apache-2.0 | pass_rate | 150 |
 <!-- le:data:end -->
 
 Four datasets are generated by `scripts/build_datasets.py --seed 7` from hand-written templates with no LLM in the
