@@ -1,0 +1,398 @@
+"""Renders a :class:`~local_enough.report.tables.ReportData` to the 14 named Markdown blocks.
+
+Each ``render_<name>`` function is pure text: no file I/O, no charts (those are composed on top in
+``report.build``). ``BLOCK_NAMES`` and :func:`render_blocks` are what ``readme_blocks`` and
+``scripts/check_readme.py`` use; ``report.build`` reuses the same functions for ``report.md`` and
+(via a Markdown-to-HTML pass) ``index.html``, so the three outputs never drift from each other.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+from typing import Any
+
+from local_enough.report import format as fmt
+from local_enough.report.quality import VERDICT_RULE_TEXT
+from local_enough.report.tables import PRIMARY_METRIC_NAME, ReportData
+
+BLOCK_NAMES: tuple[str, ...] = (
+    "headline",
+    "setup",
+    "results",
+    "local_perf",
+    "break_even",
+    "sensitivity",
+    "verdicts",
+    "router",
+    "live_check",
+    "judge",
+    "data",
+    "downloads",
+    "spend",
+    "plan",
+)
+
+
+def _esc(value: object) -> str:
+    return str(value).replace("|", "\\|").replace("\n", " ").strip()
+
+
+def _table(headers: Sequence[str], rows: Sequence[Sequence[object]]) -> str:
+    if not rows:
+        return "*(no data)*\n"
+    lines = ["| " + " | ".join(headers) + " |", "|" + "|".join(["---"] * len(headers)) + "|"]
+    lines.extend("| " + " | ".join(_esc(c) for c in row) + " |" for row in rows)
+    return "\n".join(lines) + "\n"
+
+
+def render_headline(data: ReportData) -> str:
+    return data.headline + "\n"
+
+
+def render_setup(data: ReportData) -> str:
+    s = data.setup
+    lines = [
+        _table(
+            ["field", "value"],
+            [
+                ["hardware", s.get("hardware_name") or fmt.NA],
+                ["machine model", s.get("machine_model") or fmt.NA],
+                ["chip", s.get("chip") or fmt.NA],
+                ["memory", fmt.fmt_number(s.get("memory_gb"), decimals=2) + " GB" if s.get("memory_gb") else fmt.NA],
+                ["macOS", f"{s.get('macos_version') or fmt.NA} ({s.get('macos_build') or fmt.NA})"],
+                ["mlx", s.get("mlx_version") or fmt.NA],
+                ["mlx-lm", s.get("mlx_lm_version") or fmt.NA],
+                ["judge model", s.get("judge_model") or "not calibrated"],
+                ["run date", s.get("run_date") or fmt.NA],
+                [
+                    "hardware price",
+                    f"{fmt.fmt_usd(s.get('hardware_price', {}).get('usd'), decimals=0)} "
+                    f"({s.get('hardware_price', {}).get('label') or fmt.NA}), "
+                    f"source: {s.get('hardware_price', {}).get('source_url') or fmt.NA}, "
+                    f"{s.get('hardware_price', {}).get('date') or fmt.NA}",
+                ],
+                [
+                    "electricity price (assumption)",
+                    f"{fmt.fmt_number(s.get('electricity_usd_per_kwh'), decimals=2)} USD/kWh",
+                ],
+                ["total API spend", fmt.fmt_usd(s.get("total_api_spend_usd"))],
+            ],
+        )
+    ]
+    lines.append("\n**Local models**\n")
+    lines.append(
+        _table(
+            ["id", "repo", "revision", "size on disk"],
+            [
+                [m["id"], m.get("repo") or fmt.NA, m.get("revision") or fmt.NA, fmt.fmt_gb(m.get("size_bytes"))]
+                for m in s.get("local_models", [])
+            ],
+        )
+    )
+    lines.append(f"\n**Cloud models** (price snapshot: {s.get('price_snapshot_date') or fmt.NA})\n")
+    lines.append(
+        _table(
+            ["id", "role", "model"],
+            [[m["id"], m.get("role") or fmt.NA, m.get("model") or fmt.NA] for m in s.get("cloud_models", [])],
+        )
+    )
+    lines.append("\n**Split sizes**\n")
+    lines.append(
+        _table(
+            ["task", "calib", "test"],
+            [
+                [task, fmt.fmt_int(sizes.get("calib")), fmt.fmt_int(sizes.get("test"))]
+                for task, sizes in s.get("split_sizes", {}).items()
+            ],
+        )
+    )
+    return "\n".join(lines) + "\n"
+
+
+def render_results(data: ReportData) -> str:
+    out = []
+    for task in data.tasks:
+        block = data.results[task]
+        metric_name = block["primary_metric"]
+        out.append(f"#### {task}\n")
+        out.append(
+            f"Quality bar (calib): {fmt.fmt_pct(block['bar'])}. Split: test. Scenario: local dedicated at V_t.\n"
+        )
+        rows = [
+            [
+                r["model_id"],
+                r["kind"],
+                f"{fmt.fmt_pct(r['primary'])} {fmt.fmt_ci_pct(r['ci'][0], r['ci'][1])}",
+                fmt.fmt_pct(r["invalid_output_rate"]),
+                fmt.fmt_seconds(r["p50_s"]),
+                fmt.fmt_seconds(r["p95_s"]),
+                fmt.fmt_usd_per_1k(r["usd_per_task"]),
+                fmt.fmt_bool(r["meets_bar_calib"]),
+                fmt.fmt_bool(r["holds_test"]),
+            ]
+            for r in block["rows"]
+        ]
+        out.append(
+            _table(
+                [
+                    "model",
+                    "kind",
+                    f"{metric_name} (95% CI)",
+                    "invalid %",
+                    "p50",
+                    "p95",
+                    "$/1k tasks",
+                    "meets bar (calib)",
+                    "holds (test)",
+                ],
+                rows,
+            )
+        )
+        if block["calib_pass_test_fail"]:
+            out.append(f"\nCalib-pass/test-fail: {', '.join(block['calib_pass_test_fail'])}.\n")
+        out.append(f"\nReproduce: `local-enough report --run {data.run_label}`.\n")
+    return "\n".join(out)
+
+
+def render_local_perf(data: ReportData) -> str:
+    if not data.local_perf["models"]:
+        return "*(no local models in this run)*\n"
+    out = []
+    for model_id, m in sorted(data.local_perf["models"].items()):
+        out.append(f"#### {model_id}\n")
+        out.append(
+            _table(
+                ["task", "tasks/hour (c=1, Pass A)", "tasks/hour (c=4, Pass B)"],
+                [
+                    [t["task"], fmt.fmt_number(t["tph_c1"], decimals=0), fmt.fmt_number(t["tph_c4"], decimals=0)]
+                    for t in m["tasks"]
+                ],
+            )
+        )
+        out.append(
+            _table(
+                ["metric", "value"],
+                [
+                    [
+                        "first-5-min throughput (soak)",
+                        fmt.fmt_number(m["first5_tph"], decimals=0, missing=fmt.NOT_MEASURED),
+                    ],
+                    [
+                        "last-5-min throughput (soak)",
+                        fmt.fmt_number(m["last5_tph"], decimals=0, missing=fmt.NOT_MEASURED),
+                    ],
+                    [
+                        "throttle factor (last5/first5)",
+                        fmt.fmt_number(m["throttle_factor"], decimals=3, missing=fmt.NOT_MEASURED),
+                    ],
+                    ["peak memory", fmt.fmt_gb(m["peak_memory_bytes"], missing=fmt.NOT_MEASURED)],
+                    ["peak memory method", m["peak_memory_method"] or fmt.NOT_MEASURED],
+                    ["incremental watts", fmt.fmt_watts(m["incremental_watts"]) + f" ({m['watts_label']})"],
+                    ["idle watts", fmt.fmt_watts(m["idle_watts"]) + f" ({m['watts_label']})"],
+                ],
+            )
+        )
+    combined = data.local_perf.get("combined_memory_bytes")
+    out.append(f"\nBoth local models + router + OS: {fmt.fmt_gb(combined, missing=fmt.NOT_MEASURED)}.\n")
+    out.append("\nReproduce: `local-enough bench --local-only --split test --concurrency 4`, `local-enough soak`.\n")
+    return "\n".join(out)
+
+
+def render_break_even(data: ReportData) -> str:
+    rows_map = data.break_even["rows"]
+    rows = [
+        [
+            task,
+            fmt.fmt_int(r["v_t"]),
+            r["best_local_model"] or fmt.NA,
+            r["cheapest_cloud_model"] or "none meets the bar",
+            fmt.fmt_usd_per_1k(r["cheapest_cloud_usd_per_task"]),
+            fmt.fmt_usd_per_1k(r["energy_usd_per_task"]),
+            fmt.fmt_usd(r["fixed_usd_per_month"], decimals=2),
+            fmt.fmt_int(r["break_even_volume"]),
+            fmt.fmt_int(r["capacity_per_month"]),
+            fmt.fmt_int(r["machines_needed"]),
+            r["verdict"],
+        ]
+        for task, r in rows_map.items()
+    ]
+    body = _table(
+        [
+            "task",
+            "V_t (tasks/mo)",
+            "best local model",
+            "cheapest cloud (meets bar)",
+            "cloud $/1k",
+            "local energy $/1k",
+            "local fixed $/mo",
+            "break-even (tasks/mo)",
+            "capacity (tasks/mo)",
+            "machines needed",
+            "verdict",
+        ],
+        rows,
+    )
+    reproduce = f"Reproduce: `local-enough report --run {data.run_label}`.\n"
+    return f"Scenario: dedicated (one machine per task at V_t).\n\n{body}\n{reproduce}"
+
+
+def render_sensitivity(data: ReportData) -> str:
+    task = data.break_even["headline_task"]
+    cells = data.break_even["sensitivity"]
+    if not cells:
+        return f"*(sensitivity grid not measured for the headline task, {task})*\n"
+    rows = [
+        [
+            fmt.fmt_number(c.lifetime_years, decimals=0),
+            f"{c.price_multiplier:.2f}x",
+            fmt.fmt_usd(c.fixed_usd_per_month, decimals=2),
+            fmt.fmt_int(c.break_even.volume),
+            c.break_even.verdict,
+        ]
+        for c in cells
+    ]
+    body = _table(["lifetime (years)", "price multiplier", "fixed $/mo", "break-even (tasks/mo)", "verdict"], rows)
+    return f"Headline task: **{task}**. Scenario: dedicated.\n\n{body}"
+
+
+def render_verdicts(data: ReportData) -> str:
+    rows = [[v.task, v.label, v.detail] for v in data.verdicts]
+    return f"{VERDICT_RULE_TEXT}\n\n{_table(['task', 'verdict', 'detail'], rows)}"
+
+
+def render_router(data: ReportData) -> str:
+    if not data.router.available:
+        return f"{data.router.plan_text}\n"
+    rows_data = data.router.mixed_rows
+    if not rows_data:
+        return "*(router simulation returned no rows)*\n"
+    headers = sorted({k for row in rows_data for k in row})
+    rows = [[row.get(h, "") for h in headers] for row in rows_data]
+    body = _table(headers, rows)
+    return f"Scenario: shared (mixed workload). Source: `{data.router.source_cmd}`.\n\n{body}"
+
+
+def render_live_check(data: ReportData) -> str:
+    lc: dict[str, Any] = data.live_check
+    if not lc:
+        return "*(not measured: no `live_check.json` in this run)*\n"
+    rows = [
+        ["n", fmt.fmt_int(lc.get("n"))],
+        ["seed", fmt.fmt_int(lc.get("seed"))],
+        ["created", lc.get("created_utc") or fmt.NA],
+        ["router overhead p50", fmt.fmt_ms(lc.get("overhead_p50_ms"))],
+        ["direct call p50", fmt.fmt_ms(lc.get("direct_p50_ms"))],
+        ["router call p50", fmt.fmt_ms(lc.get("router_p50_ms"))],
+        ["decision match rate", fmt.fmt_pct(lc.get("decision_match_rate"))],
+        ["local-only requests that reached cloud", fmt.fmt_int(lc.get("local_only_cloud_calls"))],
+    ]
+    body = _table(["metric", "value"], rows)
+    mismatches = lc.get("mismatches") or []
+    note = f"\n{len(mismatches)} mismatch(es) between the live run and the simulation.\n" if mismatches else ""
+    return body + note
+
+
+def render_judge(data: ReportData) -> str:
+    j = data.judge
+    if not j:
+        return "*(not judged: no `judge_calibration.json` in this run)*\n"
+    summary = _table(
+        ["field", "value"],
+        [
+            ["judge model", j.get("judge_model") or fmt.NA],
+            ["n (judge-calib, selection)", fmt.fmt_int(j.get("judge_calib_n"))],
+            ["n (judge-holdout, reported rates)", fmt.fmt_int(j.get("holdout_n"))],
+            ["TPR", fmt.fmt_pct(j.get("tpr"))],
+            ["TNR", fmt.fmt_pct(j.get("tnr"))],
+            ["balanced accuracy", fmt.fmt_pct(j.get("balanced_accuracy"))],
+            ["Cohen's kappa", fmt.fmt_number(j.get("kappa"), decimals=3)],
+            ["target (>= 0.90 balanced accuracy) met?", fmt.fmt_bool(j.get("meets_target"))],
+        ],
+    )
+    rows = [
+        [
+            r["model_id"],
+            fmt.fmt_int(r["n"]),
+            fmt.fmt_pct(r["raw_pass_rate"]),
+            fmt.fmt_pct(r["corrected_pass_rate"]),
+            fmt.fmt_ci_pct(r["ci"][0], r["ci"][1]),
+            fmt.fmt_pct(r["key_token_agreement"]),
+        ]
+        for r in j.get("rows", [])
+    ]
+    per_model = _table(
+        ["model", "n", "raw pass rate", "bias-corrected pass rate", "95% CI", "key-token agreement"], rows
+    )
+    return f"{summary}\n**Per-model summarisation pass rates (test split)**\n\n{per_model}"
+
+
+def render_data(data: ReportData) -> str:
+    rows = [
+        [
+            r["task"],
+            r["source"] or fmt.NA,
+            r["licence"] or fmt.NA,
+            r["metric"] or fmt.NA,
+            fmt.fmt_int(r["distinct_templates"]),
+        ]
+        for r in data.data_table
+    ]
+    return _table(["task", "source", "licence", "primary metric", "distinct templates"], rows)
+
+
+def render_downloads(data: ReportData) -> str:
+    d = data.downloads
+    if not d.get("rows"):
+        return "*(not measured: no `downloads.json` in this run)*\n"
+    rows = [
+        [
+            r["model_id"],
+            r["repo"] or fmt.NA,
+            r["revision_sha"] or fmt.NA,
+            fmt.fmt_gb(r["bytes"]),
+            r["licence"] or fmt.NA,
+        ]
+        for r in d["rows"]
+    ]
+    body = _table(["model", "repo", "revision", "size", "licence"], rows)
+    return f"{body}\nTotal downloaded: {fmt.fmt_gb(d.get('total_bytes'))}.\n"
+
+
+def render_spend(data: ReportData) -> str:
+    sp = data.spend
+    rows = [
+        ["total API spend", fmt.fmt_usd(sp.get("total_usd"))],
+        ["budget cap", fmt.fmt_usd(sp.get("budget_usd"))],
+        ["budget warning level", fmt.fmt_usd(sp.get("budget_warn_usd"))],
+    ]
+    return _table(["field", "value"], rows)
+
+
+def render_plan(data: ReportData) -> str:
+    return f"```text\n{data.router.plan_text}\n```\n"
+
+
+_RENDERERS = {
+    "headline": render_headline,
+    "setup": render_setup,
+    "results": render_results,
+    "local_perf": render_local_perf,
+    "break_even": render_break_even,
+    "sensitivity": render_sensitivity,
+    "verdicts": render_verdicts,
+    "router": render_router,
+    "live_check": render_live_check,
+    "judge": render_judge,
+    "data": render_data,
+    "downloads": render_downloads,
+    "spend": render_spend,
+    "plan": render_plan,
+}
+
+
+def render_blocks(data: ReportData) -> dict[str, str]:
+    """Every named block, rendered to Markdown. What ``readme_blocks`` and ``check_readme.py`` use."""
+    return {name: renderer(data) for name, renderer in _RENDERERS.items()}
+
+
+__all__ = ["BLOCK_NAMES", "PRIMARY_METRIC_NAME", "render_blocks"]
