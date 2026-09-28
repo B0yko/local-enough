@@ -10,6 +10,7 @@ import typer
 from local_enough import __version__
 from local_enough.config import LocalModel, load_config
 from local_enough.providers.hub import ModelBudgetExceeded, pull_models, write_downloads_json
+from local_enough.tasks.cli import app as datasets_app
 
 app = typer.Typer(
     name="local-enough",
@@ -18,6 +19,7 @@ app = typer.Typer(
     no_args_is_help=True,
     add_completion=False,
 )
+app.add_typer(datasets_app, name="datasets")
 
 models_app = typer.Typer(help="Manage local model downloads.", no_args_is_help=True)
 app.add_typer(models_app, name="models")
