@@ -76,6 +76,20 @@ def fmt_gb(bytes_value: float | None, *, decimals: int = 2, missing: str = NA) -
     return missing if v is None else f"{v / 1_000_000_000:.{decimals}f} GB"
 
 
+def fmt_gb_whole(gb: float | None, *, missing: str = NA) -> str:
+    """A memory size already in GB, without a trailing ``.00``: ``128.0 -> "128 GB"``, ``24.5 -> "24.5 GB"``."""
+    v = _finite(gb)
+    if v is None:
+        return missing
+    return f"{v:,.0f} GB" if float(v).is_integer() else f"{v:,.2f} GB"
+
+
+def fmt_gib(bytes_value: float | None, *, decimals: int = 2, missing: str = NA) -> str:
+    """Bytes as GiB (2**30), the unit macOS reports memory in."""
+    v = _finite(bytes_value)
+    return missing if v is None else f"{v / 2**30:.{decimals}f} GiB"
+
+
 def fmt_ms(value: float | None, *, decimals: int = 0, missing: str = NA) -> str:
     v = _finite(value)
     return missing if v is None else f"{v:.{decimals}f} ms"

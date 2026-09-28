@@ -6,13 +6,15 @@ import math
 
 from local_enough.candidates import Candidate
 from local_enough.config import RouteConfig
-from local_enough.costmodel import BreakEven
+from local_enough.costmodel import VERDICT_NO_CLOUD_BAR, BreakEven
 from local_enough.report.quality import (
     VERDICT_CLOUD,
     VERDICT_HYBRID,
     VERDICT_LOCAL,
     VERDICT_LOCAL_BELOW_BAR_CONSTRAINT,
     VERDICT_LOCAL_CONSTRAINT,
+    LocalWinner,
+    Refusal,
     bar_value,
     best_score,
     gap_to_bar,
@@ -162,10 +164,12 @@ def test_headline_text_reports_router_saving_when_available() -> None:
         break_even_by_task={"classification": BreakEven(volume=10_000.0, verdict="break-even", machines_needed=1)},
         v_t_by_task={"classification": 15_000.0},
         router_available=True,
-        router_saving_pct=0.32,
+        router_saving_pct=32.0,
         router_saving_vs="the cheapest single cloud model meeting every bar",
     )
-    assert "+32.0%" in text
+    # The saving is already a percentage: it must not be scaled a second time (76.9 used to read "+7690.0%").
+    assert "saves 32.0% on the mixed workload" in text
+    assert "%" in text and "3200" not in text
 
 
 def test_bar_value_relative_to_best_ignores_nan_scores() -> None:
@@ -197,3 +201,92 @@ def test_bar_value_relative_to_best_ignores_nan_scores() -> None:
     assert meets_bar(1.0, bar) is True
     assert math.isclose(gap_to_bar(0.5, bar), bar - 0.5)
     assert gap_to_bar(1.0, bar) == 0.0
+
+
+def _headline(**overrides):
+    kwargs = dict(
+        met_bar_tasks=["classification", "entity_matching"],
+        total_tasks=5,
+        workload_mix={"classification": 0.30, "entity_matching": 0.15},
+        break_even_by_task={"classification": BreakEven(volume=None, verdict=VERDICT_NO_CLOUD_BAR, machines_needed=1)},
+        v_t_by_task={"classification": 15_000.0},
+        router_available=True,
+        router_saving_pct=76.9,
+        router_saving_vs="all traffic to the frontier model (no single cloud model meets every bar)",
+    )
+    kwargs.update(overrides)
+    return headline_text(**kwargs)
+
+
+def test_headline_saving_is_not_scaled_twice() -> None:
+    text = _headline(router_saving_pct=94.98)
+    assert "saves 95.0% on the mixed workload" in text
+    assert "9498" not in text
+
+
+def test_headline_names_the_local_winner_per_task_and_flags_a_non_llm_baseline() -> None:
+    text = _headline(
+        local_winners={
+            "classification": LocalWinner("tfidf-baseline", "baseline"),
+            "entity_matching": LocalWinner("local-qwen2.5-1.5b", "local"),
+        }
+    )
+    assert "classification (the TF-IDF baseline, no LLM)" in text
+    assert "entity_matching (local-qwen2.5-1.5b)" in text
+
+
+def test_headline_says_no_break_even_when_no_cloud_model_met_the_bar() -> None:
+    text = _headline()
+    assert "there is no break-even to compute because no cloud model met the bar" in text
+    assert "n/a — no cloud model meets the bar" not in text
+
+
+def test_headline_names_the_refused_task_and_its_gap_to_the_bar() -> None:
+    text = _headline(
+        router_saving_scope="gates, no route.yaml constraints",
+        refusals=[Refusal("pii_redaction", "f2", 0.92, 0.95)],
+    )
+    assert "The router (gates, no route.yaml constraints) saves 76.9%" in text
+    assert (
+        "Keeping pii_redaction local is not possible at its bar: best local f2 92.0% vs 95.0%, "
+        "so the router refuses it with HTTP 503." in text
+    )
+
+
+def test_verdict_for_a_free_baseline_has_no_break_even_volume() -> None:
+    v = task_verdict(
+        "classification",
+        is_local_only=False,
+        local_meets_bar=True,
+        gap=0.0,
+        breaks_even_within_volume=True,
+        break_even_volume=None,
+        v_t=15_000.0,
+        hybrid_eligible=False,
+        free_baseline="the TF-IDF baseline",
+    )
+    assert v.label == VERDICT_LOCAL
+    assert "immediately" not in v.detail
+    assert "break-even at" not in v.detail
+    assert v.detail.startswith("the TF-IDF baseline (no LLM) meets the bar at about $0 per task")
+
+
+def test_hybrid_verdict_explains_why_local_alone_did_not_apply() -> None:
+    v = task_verdict(
+        "entity_matching",
+        is_local_only=False,
+        local_meets_bar=True,
+        gap=0.0,
+        breaks_even_within_volume=False,
+        break_even_volume=5_064_689.0,
+        v_t=7_500.0,
+        hybrid_eligible=True,
+        local_alone_reason="local alone is cheaper only above 5,064,689 tasks/month",
+        hybrid_escalation_rate=0.03,
+        hybrid_escalates_to="open-same-family",
+    )
+    assert v.label == VERDICT_HYBRID
+    assert v.detail == (
+        "local alone is cheaper only above 5,064,689 tasks/month; with gates and escalation to open-same-family "
+        "the router meets the bar with 3% escalation."
+    )

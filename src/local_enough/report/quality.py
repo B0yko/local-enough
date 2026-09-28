@@ -14,8 +14,8 @@ from dataclasses import dataclass
 
 from local_enough.candidates import Candidate
 from local_enough.config import RouteConfig
-from local_enough.costmodel import BreakEven
-from local_enough.report.format import NA, fmt_number, fmt_pct, fmt_signed_pct
+from local_enough.costmodel import VERDICT_NO_CLOUD_BAR, BreakEven
+from local_enough.report.format import NA, fmt_number, fmt_pct
 
 VERDICT_LOCAL = "local"
 VERDICT_LOCAL_CONSTRAINT = "local (constraint)"
@@ -32,6 +32,41 @@ VERDICT_RULE_TEXT = (
     "the bar; **hybrid** when local meets the bar only through the router, with escalation to cloud at or below "
     "20%; otherwise **cloud**."
 )
+
+
+BASELINE_NAMES: dict[str, str] = {
+    "tfidf-baseline": "the TF-IDF baseline",
+    "rapidfuzz-baseline": "the RapidFuzz baseline",
+    "regex-baseline": "the regex baseline",
+}
+
+
+def baseline_name(model_id: str) -> str:
+    """How prose names a non-LLM baseline: ``"the TF-IDF baseline"`` for ``tfidf-baseline``."""
+    return BASELINE_NAMES.get(model_id, f"the {model_id}")
+
+
+def local_winner_text(model_id: str, kind: str) -> str:
+    """A local winner as prose: a baseline says so ("the TF-IDF baseline, no LLM"), a local model is its id."""
+    return f"{baseline_name(model_id)}, no LLM" if kind == "baseline" else model_id
+
+
+@dataclass(frozen=True)
+class LocalWinner:
+    """The best local candidate on a task where local met the bar."""
+
+    model_id: str
+    kind: str
+
+
+@dataclass(frozen=True)
+class Refusal:
+    """A task the router refuses (HTTP 503): it must stay local and no local candidate meets its bar."""
+
+    task: str
+    metric_name: str
+    best_local: float
+    bar: float
 
 
 def best_score(candidates: Sequence[Candidate]) -> float:
@@ -78,6 +113,11 @@ class TaskVerdict:
     detail: str
 
 
+def _escalation_text(rate: float) -> str:
+    """An escalation share as whole percent, but never a misleading ``0%`` for a share that is not zero."""
+    return "<1%" if 0 < rate < 0.005 else f"{rate * 100:.0f}%"
+
+
 def task_verdict(
     task: str,
     *,
@@ -88,12 +128,17 @@ def task_verdict(
     break_even_volume: float | None,
     v_t: float,
     hybrid_eligible: bool,
+    free_baseline: str | None = None,
+    local_alone_reason: str | None = None,
+    hybrid_escalation_rate: float | None = None,
+    hybrid_escalates_to: str | None = None,
 ) -> TaskVerdict:
     """The deterministic per-task verdict (``VERDICT_RULE_TEXT``).
 
     ``breaks_even_within_volume`` is decided by the caller: ``costmodel.break_even`` returning
     ``"break-even"`` with ``V_t`` at or above that volume, or trivially ``True`` when the best local
-    candidate is a free in-process baseline (no hardware to amortise, no capacity limit).
+    candidate is a free in-process baseline (no hardware to amortise, no capacity limit); ``free_baseline`` then
+    names it. ``local_alone_reason`` says why local alone did not apply, for the ``hybrid`` detail.
     """
     if is_local_only:
         if local_meets_bar:
@@ -106,17 +151,32 @@ def task_verdict(
         )
 
     if local_meets_bar and breaks_even_within_volume:
-        be_text = "immediately (free baseline)"
-        if break_even_volume is not None:
-            be_text = f"{fmt_number(break_even_volume)} tasks/month"
+        if break_even_volume is None:
+            who = f"{free_baseline} (no LLM)" if free_baseline else "the local baseline (no LLM)"
+            return TaskVerdict(
+                task,
+                VERDICT_LOCAL,
+                f"{who} meets the bar at about $0 per task, so there is no hardware to pay back at this task's "
+                f"volume ({fmt_number(v_t)} tasks/month).",
+            )
         return TaskVerdict(
             task,
             VERDICT_LOCAL,
-            f"local meets the bar; break-even at {be_text}, at or below this task's volume "
-            f"({fmt_number(v_t)} tasks/month) and this machine's capacity.",
+            f"local meets the bar; break-even at {fmt_number(break_even_volume)} tasks/month, at or below this "
+            f"task's volume ({fmt_number(v_t)} tasks/month) and this machine's capacity.",
         )
     if hybrid_eligible:
-        return TaskVerdict(task, VERDICT_HYBRID, "local meets the bar only through the router, escalation <= 20%.")
+        detail = "local meets the bar only through the router, escalation <= 20%."
+        if hybrid_escalation_rate is not None:
+            via = f" to {hybrid_escalates_to}" if hybrid_escalates_to else ""
+            through = (
+                f"with gates and escalation{via} the router meets the bar "
+                f"with {_escalation_text(hybrid_escalation_rate)} escalation"
+            )
+            detail = (
+                f"{local_alone_reason}; {through}." if local_alone_reason else f"{through[0].upper()}{through[1:]}."
+            )
+        return TaskVerdict(task, VERDICT_HYBRID, detail)
     return TaskVerdict(
         task,
         VERDICT_CLOUD,
@@ -133,6 +193,13 @@ def headline_task(met_bar_tasks: Sequence[str], workload_mix: Mapping[str, float
     return chosen, True
 
 
+def _refusal_sentence(r: Refusal) -> str:
+    return (
+        f"Keeping {r.task} local is not possible at its bar: best local {r.metric_name} {fmt_pct(r.best_local)} "
+        f"vs {fmt_pct(r.bar)}, so the router refuses it with HTTP 503."
+    )
+
+
 def headline_text(
     *,
     met_bar_tasks: Sequence[str],
@@ -143,13 +210,25 @@ def headline_text(
     router_available: bool,
     router_saving_pct: float | None,
     router_saving_vs: str | None,
+    router_saving_scope: str | None = None,
+    local_winners: Mapping[str, LocalWinner] | None = None,
+    refusals: Sequence[Refusal] = (),
 ) -> str:
-    """The 2-3 sentence headline verdict computed from the run."""
+    """The 2-3 sentence headline verdict computed from the run.
+
+    ``router_saving_pct`` is already a percentage (``76.9`` means 76.9%), as ``mixed_table`` reports it.
+    """
     task, local_met_a_bar = headline_task(met_bar_tasks, workload_mix)
 
     if local_met_a_bar:
-        others = ", ".join(sorted(met_bar_tasks))
-        sentence1 = f"Local met the quality bar on {len(met_bar_tasks)} of {total_tasks} tasks (calib): {others}."
+        winners = local_winners or {}
+        parts = [
+            f"{t} ({local_winner_text(winners[t].model_id, winners[t].kind)})" if t in winners else t
+            for t in sorted(met_bar_tasks)
+        ]
+        sentence1 = (
+            f"Local met the quality bar on {len(met_bar_tasks)} of {total_tasks} tasks (calib): {', '.join(parts)}."
+        )
     else:
         sentence1 = f"Local met the quality bar on none of the {total_tasks} measured tasks (calib)."
     if len(met_bar_tasks) * 2 < total_tasks:
@@ -161,6 +240,11 @@ def headline_text(
         sentence2 = (
             f"For the headline task ({task}), local breaks even against the cheapest cloud model meeting the bar "
             f"at {fmt_number(be.volume)} tasks/month, against this task's {fmt_number(v_t)} tasks/month volume."
+        )
+    elif be is not None and be.verdict == VERDICT_NO_CLOUD_BAR:
+        sentence2 = (
+            f"For the headline task ({task}), there is no break-even to compute because no cloud model met the bar "
+            f"(this task runs {fmt_number(v_t)} tasks/month)."
         )
     else:
         verdict_label = be.verdict if be is not None else NA
@@ -179,6 +263,10 @@ def headline_text(
         )
     else:
         vs = router_saving_vs or "the cheapest single cloud model meeting every bar"
-        sentence3 = f"The router saves {fmt_signed_pct(router_saving_pct)} on the mixed workload against {vs}."
-
-    return " ".join([sentence1, sentence2, sentence3])
+        who = f"The router ({router_saving_scope})" if router_saving_scope else "The router"
+        if router_saving_pct >= 0:
+            sentence3 = f"{who} saves {router_saving_pct:.1f}% on the mixed workload against {vs}."
+        else:
+            sentence3 = f"{who} costs {-router_saving_pct:.1f}% more on the mixed workload than {vs}."
+    sentences = [sentence1, sentence2, sentence3, *(_refusal_sentence(r) for r in refusals)]
+    return " ".join(sentences)
