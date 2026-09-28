@@ -237,6 +237,7 @@ class _Runner:
         self.start_utc = _now_utc()
 
         self.buffer: list[dict[str, Any]] = []
+        self.recorded_counts: dict[tuple[str, str, str], list[int]] = {}
         self._last_flush = time.monotonic()
 
         self.models_seen: dict[str, str] = {}
@@ -353,6 +354,9 @@ class _Runner:
         )
         self.buffer.append(record)
         self.completed.add((model_id, task, split, str(item_id), pass_))
+        counts = self.recorded_counts.setdefault((model_id, task, split), [0, 0])
+        counts[0] += 1
+        counts[1] += 0 if parsed.ok else 1
         self._maybe_flush()
         return bool(record["valid"])
 
@@ -372,6 +376,8 @@ class _Runner:
     def _progress(self, model_id: str, task: str, split: str, n: int, invalid_n: int) -> None:
         if n <= 0:
             return
+        # Report everything recorded this session for the group, including its preflight item.
+        n, invalid_n = self.recorded_counts.get((model_id, task, split), [n, invalid_n])
         invalid_pct = invalid_n / n * 100.0
         spend = self.ledger.total_spent() if self.ledger is not None else 0.0
         print(f"{model_id} {task} {split}: n={n} invalid={invalid_pct:.1f}% spend=${spend:.4f}")
