@@ -69,14 +69,16 @@ class MlxServer:
         return Path(path)
 
     def _check_port_free(self) -> None:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
-            try:
-                probe.bind((self.host, self.port))
-            except OSError as exc:
-                raise MlxServerError(
-                    f"port {self.port} on {self.host} is already in use; set launch.port for {self.repo!r} "
-                    "to a free port"
-                ) from exc
+        """Refuse a port something already listens on (connecting, so closed ports in TIME_WAIT still count as free)."""
+        target = "127.0.0.1" if self.host in ("0.0.0.0", "") else self.host
+        try:
+            with socket.create_connection((target, self.port), timeout=0.5):
+                pass
+        except OSError:
+            return
+        raise MlxServerError(
+            f"port {self.port} on {self.host} is already in use; set launch.port for {self.repo!r} to a free port"
+        )
 
     def start(self) -> MlxServer:
         self._check_port_free()

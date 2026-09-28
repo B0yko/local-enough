@@ -34,7 +34,7 @@ def test_other_load_is_system_wide_minus_our_own_processes(monkeypatch: pytest.M
     own = {100: FakeProcess(100, [0.0, 80.0], rss=4_000_000_000)}
     monkeypatch.setattr("local_enough.bench.load.psutil.Process", lambda pid: own[pid])
 
-    sampler = LoadSampler(own_pids_fn=lambda: {100})
+    sampler = LoadSampler(own_pids_fn=lambda: {100}, prime_s=0.0)
     sample = sampler.sample_once()
 
     assert sample.load1 == pytest.approx(2.5)
@@ -52,7 +52,7 @@ def test_processes_of_other_users_are_counted_even_when_unreadable(monkeypatch: 
         raise AssertionError("only our own processes may be inspected")
 
     monkeypatch.setattr("local_enough.bench.load.psutil.Process", process)
-    sample = LoadSampler(own_pids_fn=lambda: set()).sample_once()
+    sample = LoadSampler(own_pids_fn=lambda: set(), prime_s=0.0).sample_once()
     assert sample.other_cpu_pct == pytest.approx(160.0)
 
 
@@ -68,7 +68,7 @@ def test_sample_once_never_touches_process_names(monkeypatch: pytest.MonkeyPatch
         "local_enough.bench.load.psutil.Process",
         lambda pid: NameExplodingProcess(pid, [0.0, 5.0], rss=500_000_000),
     )
-    sampler = LoadSampler(own_pids_fn=lambda: {200})
+    sampler = LoadSampler(own_pids_fn=lambda: {200}, prime_s=0.0)
     sampler.sample_once()  # must not raise
 
 

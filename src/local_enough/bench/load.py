@@ -32,9 +32,11 @@ class LoadSample:
 class LoadSampler:
     """Periodic sampler of load average and other-process CPU/memory, numbers only."""
 
-    def __init__(self, own_pids_fn: Callable[[], set[int]], interval_s: float = 60.0) -> None:
+    def __init__(self, own_pids_fn: Callable[[], set[int]], interval_s: float = 60.0, prime_s: float = 1.0) -> None:
         self.own_pids_fn = own_pids_fn
         self.interval_s = interval_s
+        self.prime_s = prime_s
+        self._primed = False
         self.samples: list[LoadSample] = []
         self._processes: dict[int, psutil.Process] = {}
         self._task: asyncio.Task[None] | None = None
@@ -47,18 +49,17 @@ class LoadSampler:
         root), so the system-wide counters, which cover every user, are the reference and only our own processes
         (which are always readable) are subtracted.
         """
+        if not self._primed:
+            # CPU counters report usage since their previous read, and a process's first read is always 0.0, so
+            # the first sample would charge everything since the last read (e.g. our own model loading) to "other".
+            # Prime every counter, then measure over a short fresh interval.
+            self._track(self.own_pids_fn())  # primes each of our processes
+            psutil.cpu_percent(None)
+            time.sleep(self.prime_s)
+            self._primed = True
         load1 = os.getloadavg()[0]
         own_pids = self.own_pids_fn()
-        for pid in list(self._processes):
-            if pid not in own_pids:
-                del self._processes[pid]
-        for pid in own_pids - set(self._processes):
-            try:
-                self._processes[pid] = psutil.Process(pid)
-                self._processes[pid].cpu_percent(None)  # prime the internal delta counter
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                continue
-
+        self._track(own_pids)
         system_cpu_pct = psutil.cpu_percent(None) * (psutil.cpu_count() or 1)
         own_cpu_pct = 0.0
         own_mem_bytes = 0
@@ -75,15 +76,30 @@ class LoadSampler:
         self.samples.append(sample)
         return sample
 
+    def _track(self, own_pids: set[int]) -> None:
+        """Keep a primed ``psutil.Process`` for each of our pids (a new process's first read is 0.0)."""
+        for pid in list(self._processes):
+            if pid not in own_pids:
+                del self._processes[pid]
+        for pid in own_pids - set(self._processes):
+            try:
+                self._processes[pid] = psutil.Process(pid)
+                self._processes[pid].cpu_percent(None)
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+
     async def start(self) -> None:
         self._stop_event = asyncio.Event()
         self._task = asyncio.create_task(self._run())
 
     async def _run(self) -> None:
+        # Wait first: callers take their "before" sample explicitly, and a sample right after another one would
+        # measure a near-zero interval.
         while not self._stop_event.is_set():
-            self.sample_once()
             with contextlib.suppress(TimeoutError):
                 await asyncio.wait_for(self._stop_event.wait(), timeout=self.interval_s)
+            if not self._stop_event.is_set():
+                self.sample_once()
 
     async def stop(self) -> None:
         self._stop_event.set()

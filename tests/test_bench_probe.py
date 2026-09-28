@@ -40,7 +40,8 @@ def _reading(system_load_mw: float, *, charge_pct: float = 100.0) -> BatteryRead
 async def test_probe_writes_power_json(tmp_path: Path) -> None:
     cfg = _config()
     run_dir = tmp_path / "run"
-    readings = iter([_reading(5000.0), _reading(5000.0), _reading(20000.0), _reading(20000.0)])
+    # The first reading is the telemetry pre-check that runs before any model is loaded.
+    readings = iter([_reading(5000.0), _reading(5000.0), _reading(5000.0), _reading(20000.0), _reading(20000.0)])
 
     def sampler() -> BatteryReading:
         return next(readings, _reading(20000.0))
@@ -76,8 +77,9 @@ async def test_probe_reports_unavailable_telemetry(tmp_path: Path, capsys: pytes
         raise PowerTelemetryUnavailable("no AppleSmartBattery entry found")
 
     with respx.mock(assert_all_called=False) as mock:
-        fakes.register_chat(mock, LOCAL_URL, fakes.fixed_content_handler("card_swallowed"))
+        route = fakes.register_chat(mock, LOCAL_URL, fakes.fixed_content_handler("card_swallowed"))
         await run_probe(cfg, "local-test", _route_cfg(), run_dir, idle_s=0.01, load_s=0.01, sampler_fn=sampler)
+    assert route.call_count == 0  # no model is loaded or called when there is no telemetry
 
     rd = RunDir(run_dir)
     power = rd.read_json("power.json")

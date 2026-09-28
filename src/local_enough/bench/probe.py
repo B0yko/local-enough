@@ -72,6 +72,15 @@ async def run_probe(
             return task_name, cycler.next(task_name)
 
     run_dir = RunDir(run)
+    try:
+        sampler_fn()  # no telemetry (e.g. a desktop Mac without a battery): stop before loading a model
+    except PowerTelemetryUnavailable as exc:
+        print(
+            f"power-probe: battery telemetry unavailable for {model_id!r} ({exc}); "
+            "the cost model will use the configured watts instead."
+        )
+        run_dir.merge_json("power.json", {model_id: {"mode": "unavailable", "reason": str(exc)}})
+        return
     caffeinate_proc = spawn_caffeinate(os.getpid())
     caffeinate_pid = caffeinate_proc.pid if caffeinate_proc is not None else None
     server, endpoint = local_endpoint(model_cfg, route_cfg)
