@@ -10,8 +10,9 @@ import respx
 import fakes
 from local_enough.bench import envinfo
 from local_enough.bench.rundir import RunDir
-from local_enough.bench.runner import PreflightFailed, run_bench
+from local_enough.bench.runner import PreflightFailed, _preflight_bad, run_bench
 from local_enough.config import BaselineModel, CloudModel, Config, LocalModel
+from local_enough.providers.openai_compat import ChatResult
 from local_enough.tasks import registry
 from local_enough.tasks.base import TaskSpec
 
@@ -238,3 +239,38 @@ async def test_dry_run_prints_totals_and_writes_nothing(
     assert "open-large" in out
     assert "total: $" in out
     assert not run_dir.exists()
+
+
+def _result(text: str, finish: str | None, reasoning: int) -> ChatResult:
+    return ChatResult(
+        text=text,
+        model="vendor/model-a",
+        prompt_tokens=10,
+        completion_tokens=12,
+        reasoning_tokens=reasoning,
+        cached_tokens=0,
+        cost_usd=0.0,
+        provider=None,
+        finish_reason=finish,
+        latency_s=0.1,
+        retries=0,
+        temperature_sent=True,
+        error=None,
+        status=200,
+    )
+
+
+@pytest.mark.parametrize(
+    ("text", "finish", "reasoning", "bad"),
+    [
+        ("", "length", 0, True),
+        ("", "stop", 5, True),
+        ("card", "length", 11, True),  # a label cut short because reasoning used most of the cap
+        ("card_swallowed", "stop", 11, False),
+        ('{"company_name": "A"', "length", 0, False),  # truncated without reasoning is the model's own output
+    ],
+)
+def test_preflight_flags_empty_and_reasoning_truncated_output(
+    text: str, finish: str, reasoning: int, bad: bool
+) -> None:
+    assert _preflight_bad(_result(text, finish, reasoning)) is bad

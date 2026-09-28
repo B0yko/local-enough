@@ -59,7 +59,7 @@ DEFAULT_ROUTE_CONFIG = RouteConfig(
 
 
 class PreflightFailed(RuntimeError):
-    """A cloud model returned no visible output on a preflight call: a harness/config bug."""
+    """A cloud model returned empty or reasoning-truncated output on a preflight call: a harness/config bug."""
 
 
 def _now_utc() -> str:
@@ -177,7 +177,10 @@ def _baseline_result(text: str, latency_s: float) -> ChatResult:
 
 
 def _preflight_bad(result: ChatResult) -> bool:
-    return not result.text.strip() and (result.finish_reason == "length" or result.reasoning_tokens > 0)
+    """Output cut by the cap: empty, or truncated at the length cap while reasoning tokens used part of it."""
+    if not result.text.strip() and (result.finish_reason == "length" or result.reasoning_tokens > 0):
+        return True
+    return result.finish_reason == "length" and result.reasoning_tokens > 0
 
 
 class _Runner:
@@ -469,7 +472,7 @@ class _Runner:
                 self._settle(reservation, result, price)
             if _preflight_bad(result):
                 raise PreflightFailed(
-                    f"{model_cfg.id}: preflight on task {spec.name!r} returned no visible output "
+                    f"{model_cfg.id}: preflight on task {spec.name!r} returned no or truncated visible output "
                     f"(finish_reason={result.finish_reason!r}, reasoning_tokens={result.reasoning_tokens}). "
                     "This is a harness/config bug, not an invalid output: set reasoning_allowance_tokens "
                     f"(and 'reasoning' if needed) for model {model_cfg.id!r} in config.yaml and rerun."
