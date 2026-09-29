@@ -136,14 +136,17 @@ def build_report(
     written: list[Path] = []
     for task in data.tasks:
         block = data.results[task]
-        fig = charts.frontier_chart(task, block["chart_points"], quality_bar=block["bar"], split_label="test")
+        metric = str(block.get("primary_metric") or "primary")
+        fig = charts.frontier_chart(
+            task, block["chart_points"], quality_bar=block["bar"], split_label="test", metric=metric
+        )
         svg_by_task[task] = charts.inline_svg(fig)
         png_path = img_dir / f"{task}.png"
         charts.save_png(fig, png_path)
         written.append(png_path)
         # The same chart in the dark theme, for READMEs that switch images with prefers-color-scheme.
         dark = charts.frontier_chart(
-            task, block["chart_points"], quality_bar=block["bar"], split_label="test", theme="dark"
+            task, block["chart_points"], quality_bar=block["bar"], split_label="test", theme="dark", metric=metric
         )
         dark_path = img_dir / f"{task}-dark.png"
         charts.save_png(dark, dark_path)

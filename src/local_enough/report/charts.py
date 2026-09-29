@@ -373,6 +373,16 @@ def _legend_handles(kinds: set[ChartKind], has_energy: bool, has_bar: bool, them
     return handles
 
 
+METRIC_LABELS = {
+    "accuracy": "accuracy",
+    "f1": "match F1",
+    "field_accuracy": "field accuracy",
+    "f2": "span F2",
+    "pass_rate": "judged pass rate",
+    "primary": "primary metric",
+}
+
+
 def frontier_chart(
     task: str,
     points: list[ChartPoint],
@@ -380,6 +390,7 @@ def frontier_chart(
     quality_bar: float | None,
     split_label: str = "test",
     theme: ChartTheme | ThemeName = "light",
+    metric: str = "primary",
 ) -> Figure:
     """One accuracy-vs-cost frontier chart: x = USD/1,000 tasks (log), y = primary metric with 95% CI.
 
@@ -493,14 +504,15 @@ def frontier_chart(
             )
 
     ax.set_xlabel("USD per 1,000 tasks  ·  log scale", color=th.muted, labelpad=8)
-    ax.set_ylabel("primary metric  ·  95% CI", color=th.muted, labelpad=8)
+    metric_label = METRIC_LABELS.get(metric, metric.replace("_", " "))
+    ax.set_ylabel(f"{metric_label}  ·  95% CI", color=th.muted, labelpad=8)
 
     left = _AXES_RECT["left"]
     fig.text(left, 0.945, task, ha="left", va="baseline", fontsize=13, fontweight="bold", color=th.text)
     fig.text(
         left,
         0.895,
-        f"accuracy vs. cost on the {split_label} split  ·  cheaper to the left, better to the top",
+        f"{metric_label} vs. cost on the {split_label} split  ·  cheaper to the left, better to the top",
         ha="left",
         va="baseline",
         fontsize=8.5,
