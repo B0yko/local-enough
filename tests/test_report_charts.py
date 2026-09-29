@@ -3,13 +3,20 @@
 from __future__ import annotations
 
 import math
+from pathlib import Path
+
+from matplotlib.colors import to_hex
 
 from local_enough.report.charts import (
     BASELINE_FLOOR_USD_PER_1K,
+    DARK,
+    LIGHT,
     ChartPoint,
     _pareto_frontier,
+    _usd_tick,
     frontier_chart,
     inline_svg,
+    save_png,
 )
 
 
@@ -98,3 +105,28 @@ def test_a_single_dominating_baseline_still_draws_a_pareto_line() -> None:
     assert ys and all(math.isclose(y, 0.88) for y in ys)
     # The staircase runs on to the right edge of the plot, so the line spans the whole chart.
     assert frontier_line.get_xdata()[-1] >= ax.get_xlim()[1] * 0.99
+
+
+def test_dark_theme_uses_the_dark_surface_and_renders_deterministic_png(tmp_path: Path) -> None:
+    light = frontier_chart("extraction", _crowded_points(), quality_bar=0.944)
+    dark = frontier_chart("extraction", _crowded_points(), quality_bar=0.944, theme="dark")
+    assert to_hex(light.get_facecolor()) == LIGHT.background
+    assert to_hex(dark.get_facecolor()) == DARK.background
+    save_png(dark, tmp_path / "a.png")
+    save_png(frontier_chart("extraction", _crowded_points(), quality_bar=0.944, theme="dark"), tmp_path / "b.png")
+    assert (tmp_path / "a.png").read_bytes() == (tmp_path / "b.png").read_bytes()
+    # Same geometry in both themes: labels land in the same places.
+    positions = [t.get_position() for t in light.axes[0].texts]
+    assert positions == [t.get_position() for t in dark.axes[0].texts]
+
+
+def test_cost_ticks_are_plain_dollars_and_the_baseline_floor_reads_as_free() -> None:
+    assert _usd_tick(BASELINE_FLOOR_USD_PER_1K) == "≈$0"
+    assert [_usd_tick(v) for v in (0.001, 0.01, 0.1, 1.0, 10.0, 1000.0)] == [
+        "$0.001",
+        "$0.01",
+        "$0.1",
+        "$1",
+        "$10",
+        "$1,000",
+    ]

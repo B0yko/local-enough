@@ -1,10 +1,13 @@
-"""The accuracy-vs-cost frontier chart: one per task, deterministic SVG and PNG bytes.
+"""The accuracy-vs-cost frontier chart: one per task, deterministic SVG and PNG bytes, light and dark themes.
 
 Uses the non-interactive ``Agg`` backend only (no display, no event loop). ``svg.hashsalt`` is
 fixed so matplotlib's internal element ids (clip paths, markers) hash the same way on every render
 of the same figure, and fonts/sizes are pinned so text layout does not depend on what happens to be
 installed on the host. Charts are built twice from the same run directory in
 ``tests/test_report_build.py`` and compared byte-for-byte.
+
+Every colour comes from a :class:`ChartTheme`; the same drawing code renders the light theme (report
+and GitHub light mode) and the dark theme (GitHub dark mode, matching the repository banner).
 """
 
 from __future__ import annotations
@@ -24,23 +27,29 @@ from matplotlib.axes import Axes
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
 from matplotlib.font_manager import FontProperties
-from matplotlib.transforms import Bbox
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
+from matplotlib.ticker import FixedLocator, FuncFormatter, MaxNLocator, NullLocator
+from matplotlib.transforms import Bbox, blended_transform_factory
 
 BASELINE_FLOOR_USD_PER_1K = 1e-4
-BASELINE_LABEL = "baseline (≈$0)"
+BASELINE_TICK_LABEL = "≈$0"
+
+_SANS = "DejaVu Sans"
+_MONO = "DejaVu Sans Mono"
 
 # Applied once at import time (not per-figure) so every chart in the process renders with the same
 # deterministic hash salt, fonts and sizes, independent of what else runs in this interpreter.
 matplotlib.rcParams.update(
     {
         "svg.hashsalt": "local-enough",
-        "font.family": "DejaVu Sans",
+        "font.family": _SANS,
         "font.size": 9,
         "axes.titlesize": 11,
-        "axes.labelsize": 9,
-        "xtick.labelsize": 8,
-        "ytick.labelsize": 8,
-        "legend.fontsize": 8,
+        "axes.labelsize": 8.5,
+        "xtick.labelsize": 7.5,
+        "ytick.labelsize": 7.5,
+        "legend.fontsize": 7.5,
         "figure.dpi": 100.0,
         "savefig.dpi": 150.0,
         "path.simplify": False,
@@ -48,9 +57,68 @@ matplotlib.rcParams.update(
 )
 
 ChartKind = Literal["local", "cloud", "baseline"]
+ThemeName = Literal["light", "dark"]
 
-_COLORS: dict[ChartKind, str] = {"local": "#1b7f3a", "cloud": "#1f5fa8", "baseline": "#8a8a8a"}
+
+@dataclass(frozen=True)
+class ChartTheme:
+    """The colours one chart theme uses; every artist reads its colour from here."""
+
+    name: ThemeName
+    background: str
+    text: str
+    muted: str
+    grid: str
+    axis: str
+    local: str
+    cloud: str
+    baseline: str
+    frontier: str
+    refused: str
+    refused_alpha: float
+    ci_alpha: float
+
+    def kind_color(self, kind: ChartKind) -> str:
+        return {"local": self.local, "cloud": self.cloud, "baseline": self.baseline}[kind]
+
+
+LIGHT = ChartTheme(
+    name="light",
+    background="#ffffff",
+    text="#111827",
+    muted="#6b7280",
+    grid="#eceef1",
+    axis="#c9ced6",
+    local="#16a34a",
+    cloud="#2563eb",
+    baseline="#6b7280",
+    frontier="#374151",
+    refused="#dc2626",
+    refused_alpha=0.055,
+    ci_alpha=0.42,
+)
+
+DARK = ChartTheme(
+    name="dark",
+    background="#0b0f0e",
+    text="#e8ece9",
+    muted="#8b948f",
+    grid="#1a201e",
+    axis="#2c3431",
+    local="#4ade80",
+    cloud="#60a5fa",
+    baseline="#8b948f",
+    frontier="#c7cdca",
+    refused="#f87171",
+    refused_alpha=0.065,
+    ci_alpha=0.5,
+)
+
+THEMES: dict[ThemeName, ChartTheme] = {"light": LIGHT, "dark": DARK}
+
 _MARKERS: dict[ChartKind, str] = {"local": "o", "cloud": "s", "baseline": "D"}
+_MARKER_SIZE: dict[ChartKind, float] = {"local": 8.0, "cloud": 7.2, "baseline": 7.2}
+_KIND_ORDER: tuple[ChartKind, ...] = ("local", "cloud", "baseline")
 
 
 @dataclass(frozen=True)
@@ -85,10 +153,8 @@ def _pareto_frontier(points: list[ChartPoint]) -> list[ChartPoint]:
     return frontier
 
 
-_LABEL_FONT_SIZE = 7
+_LABEL_FONT_SIZE = 7.5
 _LEADER_FROM_OFFSET_INDEX = 2
-LegendLoc = Literal["lower right", "lower left", "upper left", "upper right"]
-_LEGEND_LOCS: tuple[LegendLoc, ...] = ("lower right", "lower left", "upper left", "upper right")
 # Label positions to try, most preferred first: (dx px, dy px, horizontal anchor, vertical anchor).
 _LABEL_OFFSETS: tuple[tuple[float, float, str, str], ...] = (
     (9, 4, "left", "bottom"),
@@ -108,6 +174,10 @@ _LABEL_OFFSETS: tuple[tuple[float, float, str, str], ...] = (
     (-9, 30, "right", "bottom"),
     (-9, -30, "right", "top"),
 )
+
+# Fixed page geometry (figure fractions) so every chart lines up the same way in a grid of charts.
+_FIG_SIZE = (7.2, 4.5)
+_AXES_RECT = {"left": 0.085, "right": 0.872, "bottom": 0.115, "top": 0.8}
 
 
 def _overlap(a: Bbox, b: Bbox) -> float:
@@ -135,6 +205,43 @@ def _x_limits(points: list[ChartPoint]) -> tuple[float, float] | None:
     return (min(xs) / 2.2, max(xs) * 2.6) if xs else None
 
 
+def _usd_tick(value: float, _pos: float | None = None) -> str:
+    """``$0.001``, ``$0.1``, ``$1``, ``$10``: plain dollars on the log axis, no scientific notation."""
+    if math.isclose(value, BASELINE_FLOOR_USD_PER_1K, rel_tol=1e-9):
+        return BASELINE_TICK_LABEL
+    if value >= 1:
+        return f"${value:,.0f}"
+    decimals = max(0, -math.floor(math.log10(value) + 1e-9))
+    return f"${value:.{decimals}f}"
+
+
+def _style_axes(ax: Axes, theme: ChartTheme, has_baseline: bool) -> None:
+    ax.set_facecolor(theme.background)
+    for side in ("top", "right", "left"):
+        ax.spines[side].set_visible(False)
+    ax.spines["bottom"].set_color(theme.axis)
+    ax.spines["bottom"].set_linewidth(0.9)
+    ax.set_axisbelow(True)
+    ax.grid(True, which="major", axis="both", color=theme.grid, linewidth=0.8)
+    ax.tick_params(axis="both", which="both", length=0, pad=6, colors=theme.muted, labelfontfamily=_MONO)
+
+    # y: a handful of round ticks, none above 1.0 (the headroom above it is for labels only).
+    y0, y1 = ax.get_ylim()
+    y_ticks = [t for t in MaxNLocator(nbins=6, steps=[1, 2, 2.5, 5, 10]).tick_values(y0, y1) if y0 <= t <= 1.0 + 1e-9]
+    ax.yaxis.set_major_locator(FixedLocator(y_ticks))
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _pos: f"{v:.2f}"))
+
+    # x: one tick per decade in plain dollars; a baseline's floor is labelled as roughly free.
+    x0, x1 = ax.get_xlim()
+    first, last = math.ceil(math.log10(x0) - 1e-9), math.floor(math.log10(x1) + 1e-9)
+    x_ticks = [10.0**e for e in range(first, last + 1)]
+    if has_baseline and x0 <= BASELINE_FLOOR_USD_PER_1K <= x1:
+        x_ticks = [BASELINE_FLOOR_USD_PER_1K] + [t for t in x_ticks if t > BASELINE_FLOOR_USD_PER_1K * 3]
+    ax.xaxis.set_major_locator(FixedLocator(x_ticks))
+    ax.xaxis.set_minor_locator(NullLocator())
+    ax.xaxis.set_major_formatter(FuncFormatter(_usd_tick))
+
+
 def _obstacles(ax: Axes, points: list[ChartPoint], frontier: list[ChartPoint], quality_bar: float | None) -> list[Bbox]:
     """Display-space boxes that a label should stay clear of: markers, CI whiskers, cost links, lines."""
     boxes: list[Bbox] = []
@@ -156,27 +263,41 @@ def _obstacles(ax: Axes, points: list[ChartPoint], frontier: list[ChartPoint], q
             boxes.append(Bbox([[min(ex, x), y - 1.5], [max(ex, x), y + 1.5]]))
     if quality_bar is not None and not math.isnan(quality_bar):
         (x0, y), (x1, _) = to_px(ax.get_xlim()[0], quality_bar), to_px(ax.get_xlim()[1], quality_bar)
-        boxes.append(Bbox([[x0, y - 1.5], [x1, y + 1.5]]))
-    del frontier  # the frontier line is thin and crossing it reads fine; only markers and links block labels
+        boxes.append(Bbox([[x0, y - 3.5], [x1, y + 3.5]]))
+    # The staircase: a horizontal run from each frontier point to the next, then the riser up to it.
+    x_right = ax.get_xlim()[1]
+    for i, p in enumerate(frontier):
+        x, y = to_px(p.usd_per_1k, p.primary)
+        nxt = frontier[i + 1] if i + 1 < len(frontier) else None
+        x_end, y_end = to_px(nxt.usd_per_1k, nxt.primary) if nxt is not None else (to_px(x_right, p.primary)[0], y)
+        boxes.append(Bbox([[x, y - 2], [x_end, y + 2]]))
+        if nxt is not None:
+            boxes.append(Bbox([[x_end - 2, y], [x_end + 2, y_end]]))
     return boxes
 
 
 def _place_labels(
-    fig: Figure, ax: Axes, points: list[ChartPoint], obstacles: list[Bbox], extra_blocked: list[Bbox]
+    fig: Figure,
+    ax: Axes,
+    points: list[ChartPoint],
+    obstacles: list[Bbox],
+    theme: ChartTheme,
+    quality_bar: float | None,
 ) -> None:
     """Annotate every point, choosing per point the first offset whose text box collides with nothing.
 
     Deterministic: points are visited in a fixed order, offsets are tried in a fixed order, and text is measured
-    with the bundled DejaVu Sans, so the same run always yields the same picture.
+    with the bundled DejaVu Sans, so the same run always yields the same picture. Models under the quality bar get a
+    quieter label so the ones that qualify read first.
     """
     renderer = fig.canvas.get_renderer()  # type: ignore[attr-defined]
-    font = FontProperties(size=_LABEL_FONT_SIZE)
+    font = FontProperties(family=_SANS, size=_LABEL_FONT_SIZE)
     axes_box = ax.get_window_extent(renderer)
     placed: list[Bbox] = []
-    blocked = [*obstacles, *extra_blocked]
     order = sorted(points, key=lambda p: (p.usd_per_1k, -p.primary, p.model_id))
+    has_bar = quality_bar is not None and not math.isnan(quality_bar)
     for p in order:
-        text = BASELINE_LABEL if p.kind == "baseline" else p.model_id
+        text = p.model_id
         width, height, _ = renderer.get_text_width_height_descent(text, font, ismath=False)
         px, py = (float(v) for v in ax.transData.transform((p.usd_per_1k, p.primary)))
         best: tuple[float, int] | None = None
@@ -187,7 +308,7 @@ def _place_labels(
             inside = _overlap(box, axes_box)
             outside_area = box.width * box.height - inside
             score = (
-                outside_area * 10 + sum(_overlap(box, b) for b in blocked) + sum(_overlap(box, b) for b in placed) * 4
+                outside_area * 10 + sum(_overlap(box, b) for b in obstacles) + sum(_overlap(box, b) for b in placed) * 4
             )
             if best is None or score < best[0]:
                 best = (score, index)
@@ -200,6 +321,7 @@ def _place_labels(
         y0 = py + dy - (0 if va == "bottom" else height)
         placed.append(Bbox([[x0, y0], [x0 + width, y0 + height]]))
         scale = 72.0 / fig.dpi
+        below = has_bar and quality_bar is not None and p.primary < quality_bar
         ax.annotate(
             text,
             (p.usd_per_1k, p.primary),
@@ -208,29 +330,102 @@ def _place_labels(
             ha=ha,
             va=va,
             fontsize=_LABEL_FONT_SIZE,
+            fontfamily=_SANS,
+            color=theme.muted if below else theme.text,
+            zorder=5,
             # A label that had to move away from its marker gets a thin leader line so it stays unambiguous.
-            arrowprops={"arrowstyle": "-", "linewidth": 0.5, "color": "#888888", "shrinkA": 0, "shrinkB": 3}
+            arrowprops={"arrowstyle": "-", "linewidth": 0.6, "color": theme.muted, "shrinkA": 0, "shrinkB": 4}
             if index >= _LEADER_FROM_OFFSET_INDEX
             else None,
         )
 
 
+def _legend_handles(kinds: set[ChartKind], has_energy: bool, has_bar: bool, theme: ChartTheme) -> list[Line2D | Patch]:
+    handles: list[Line2D | Patch] = []
+
+    def marker(kind: ChartKind, label: str, *, hollow: bool = False) -> Line2D:
+        color = theme.kind_color(kind)
+        return Line2D(
+            [],
+            [],
+            linestyle="none",
+            marker=_MARKERS[kind],
+            markersize=_MARKER_SIZE[kind] - 1,
+            markerfacecolor=theme.background if hollow else color,
+            markeredgecolor=color if hollow else theme.background,
+            markeredgewidth=1.3 if hollow else 0.8,
+            label=label,
+        )
+
+    if "local" in kinds:
+        handles.append(marker("local", "local, full cost"))
+        if has_energy:
+            handles.append(marker("local", "local, energy only", hollow=True))
+    if "cloud" in kinds:
+        handles.append(marker("cloud", "cloud"))
+    if "baseline" in kinds:
+        handles.append(marker("baseline", "baseline"))
+    handles.append(Line2D([], [], color=theme.frontier, linewidth=1.6, label="Pareto frontier"))
+    if has_bar:
+        handles.append(
+            Patch(facecolor=theme.refused, alpha=min(1.0, theme.refused_alpha * 4), linewidth=0, label="below the bar")
+        )
+    return handles
+
+
 def frontier_chart(
-    task: str, points: list[ChartPoint], *, quality_bar: float | None, split_label: str = "test"
+    task: str,
+    points: list[ChartPoint],
+    *,
+    quality_bar: float | None,
+    split_label: str = "test",
+    theme: ChartTheme | ThemeName = "light",
 ) -> Figure:
     """One accuracy-vs-cost frontier chart: x = USD/1,000 tasks (log), y = primary metric with 95% CI.
 
     The Pareto frontier is drawn as a staircase (the best metric reachable at or below each cost) so that a single
     dominating point, such as a free baseline, still shows as a line; labels are placed so they do not collide.
+    ``theme`` picks the palette (``"light"`` or ``"dark"``, or a :class:`ChartTheme`); geometry is identical.
     """
-    fig = Figure(figsize=(6.4, 4.2))
+    th = THEMES[theme] if isinstance(theme, str) else theme
+    fig = Figure(figsize=_FIG_SIZE)
     FigureCanvasAgg(fig)
+    fig.patch.set_facecolor(th.background)
+    fig.subplots_adjust(**_AXES_RECT)
     ax = fig.add_subplot(111)
     ax.set_xscale("log")
     xlim = _x_limits(points)
     if xlim is not None:
         ax.set_xlim(*xlim)
     ax.set_ylim(*_y_limits(points, quality_bar))
+    plotted = [
+        p for p in sorted(points, key=lambda p: p.model_id) if not (math.isnan(p.primary) or math.isnan(p.usd_per_1k))
+    ]
+    kinds = {p.kind for p in plotted}
+    _style_axes(ax, th, "baseline" in kinds)
+
+    has_bar = quality_bar is not None and not math.isnan(quality_bar)
+    if has_bar and quality_bar is not None:
+        ax.axhspan(ax.get_ylim()[0], quality_bar, color=th.refused, alpha=th.refused_alpha, linewidth=0, zorder=0)
+        ax.axhline(quality_bar, color=th.text, linewidth=1.0, linestyle=(0, (4, 3)), alpha=0.7, zorder=1)
+        bar_text = f"{quality_bar:.3f}".rstrip("0").rstrip(".")
+        fig.text(
+            1.0,
+            quality_bar,
+            f" bar {bar_text} ",
+            transform=blended_transform_factory(ax.transAxes, ax.transData),
+            ha="left",
+            va="center",
+            fontsize=7.5,
+            fontfamily=_MONO,
+            color=th.text,
+            bbox={
+                "boxstyle": "round,pad=0.35,rounding_size=0.6",
+                "facecolor": th.background,
+                "edgecolor": th.axis,
+                "linewidth": 0.8,
+            },
+        )
 
     frontier = _pareto_frontier(points)
     if frontier:
@@ -239,74 +434,94 @@ def frontier_chart(
             [p.usd_per_1k for p in frontier] + [x_right],
             [p.primary for p in frontier] + [frontier[-1].primary],
             where="post",
-            color="#c0392b",
-            linewidth=1.2,
-            zorder=1,
+            color=th.frontier,
+            linewidth=1.6,
+            alpha=0.75,
+            solid_joinstyle="miter",
+            zorder=1.5,
             label="Pareto frontier",
         )
 
-    seen_kinds: set[ChartKind] = set()
-    plotted: list[ChartPoint] = []
-    for p in sorted(points, key=lambda p: p.model_id):
-        if math.isnan(p.primary) or math.isnan(p.usd_per_1k):
-            continue
-        plotted.append(p)
-        color, marker = _COLORS[p.kind], _MARKERS[p.kind]
-        label = p.kind if p.kind not in seen_kinds else None
-        seen_kinds.add(p.kind)
-        yerr = None
-        if not math.isnan(p.ci_lo) and not math.isnan(p.ci_hi):
-            yerr = [[max(0.0, p.primary - p.ci_lo)], [max(0.0, p.ci_hi - p.primary)]]
-        ax.errorbar(
-            [p.usd_per_1k],
-            [p.primary],
-            yerr=yerr,
-            fmt=marker,
-            color=color,
-            ecolor=color,
-            elinewidth=1.0,
-            capsize=3,
-            markersize=7,
-            zorder=3,
-            label=label,
-        )
-        if p.kind == "local" and p.usd_per_1k_energy is not None and not math.isnan(p.usd_per_1k_energy):
-            ax.plot([p.usd_per_1k_energy, p.usd_per_1k], [p.primary, p.primary], color=color, linewidth=0.8, zorder=2)
+    has_energy = False
+    for kind in _KIND_ORDER:
+        for p in (q for q in plotted if q.kind == kind):
+            color, marker = th.kind_color(p.kind), _MARKERS[p.kind]
+            if not math.isnan(p.ci_lo) and not math.isnan(p.ci_hi):
+                ax.vlines(
+                    p.usd_per_1k,
+                    min(p.ci_lo, p.primary),
+                    max(p.ci_hi, p.primary),
+                    color=color,
+                    linewidth=2.2,
+                    alpha=th.ci_alpha,
+                    capstyle="round",
+                    zorder=2.5,
+                )
+            if p.kind == "local" and p.usd_per_1k_energy is not None and not math.isnan(p.usd_per_1k_energy):
+                has_energy = True
+                ax.plot(
+                    [p.usd_per_1k_energy, p.usd_per_1k],
+                    [p.primary, p.primary],
+                    color=color,
+                    linewidth=1.1,
+                    linestyle=(0, (1, 2.2)),
+                    dash_capstyle="round",
+                    alpha=0.8,
+                    zorder=2,
+                )
+                ax.plot(
+                    [p.usd_per_1k_energy],
+                    [p.primary],
+                    linestyle="none",
+                    marker=marker,
+                    markerfacecolor=th.background,
+                    markeredgecolor=color,
+                    markeredgewidth=1.4,
+                    markersize=_MARKER_SIZE[p.kind] - 1,
+                    zorder=3,
+                )
             ax.plot(
-                [p.usd_per_1k_energy],
+                [p.usd_per_1k],
                 [p.primary],
+                linestyle="none",
                 marker=marker,
-                markerfacecolor="none",
-                markeredgecolor=color,
-                markersize=7,
-                zorder=3,
+                markerfacecolor=color,
+                markeredgecolor=th.background,
+                markeredgewidth=1.2,
+                markersize=_MARKER_SIZE[p.kind],
+                zorder=4,
             )
 
-    if quality_bar is not None and not math.isnan(quality_bar):
-        ax.axhline(quality_bar, color="#666666", linewidth=1.0, linestyle="--", label="quality bar")
+    ax.set_xlabel("USD per 1,000 tasks  ·  log scale", color=th.muted, labelpad=8)
+    ax.set_ylabel("primary metric  ·  95% CI", color=th.muted, labelpad=8)
 
-    ax.set_xlabel("USD per 1,000 tasks (log scale)")
-    ax.set_ylabel("primary metric")
-    ax.set_title(f"{task}: accuracy vs. cost ({split_label} split)")
-    fig.tight_layout()
+    left = _AXES_RECT["left"]
+    fig.text(left, 0.945, task, ha="left", va="baseline", fontsize=13, fontweight="bold", color=th.text)
+    fig.text(
+        left,
+        0.895,
+        f"accuracy vs. cost on the {split_label} split  ·  cheaper to the left, better to the top",
+        ha="left",
+        va="baseline",
+        fontsize=8.5,
+        color=th.muted,
+    )
+    if plotted:
+        fig.legend(
+            handles=_legend_handles(kinds, has_energy, has_bar, th),
+            loc="lower left",
+            bbox_to_anchor=(left - 0.008, _AXES_RECT["top"] + 0.022),
+            ncol=6,
+            frameon=False,
+            handlelength=1.6,
+            handletextpad=0.5,
+            columnspacing=1.4,
+            borderaxespad=0,
+            borderpad=0,
+            labelcolor=th.muted,
+        )
 
-    obstacles = _obstacles(ax, plotted, frontier, quality_bar)
-    legend_box: list[Bbox] = []
-    handles, labels = ax.get_legend_handles_labels()
-    if handles:
-        by_label = dict(zip(labels, handles, strict=True))
-        renderer = fig.canvas.get_renderer()  # type: ignore[attr-defined]
-        best_loc, best_cost = _LEGEND_LOCS[0], math.inf
-        for loc in _LEGEND_LOCS:
-            legend = ax.legend(by_label.values(), by_label.keys(), loc=loc, frameon=False)
-            box = legend.get_window_extent(renderer)
-            cost = sum(_overlap(box, b) for b in obstacles)
-            legend.remove()
-            if cost < best_cost:
-                best_loc, best_cost = loc, cost
-        legend = ax.legend(by_label.values(), by_label.keys(), loc=best_loc, frameon=False)
-        legend_box = [legend.get_window_extent(renderer)]
-    _place_labels(fig, ax, plotted, obstacles, legend_box)
+    _place_labels(fig, ax, plotted, _obstacles(ax, plotted, frontier, quality_bar), th, quality_bar)
     return fig
 
 
@@ -330,12 +545,12 @@ def save_svg(fig: Figure, path: Path) -> None:
 
 def save_png(fig: Figure, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(path, format="png", metadata={"Software": None})
+    fig.savefig(path, format="png", metadata={"Software": None}, facecolor=fig.get_facecolor())
 
 
 def _render_svg(fig: Figure) -> str:
     buf = io.StringIO()
-    fig.savefig(buf, format="svg", metadata={"Date": None})
+    fig.savefig(buf, format="svg", metadata={"Date": None}, facecolor=fig.get_facecolor())
     return _strip_rdf_metadata(buf.getvalue())
 
 
