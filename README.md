@@ -1,19 +1,68 @@
-# local-enough
+<p align="center">
+  <img src=".github/social-preview.png" width="860" alt="local-enough: can this AI task run on your own hardware, and what does it cost?">
+</p>
 
-**Measured answers to "can we run this back-office AI task on our own hardware, and what does it cost?"**
+<p align="center">
+  <b>Measured answers to "can we run this back-office AI task on our own hardware, and what does it cost?"</b>
+</p>
 
-local-enough runs one fixed suite of back-office tasks (CRM extraction, intent classification, PII redaction, meeting
-summaries, vendor-record deduplication) against local models on Apple Silicon and against cloud models. It reports
-accuracy against gold labels with confidence intervals, output validity, p50/p95 latency, throughput, USD per 1,000
-tasks including amortised hardware and energy, and the monthly volume at which the local machine breaks even. It
-writes a decision report with a filled-in ADR, then serves an OpenAI-compatible router that sends each task to the
-cheapest model that met the quality bar and escalates when deterministic evidence checks fail.
+<p align="center">
+  <a href="https://github.com/B0yko/local-enough/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/B0yko/local-enough/ci.yml?branch=main&style=flat-square&label=CI&labelColor=0d1117&color=3fb950" alt="CI"></a>
+  <a href="https://github.com/B0yko/local-enough/releases"><img src="https://img.shields.io/github/v/release/B0yko/local-enough?style=flat-square&labelColor=0d1117&color=3fb950" alt="Release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-Apache--2.0-3fb950?style=flat-square&labelColor=0d1117" alt="Licence: Apache-2.0"></a>
+  <a href="pyproject.toml"><img src="https://img.shields.io/badge/python-3.12-3fb950?style=flat-square&labelColor=0d1117&logo=python&logoColor=white" alt="Python 3.12"></a>
+  <a href="https://github.com/B0yko/local-enough/pkgs/container/local-enough"><img src="https://img.shields.io/badge/ghcr.io-b0yko%2Flocal--enough-3fb950?style=flat-square&labelColor=0d1117&logo=docker&logoColor=white" alt="Container image: ghcr.io/b0yko/local-enough"></a>
+  <a href="#quickstart"><img src="https://img.shields.io/badge/platform-Apple%20Silicon%20%2B%20Linux-3fb950?style=flat-square&labelColor=0d1117&logo=apple&logoColor=white" alt="Platform: Apple Silicon + Linux"></a>
+</p>
 
-<!-- le:headline:start -->
+<p align="center">
+  <a href="#the-evidence">Evidence</a> ·
+  <a href="#quickstart">Quickstart</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#results">Results</a> ·
+  <a href="#the-router">Router</a> ·
+  <a href="#limitations">Limitations</a>
+</p>
+
+> [!IMPORTANT]
+> **Measured verdict, reference run.** <!-- le:headline:start -->
 Local failed the quality bar on most tasks: on the calib split a local candidate met it on only 2 of 5, classification (the TF-IDF baseline, no LLM) and entity_matching (local-qwen2.5-1.5b); pii_redaction, which must stay local, missed its bar (best local f2 92.2% vs 95.0%), so the router refuses it. The headline task, classification, has no break-even volume to compute: no cloud model met its bar (volume: 15,000 tasks/month). The router (gates, no route.yaml constraints) costs 76.9% less on the mixed workload than all traffic to the frontier model (no single cloud model meets every bar).
 <!-- le:headline:end -->
 
-![Classification: accuracy vs USD per 1,000 tasks](docs/img/classification.png)
+| Measure it | Price it | Route it |
+|:--|:--|:--|
+| Local models on Apple Silicon and cloud models run the same five back-office tasks (CRM extraction, intent classification, PII redaction, meeting summaries, vendor-record matching) with the same prompt: accuracy against gold labels with confidence intervals, output validity, p50/p95 latency and throughput. | USD per 1,000 tasks, including amortised hardware and energy, and the monthly volume at which the local machine breaks even, with a capacity check. The result is a decision report with a filled-in ADR. | An OpenAI-compatible router sends each task to the cheapest model that met the quality bar and escalates when deterministic evidence checks fail. Tasks that must stay local never reach a cloud endpoint. |
+
+| **Reference run** | Mac Studio (2025, Apple M4 Max 16-core CPU / 40-core GPU, 128 GB), $4,099 list price |
+|:--|:--|
+| **Line-up** | local MLX models, four cloud models on OpenRouter and three baselines (TF-IDF, regex, rapidfuzz) |
+| **Measured** | accuracy with confidence intervals, invalid output, p50/p95 latency, throughput, USD per 1,000 tasks, break-even volume |
+| **Soak** | 20 minutes; throttle factor 0.981 (1.5B) and 1.023 (4B, applied as 1.0): no slowdown to speak of |
+| **Energy** | 6 W idle, 139 W incremental, from Apple's published figures (an upper bound) |
+| **Spend** | $6.00 of the $15.00 budget, every paid call made while building and checking this release |
+| **Reproduce** | every table offline from the committed run; CI fails if the README drifts from it |
+
+## The evidence
+
+Accuracy against cost on the `test` split, one chart per task; the dashed line is the quality bar set on `calib`.
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/classification-dark.png">
+  <img src="docs/img/classification.png" width="820" alt="Classification: accuracy vs USD per 1,000 tasks">
+</picture>
+</p>
+
+<table>
+  <tr>
+    <td><picture>  <source media="(prefers-color-scheme: dark)" srcset="docs/img/extraction-dark.png">  <img src="docs/img/extraction.png" alt="extraction: primary metric vs USD per 1,000 tasks"></picture></td>
+    <td><picture>  <source media="(prefers-color-scheme: dark)" srcset="docs/img/pii_redaction-dark.png">  <img src="docs/img/pii_redaction.png" alt="pii_redaction: primary metric vs USD per 1,000 tasks"></picture></td>
+  </tr>
+  <tr>
+    <td><picture>  <source media="(prefers-color-scheme: dark)" srcset="docs/img/summarisation-dark.png">  <img src="docs/img/summarisation.png" alt="summarisation: primary metric vs USD per 1,000 tasks"></picture></td>
+    <td><picture>  <source media="(prefers-color-scheme: dark)" srcset="docs/img/entity_matching-dark.png">  <img src="docs/img/entity_matching.png" alt="entity_matching: primary metric vs USD per 1,000 tasks"></picture></td>
+  </tr>
+</table>
 
 The routing plan the reference run produces (`local-enough route --print-plan --run reference`):
 
@@ -31,14 +80,16 @@ summarisation    served      0.689  frontier          -                    passe
 
 ## Quickstart
 
-Python 3.12 and [uv](https://docs.astral.sh/uv/). One command runs the CLI without installing anything:
+Python 3.12 and [uv](https://docs.astral.sh/uv/). The steps below use
+`uv tool install git+https://github.com/B0yko/local-enough@v0.1.0`, which puts `local-enough` on your PATH.
+Steps 1 and 2 take under 5 minutes.
 
-```bash
-uvx --from git+https://github.com/B0yko/local-enough@v0.1.0 local-enough --help
-```
-
-The steps below use `uv tool install git+https://github.com/B0yko/local-enough@v0.1.0`, which puts
-`local-enough` on your PATH. Steps 1 and 2 take under 5 minutes.
+> [!TIP]
+> One command runs the CLI without installing anything:
+>
+> ```bash
+> uvx --from git+https://github.com/B0yko/local-enough@v0.1.0 local-enough --help
+> ```
 
 **1. Offline, no keys.** Reproduce every table in this README from the committed reference run:
 
@@ -81,10 +132,11 @@ print(reply.model)  # the local model that answered: <repo>@<sha>
 print(reply.choices[0].message.content)  # the CRM fields as JSON
 ```
 
-For exact reproduction of the reference environment use `git clone https://github.com/B0yko/local-enough && cd
-local-enough && uv sync --locked` (`uvx --from git+...` ignores `uv.lock`; the `mlx` and `mlx-lm` lower bounds are
-the benchmarked versions). On Linux `mlx-lm` is not installed and only cloud and OpenAI-compatible endpoints are
-available.
+> [!NOTE]
+> For exact reproduction of the reference environment use `git clone https://github.com/B0yko/local-enough && cd
+> local-enough && uv sync --locked` (`uvx --from git+...` ignores `uv.lock`; the `mlx` and `mlx-lm` lower bounds are
+> the benchmarked versions). On Linux `mlx-lm` is not installed and only cloud and OpenAI-compatible endpoints are
+> available.
 
 ## How it works
 
@@ -105,6 +157,9 @@ flowchart LR
     PL --> S["router server<br/>gates + fallback chain"]
 ```
 
+<details>
+<summary><b>What each stage does</b> · prompts and parsing, measurement passes, cost, judge, routing</summary>
+
 1. **Bench.** Every model sees the same prompt and the same lenient parser (code fences and `<think>` stripped, first
    JSON value or first line), at temperature 0 with a per-task output cap. Unparseable or schema-invalid output is
    scored as wrong and counted in `invalid_output_rate`; there are no repair retries. Cloud calls run with bounded
@@ -123,14 +178,33 @@ flowchart LR
    task and builds a fallback chain. The router applies the benchmarked prompt, runs deterministic gates and escalates
    on errors or failed gates ([ADR 1](docs/adr/0001-deterministic-gates.md)).
 
+</details>
+
 ## Results
 
 Reference run on a Mac Studio (2025, Apple M4 Max 16-core CPU / 40-core GPU, 128 GB), four cloud models on
 OpenRouter and three baselines. Every table below is generated from the committed run by `local-enough report --run
 reference` or `local-enough route --simulate --run reference`, and CI fails if the README drifts from it
-(`scripts/check_readme.py`).
+(`scripts/check_readme.py`). `calib` decides every routing choice and verdict; every number shown is on `test`.
 
-### Setup
+### Verdict per task
+
+<!-- le:verdicts:start -->
+Verdict rule, decided on the calib split: **local** when a local candidate meets the quality bar and this task's monthly volume is at or above the break-even volume against the cheapest cloud model meeting the bar (itself at or below this machine's capacity); **local (constraint)** when the task is in `data_must_stay_local` and a local candidate meets the bar, whatever the break-even; **local — below bar (constraint)** when the task is in `data_must_stay_local` and no local candidate meets the bar; **hybrid** when local meets the bar only through the router, with escalation to cloud at or below 20%; otherwise **cloud**.
+
+| task | verdict | detail |
+|---|---|---|
+| classification | local | the TF-IDF baseline (no LLM) meets the bar at about $0 per task, so there is no hardware to pay back at this task's volume (15,000 tasks/month). |
+| entity_matching | cloud | local alone is cheaper only above 4,995,204 tasks/month; the served plan has no local primary that meets the bar with at most 20% escalation. |
+| extraction | cloud | local alone is below the bar (gap to bar: -1.8%); the served plan has no local primary that meets the bar with at most 20% escalation. |
+| pii_redaction | local — below bar (constraint) | data_must_stay_local; no local candidate meets the bar (gap to bar: -2.8%). |
+| summarisation | cloud | local alone is below the bar (gap to bar: -31.1%); the served plan has no local primary that meets the bar with at most 20% escalation. |
+<!-- le:verdicts:end -->
+
+### Detailed tables
+
+<details>
+<summary><b>Setup</b> · machine, software versions, prices, local and cloud models, split sizes</summary>
 
 <!-- le:setup:start -->
 | field | value |
@@ -182,9 +256,10 @@ reference` or `local-enough route --simulate --run reference`, and CI fails if t
 model received it. The four cloud ids, their request settings and the reasons for them are in
 [ADR 7](docs/adr/0007-model-lineup.md).
 
-### Quality, latency and cost per task
+</details>
 
-`calib` decides every routing choice and verdict; every number shown is on `test`.
+<details>
+<summary><b>Quality, latency and cost per task</b> · one table per task with confidence intervals, calib bar and test hold-out</summary>
 
 <!-- le:results:start -->
 #### classification
@@ -277,12 +352,10 @@ Calib-pass/test-fail: frontier.
 Reproduce: `local-enough report --run reference`.
 <!-- le:results:end -->
 
-| | | |
-|---|---|---|
-| ![classification](docs/img/classification.png) | ![extraction](docs/img/extraction.png) | ![pii_redaction](docs/img/pii_redaction.png) |
-| ![summarisation](docs/img/summarisation.png) | ![entity_matching](docs/img/entity_matching.png) | |
+</details>
 
-### Local performance
+<details>
+<summary><b>Local performance</b> · throughput per concurrency, soak throttle, memory and power per local model</summary>
 
 <!-- le:local_perf:start -->
 #### local-qwen2.5-1.5b
@@ -332,15 +405,20 @@ Both local models + router: 5.25 GiB (footprint; local-qwen2.5-1.5b 1.20 GiB, lo
 Reproduce: `local-enough bench --local-only --split test --concurrency 4`, `local-enough soak`.
 <!-- le:local_perf:end -->
 
-**Measurement conditions.** All local numbers come from one Mac Studio (desktop, mains power), with `caffeinate`
-spawned by `bench`, `soak` and `power-probe`, and other heavy workloads on the machine paused during the measurement
-windows. Before and every 60 s during each local pass (A, B, soak), a sampler recorded the CPU and memory in use by
-everything except local-enough's own processes (system-wide counters, so other users' processes count too); a window
-is `contaminated` when that exceeds one core for more than 10% of its samples, and none of the published windows was.
-Every sample of background load was below one core (0.15 to 0.99) except the second sample of each Pass A and soak
-window: those windows were recorded before a sampler fix, when the second sample came about a second after the first
-and read 0 to 15 cores from counter priming, an artifact rather than load; the fixed sampler, used for Pass B, primes
-its counters and measures a fresh interval.
+</details>
+
+<details>
+<summary><b>Measurement conditions</b> · one desktop on mains power, sampled background load, configured watts, list-price hardware</summary>
+
+All local numbers come from one Mac Studio (desktop, mains power), with `caffeinate` spawned by `bench`, `soak` and
+`power-probe`, and other heavy workloads on the machine paused during the measurement windows. Before and every 60 s
+during each local pass (A, B, soak), a sampler recorded the CPU and memory in use by everything except local-enough's
+own processes (system-wide counters, so other users' processes count too); a window is `contaminated` when that
+exceeds one core for more than 10% of its samples, and none of the published windows was. Every sample of background
+load was below one core (0.15 to 0.99) except the second sample of each Pass A and soak window: those windows were
+recorded before a sampler fix, when the second sample came about a second after the first and read 0 to 15 cores from
+counter priming, an artifact rather than load; the fixed sampler, used for Pass B, primes its counters and measures a
+fresh interval.
 
 Pass A runs local models at concurrency 1, Pass B at 4, and the 20-minute soak at 4 on the `workload_mix`. Sustained
 throughput is Pass B × the soak's throttle factor (last five full minutes ÷ first five, capped at 1.0); on this
@@ -353,7 +431,10 @@ an upper bound. Energy is a small part of local cost at these volumes either way
 apple.com list price of this configuration at launch ($1,999 base + $300 16-core/40-core chip + $1,200 128 GB + $600
 2 TB = $4,099), read from Apple's archived configurator on 2025-03-15; the M4 Max model is no longer sold new.
 
-### Break-even (dedicated machine)
+</details>
+
+<details>
+<summary><b>Break-even</b> · dedicated machine per task: fixed cost, capacity, break-even volume, sensitivity</summary>
 
 <!-- le:break_even:start -->
 Scenario: dedicated (one machine per task at V_t).
@@ -373,21 +454,10 @@ Reproduce: `local-enough report --run reference`.
 *(sensitivity grid not applicable: no cloud model meets the classification bar, so there is no break-even volume to vary)*
 <!-- le:sensitivity:end -->
 
-### Verdict per task
+</details>
 
-<!-- le:verdicts:start -->
-Verdict rule, decided on the calib split: **local** when a local candidate meets the quality bar and this task's monthly volume is at or above the break-even volume against the cheapest cloud model meeting the bar (itself at or below this machine's capacity); **local (constraint)** when the task is in `data_must_stay_local` and a local candidate meets the bar, whatever the break-even; **local — below bar (constraint)** when the task is in `data_must_stay_local` and no local candidate meets the bar; **hybrid** when local meets the bar only through the router, with escalation to cloud at or below 20%; otherwise **cloud**.
-
-| task | verdict | detail |
-|---|---|---|
-| classification | local | the TF-IDF baseline (no LLM) meets the bar at about $0 per task, so there is no hardware to pay back at this task's volume (15,000 tasks/month). |
-| entity_matching | cloud | local alone is cheaper only above 4,995,204 tasks/month; the served plan has no local primary that meets the bar with at most 20% escalation. |
-| extraction | cloud | local alone is below the bar (gap to bar: -1.8%); the served plan has no local primary that meets the bar with at most 20% escalation. |
-| pii_redaction | local — below bar (constraint) | data_must_stay_local; no local candidate meets the bar (gap to bar: -2.8%). |
-| summarisation | cloud | local alone is below the bar (gap to bar: -31.1%); the served plan has no local primary that meets the bar with at most 20% escalation. |
-<!-- le:verdicts:end -->
-
-### Router on the mixed workload (shared machine)
+<details>
+<summary><b>Router on the mixed workload</b> · shared machine: cost, bars met, local share and escalation per configuration</summary>
 
 <!-- le:router:start -->
 Scenario: shared machine (mixed workload, `workload_mix` weights, full test split). Source: `local-enough route --simulate --run reference`.
@@ -411,7 +481,10 @@ Per-task primary metric against its calib bar:
 | Router with gates + data_must_stay_local (4/5 tasks served) | 0.880 vs 0.827 (meets) | 1.000 vs 0.950 (meets) | 0.986 vs 0.944 (meets) | unservable (503) | 0.575 vs 0.689 (below) |
 <!-- le:router:end -->
 
-### Router live check
+</details>
+
+<details>
+<summary><b>Router live check</b> · sampled test requests through a running router, compared with the offline replay</summary>
 
 <!-- le:live_check:start -->
 | metric | value |
@@ -434,7 +507,10 @@ Mismatch on extraction item extraction-test-0090: router answered as 'x-ai/grok-
 A cloud answer can differ between the recorded bench call and the live call even at temperature 0, which can change a gate outcome and the escalation step.
 <!-- le:live_check:end -->
 
-### Summarisation judge
+</details>
+
+<details>
+<summary><b>Summarisation judge</b> · calibration against construction labels, per-model bias-corrected pass rates</summary>
 
 <!-- le:judge:start -->
 | field | value |
@@ -460,7 +536,10 @@ A cloud answer can differ between the recorded bench call and the live call even
 | small-closed | 80 | 25.0% | 26.2% | [14.2%, 38.4%] | 89.7% |
 <!-- le:judge:end -->
 
-### Downloads and spend
+</details>
+
+<details>
+<summary><b>Downloads and spend</b> · model snapshots with licences, the run's ledger and the project ledger</summary>
 
 <!-- le:downloads:start -->
 | model | repo | revision | size | licence |
@@ -487,6 +566,8 @@ building and checking this release (development smoke runs, the reference run, j
 router live checks and three quickstart checks, the last one after publishing), totals $6.00 of the $15.00 budget:
 bench $4.92, judge calibrate $0.41, judge score $0.55, router live checks $0.10, quickstart checks $0.015.
 
+</details>
+
 ## Bring your own task
 
 Point a `task.yaml` at your own `calib.jsonl` and `test.jsonl` for any of the five task kinds and add it to the
@@ -504,20 +585,19 @@ for the TF-IDF baseline.
 ## The router
 
 `local-enough route --models config.yaml` serves the plan built from a run (`--run`, default the reference run) on
-`127.0.0.1:8000`:
+`127.0.0.1:8000`. Any tool that takes an OpenAI-compatible base URL can point at it.
 
-- `POST /v1/chat/completions` with `model: local-enough/<task>` and the raw input as the user message; the router
-  applies the benchmarked prompt and returns the parsed output as the message content (non-streaming);
-- `GET /v1/models` lists the task aliases, `GET /healthz`, `GET /stats` (counts, escalations, latency, spend only);
-- headers `x-local-enough-model`, `x-local-enough-escalated`, `x-local-enough-gate`;
-- tasks in `data_must_stay_local` never reach a cloud endpoint: an exhausted local chain returns HTTP 503
-  `local_only_unavailable`, and a local-only task with no local candidate above the bar returns 503
-  `local_only_below_bar` unless `allow_below_bar_local: true`.
+| | |
+|---|---|
+| `POST /v1/chat/completions` | `model: local-enough/<task>`, raw input as the user message; the router applies the benchmarked prompt and returns the parsed output as the message content (non-streaming) |
+| `GET /v1/models` · `/healthz` · `/stats` | task aliases; health; counts, escalations, latency and spend only |
+| response headers | `x-local-enough-model`, `x-local-enough-escalated`, `x-local-enough-gate` |
+| `data_must_stay_local` | never reaches a cloud endpoint: an exhausted local chain returns HTTP 503 `local_only_unavailable`; a local-only task with no local candidate above the bar returns 503 `local_only_below_bar` unless `allow_below_bar_local: true` |
 
-Any tool that takes an OpenAI-compatible base URL can point at it. There is no authentication
-([SECURITY.md](SECURITY.md)); request and response bodies are never logged. `--print-plan` prints the plan,
-`--simulate` replays it over the recorded test predictions, and `local-enough route replay --url ... --run ...`
-sends mixed test items through a running router and compares its decisions with the simulation.
+There is no authentication ([SECURITY.md](SECURITY.md)); request and response bodies are never logged.
+`--print-plan` prints the plan, `--simulate` replays it over the recorded test predictions, and
+`local-enough route replay --url ... --run ...` sends mixed test items through a running router and compares its
+decisions with the simulation.
 
 **Docker.** `docker compose up` runs the router image `ghcr.io/b0yko/local-enough:0.1.0`; local models stay on the
 host because MLX needs Metal. Exact flags, and when a host flag would expose the model server on the LAN, are in
@@ -549,28 +629,19 @@ The judge sets are construction-labelled, not human-labelled.
 
 ## Alternatives
 
-- **General gateways** route on availability, latency or price, not on measured accuracy on your task: the
-  [LiteLLM router](https://docs.litellm.ai/docs/routing) (weighted, least-busy, latency- and cost-based strategies)
-  and OpenRouter's [provider routing](https://openrouter.ai/docs/features/provider-routing), which picks the
-  upstream provider for a chosen model.
-- **Learned routers** decide from data you don't control or send elsewhere: OpenRouter's
-  [Auto Router](https://openrouter.ai/docs/features/model-routing) chooses from aggregate usage on OpenRouter;
-  [RouteLLM](https://github.com/lm-sys/RouteLLM) ships routers trained on preference data such as Chatbot Arena;
-  [Not Diamond](https://docs.notdiamond.ai/docs/what-is-model-routing) custom routers are trained on your evaluation
-  data through its hosted service; [Martian](https://docs.withmartian.com/) routes across hosted models behind one
-  API. None of them costs hardware you own.
-- **Speed-only local benchmarks** such as [`llama-bench`](https://github.com/ggml-org/llama.cpp/tree/master/tools/llama-bench)
-  and `mlx_lm.benchmark` report prompt and generation throughput and memory, not whether a model gets your task
-  right or returns valid output.
-- **General leaderboards** rank general capability, not your task, your output format or your cost per month.
+| | Examples | What they decide on |
+|---|---|---|
+| **General gateways** | [LiteLLM router](https://docs.litellm.ai/docs/routing) (weighted, least-busy, latency- and cost-based strategies); OpenRouter [provider routing](https://openrouter.ai/docs/features/provider-routing), which picks the upstream provider for a chosen model | availability, latency or price, not measured accuracy on your task |
+| **Learned routers** | OpenRouter [Auto Router](https://openrouter.ai/docs/features/model-routing) (aggregate usage on OpenRouter); [RouteLLM](https://github.com/lm-sys/RouteLLM) (trained on preference data such as Chatbot Arena); [Not Diamond](https://docs.notdiamond.ai/docs/what-is-model-routing) (custom routers trained on your evaluation data through its hosted service); [Martian](https://docs.withmartian.com/) (routes across hosted models behind one API) | data you don't control or send elsewhere; none of them costs hardware you own |
+| **Speed-only local benchmarks** | [`llama-bench`](https://github.com/ggml-org/llama.cpp/tree/master/tools/llama-bench), `mlx_lm.benchmark` | prompt and generation throughput and memory, not whether a model gets your task right or returns valid output |
+| **General leaderboards** | | general capability, not your task, your output format or your cost per month |
 
 ## Limitations
 
 - Four of the five datasets are template-generated and more regular than real mail, so scores on real data may be
   lower; that is why bring-your-own tasks exist.
 - One measured machine (a Mac Studio M4 Max); other hardware can only be entered as cost inputs.
-- English only.
-- Prices are as of the snapshot date in the run.
+- English only. Prices are as of the snapshot date in the run.
 - Confidence intervals are wide at n = 80–308 per task.
 - Power: the measured machine is a desktop with no battery telemetry, so energy uses configured watts from Apple's
   published figures (labelled "configured"); on laptops `power-probe` reads undocumented battery telemetry and the
