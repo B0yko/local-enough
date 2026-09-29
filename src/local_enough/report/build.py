@@ -121,7 +121,10 @@ def build_report(
     specs: dict[str, TaskSpec] | None = None,
     route_cfg: RouteConfig | None = None,
 ) -> list[Path]:
-    """Write ``index.html``, ``report.md``, ``ADR-local-vs-cloud.md`` and ``img/<task>.png`` into ``out_dir``."""
+    """Write ``index.html``, ``report.md``, ``ADR-local-vs-cloud.md`` and ``img/<task>.png`` into ``out_dir``.
+
+    Each chart is also written in the dark theme as ``img/<task>-dark.png``.
+    """
     data = build_report_data(run_dir, specs=specs, route_cfg=route_cfg)
     blocks = render_blocks(data)
 
@@ -138,6 +141,13 @@ def build_report(
         png_path = img_dir / f"{task}.png"
         charts.save_png(fig, png_path)
         written.append(png_path)
+        # The same chart in the dark theme, for READMEs that switch images with prefers-color-scheme.
+        dark = charts.frontier_chart(
+            task, block["chart_points"], quality_bar=block["bar"], split_label="test", theme="dark"
+        )
+        dark_path = img_dir / f"{task}-dark.png"
+        charts.save_png(dark, dark_path)
+        written.append(dark_path)
 
     md_path = out / "report.md"
     md_path.write_text(_report_md(data, blocks, "img"), encoding="utf-8")

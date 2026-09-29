@@ -289,10 +289,15 @@ def test_report_is_byte_for_byte_deterministic(tmp_path: Path) -> None:
     assert rel1 == rel2
     assert rel1 == [
         Path("ADR-local-vs-cloud.md"),
+        Path("img/classification-dark.png"),
         Path("img/classification.png"),
+        Path("img/entity_matching-dark.png"),
         Path("img/entity_matching.png"),
+        Path("img/extraction-dark.png"),
         Path("img/extraction.png"),
+        Path("img/pii_redaction-dark.png"),
         Path("img/pii_redaction.png"),
+        Path("img/summarisation-dark.png"),
         Path("img/summarisation.png"),
         Path("index.html"),
         Path("report.md"),
