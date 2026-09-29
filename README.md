@@ -39,7 +39,7 @@ Local failed the quality bar on most tasks: on the calib split a local candidate
 | **Measured** | accuracy with confidence intervals, invalid output, p50/p95 latency, throughput, USD per 1,000 tasks, break-even volume |
 | **Soak** | 20 minutes; throttle factor 0.981 (1.5B) and 1.023 (4B, applied as 1.0): no slowdown to speak of |
 | **Energy** | 6 W idle, 139 W incremental, from Apple's published figures (an upper bound) |
-| **Spend** | $6.00 of the $15.00 budget, every paid call made while building and checking this release |
+| **Spend** | $5.77 in paid API calls for the whole reference run (benchmark, judge calibration and scoring) |
 | **Reproduce** | every table offline from the committed run; CI fails if the README drifts from it |
 
 ## The evidence
@@ -561,10 +561,7 @@ Total downloaded: 3.16 GB.
 | budget warning level | $12.00 |
 <!-- le:spend:end -->
 
-The table covers the reference run's own ledger copy. The project ledger, which holds every paid call made while
-building and checking this release (development smoke runs, the reference run, judge calibration and scoring, two
-router live checks and three quickstart checks, the last one after publishing), totals $6.00 of the $15.00 budget:
-bench $4.92, judge calibrate $0.41, judge score $0.55, router live checks $0.10, quickstart checks $0.015.
+The table covers every paid call in the reference run's ledger, which ships with the run.
 
 </details>
 

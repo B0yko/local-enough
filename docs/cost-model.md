@@ -146,7 +146,7 @@ utilisation, machine count, the shared fixed rate, and a per-task `local_usd_per
 For the headline task, [`costmodel.sensitivity_grid`](../src/local_enough/costmodel.py) recomputes
 `fixed_usd_per_month` and the break-even verdict across `lifetime_years ∈ {2, 3, 4}` ×
 `purchase_price multiplier ∈ {0.75, 1.0, 1.25}` (9 cells), holding throughput, energy and cloud
-cost fixed. This shows how sensitive the verdict is to two assumptions Andrii chose by hand: how
+cost fixed. This shows how sensitive the verdict is to two assumptions the reference run sets by hand: how
 long the machine stays in service, and how much it actually cost (list price vs. a discount or a
 price rise).
 

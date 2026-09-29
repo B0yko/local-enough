@@ -1,19 +1,19 @@
 # ADR 7: Model lineup for the reference run
 
 - Status: accepted
-- Date: 2026-09-28 (written before the full run)
+- Date: 2026-09-28
 
 ## Context
 
 The reference run compares two local models with four cloud models, one per role, plus three non-LLM baselines.
-The reference-run budget caps the `--dry-run` estimate of the full run (both splits, 1,482 calls per model) at $4.50 for the
+The line-up keeps the `--dry-run` estimate of the full run (both splits, 1,482 calls per model) at or below $4.50 for the
 frontier role and $6.50 for the four cloud models together. The dry-run estimate assumes every call uses its full
 visible-output cap plus any reasoning allowance, so it is an upper bound on visible output. Model ids were checked
 against `GET https://openrouter.ai/api/v1/models` on 2026-09-28; the snapshot taken at bench time is stored as
 `price_snapshot.json` in the run.
 
 Measurement hardware: the local runs are measured on a Mac Studio (2025, Apple M4 Max 16-core CPU / 40-core GPU,
-128 GB, 2 TB). The development laptop is not used for local-model measurements.
+128 GB, 2 TB).
 
 ## Decision
 
@@ -40,13 +40,13 @@ Judge candidates: `openai/gpt-4.1-mini` and `google/gemini-3.5-flash-lite`. Neit
 
 Why these:
 
-- frontier: the current flagships of the major closed vendors are above the $4.50 cap on the dry-run formula:
+- frontier: the current flagships of the major closed vendors are above the $4.50 limit on the dry-run formula:
   `openai/gpt-6-astra` $26.53, `anthropic/claude-opus-5.5` $10.61, `google/gemini-3.1-pro-preview` $5.95, and
   `openai/gpt-6-sol` (below Astra in OpenAI's line-up) $5.31. `x-ai/grok-4.7`, xAI's flagship, is the one that fits.
   Its endpoint rejects `reasoning: {enabled: false}` ("Reasoning is mandatory for this endpoint"), so it runs at the
   lowest effort. A 5-item preflight showed 60 to 550 reasoning tokens per call and that xAI does not count them
   against `max_tokens`, so visible output is never cut. Reasoning tokens are billed and recorded in the ledger.
-- small-closed: `openai/gpt-5.4-mini` ($2.23) would put the four-model total at $6.98, above $6.50;
+- small-closed: `openai/gpt-5.4-mini` ($2.23) would put the four-model total at $6.98, above the $6.50 limit;
   `google/gemini-3.8-flash` has mandatory reasoning that consumed the 16-token label cap in the preflight
   (truncated labels) and needs an allowance that brings it to $2.70; `anthropic/claude-haiku-4.5` is $2.65.
   `openai/gpt-5.4-nano` runs with reasoning off. Its endpoints do not support `temperature`, so OpenRouter drops
@@ -63,9 +63,8 @@ Why these:
 - The frontier role is a flagship with minimal but non-zero reasoning; its latency and cost include reasoning.
 - If OpenRouter changes a price, the committed snapshot still reproduces the reported numbers offline.
 
-## Outcome (recorded after the run)
+## Measured outcome
 
-- No id was swapped after the full run.
 - Measured cost of Pass A (both splits): frontier $4.35, small-closed $0.25, open-large $0.14, open-same-family $0.07,
   $4.80 in total. The frontier model spent 475,967 reasoning tokens (321 per call on average, above the 128-token
   allowance), so its actual cost exceeded its $4.12 dry-run estimate; the four-model total stayed below $6.50.

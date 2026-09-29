@@ -2,8 +2,8 @@
 
 ## The router has no authentication
 
-`local-enough route` starts a plain HTTP server with no auth, no rate limiting and no multi-tenancy (see the
-project's "Out of scope for v0.1" notes). Anyone who can reach the port can call it and spend your configured
+`local-enough route` starts a plain HTTP server with no auth, no rate limiting and no multi-tenancy.
+Anyone who can reach the port can call it and spend your configured
 cloud budget or load your local models.
 
 - By default it binds to `127.0.0.1`: only processes on the same machine can reach it.
