@@ -1,5 +1,5 @@
 """Dataset hygiene: byte-identical regeneration, RFC 2606 domains, allowed phone ranges,
-no blocklisted brand names, no "Andrii"/"Boiko", and split sizes across all bundled datasets.
+no blocklisted brand names, no home-directory paths, and split sizes across all bundled datasets.
 """
 
 from __future__ import annotations
@@ -201,11 +201,12 @@ def test_no_blocklisted_brand_names_in_synthetic_data() -> None:
     assert failures == []
 
 
-def test_no_owner_name_anywhere_including_banking77() -> None:
+_HOME_PATH_RE = re.compile(r"/Users/[A-Za-z0-9._-]+|/home/[a-z][a-z0-9_-]*/|[A-Za-z]:\\Users\\", re.IGNORECASE)
+
+
+def test_no_home_paths_in_data_including_banking77() -> None:
     for task_dir in [*[DATASETS_DIR / t for t in [*SYNTHETIC_TASKS, "classification"]], EXAMPLES_DIR]:
         for path, record in _all_json_records(task_dir):
             for s in _all_strings(record):
-                lowered = s.lower()
-                assert "andrii" not in lowered and "boiko" not in lowered, (
-                    f"{path.relative_to(REPO_ROOT)}#{record.get('id')}: contains owner's name"
-                )
+                match = _HOME_PATH_RE.search(s)
+                assert match is None, f"{path.relative_to(REPO_ROOT)}#{record.get('id')}: contains a home path"

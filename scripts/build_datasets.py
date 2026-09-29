@@ -207,9 +207,6 @@ def check_no_blocklisted_brand(name: str) -> None:
             token = "".join(words[i : i + size])
             if token in BLOCKLIST_NORM:
                 raise AssertionError(f"generated name {name!r} collides with blocklisted brand {token!r}")
-    for forbidden in ("andrii", "boiko"):
-        if forbidden in name.lower():
-            raise AssertionError(f"generated name {name!r} contains forbidden real name {forbidden!r}")
 
 
 FIRST_NAMES = [

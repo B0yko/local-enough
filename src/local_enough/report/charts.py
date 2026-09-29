@@ -541,11 +541,11 @@ _METADATA_BLOCK_RE = re.compile(r"\s*<metadata>.*?</metadata>", re.DOTALL)
 
 
 def _strip_rdf_metadata(svg_text: str) -> str:
-    """Drop matplotlib's RDF ``<metadata>`` block (a ``matplotlib.org`` credit, no rendering effect).
+    """Drop matplotlib's RDF ``<metadata>`` block (creator string and links, no rendering effect).
 
-    Keeps the chart fully self-contained with no reference to an external site; the ``xmlns``
-    namespace URIs on the root ``<svg>`` element are unrelated (required XML identifiers, not
-    fetched resources) and are left alone.
+    The chart files then depend only on the data and the theme, and the SVG makes no reference to
+    an external site; the ``xmlns`` namespace URIs on the root ``<svg>`` element are unrelated
+    (required XML identifiers, not fetched resources) and are left alone.
     """
     return _METADATA_BLOCK_RE.sub("", svg_text)
 

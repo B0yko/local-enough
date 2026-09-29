@@ -139,13 +139,12 @@ real country's algorithm.
 - Person and company names come from curated fictional pools, checked in the generator against a ~100-entry
   blocklist of well-known real brands (word-boundary match, so it never flags an unrelated substring).
 - Fictional companies stay in four generic sectors: software, office supplies, logistics, facilities.
-- No output ever contains the string "Andrii" or "Boiko" (checked by the generator and by
-  `tests/test_datasets_hygiene.py`).
+- No record contains a home-directory path (checked by `tests/test_datasets_hygiene.py`).
 
 ## Tests
 
 `tests/test_datasets_hygiene.py` and the per-task `tests/test_datasets_*.py` files check: byte-identical
 regeneration of the four synthetic tasks into a tmp directory (classification's BANKING77 part runs only when
 `LOCAL_ENOUGH_BANKING77_DIR` is set); RFC 2606 domains and allowed phone ranges only; no blocklisted brand
-names; no "Andrii"/"Boiko"; split sizes; the ~40% entity-matching match rate; the ~15% PII-free document rate;
+names; no home-directory paths; split sizes; the ~40% entity-matching match rate; the ~15% PII-free document rate;
 PII span offset exactness; the summarisation sentence-repetition cap; and the judge-set label logic.

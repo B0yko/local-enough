@@ -45,7 +45,7 @@ class RouterFacts:
     """Router-derived facts for the report; degrades cleanly when ``local_enough.route`` is missing."""
 
     available: bool
-    plan_text: str = "router table unavailable: the `local_enough.route` package is not present in this build."
+    plan_text: str = "router table unavailable: the `local_enough.route` package is not present in this installation."
     mixed_rows: list[dict[str, Any]] = field(default_factory=list)
     hybrid_by_task: dict[str, bool] = field(default_factory=dict)
     saving_pct: float | None = None
