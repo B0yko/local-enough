@@ -484,8 +484,8 @@ Total downloaded: 3.16 GB.
 
 The table covers the reference run's own ledger copy. The project ledger, which holds every paid call made while
 building and checking this release (development smoke runs, the reference run, judge calibration and scoring, two
-router live checks and the quickstart check), totals $5.99 of the $15.00 budget: bench $4.92, judge calibrate $0.41,
-judge score $0.55, router live checks $0.10, quickstart $0.005.
+router live checks and three quickstart checks, the last one after publishing), totals $6.00 of the $15.00 budget:
+bench $4.92, judge calibrate $0.41, judge score $0.55, router live checks $0.10, quickstart checks $0.015.
 
 ## Bring your own task
 
