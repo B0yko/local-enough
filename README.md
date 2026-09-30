@@ -658,3 +658,5 @@ The judge sets are construction-labelled, not human-labelled.
 
 Apache-2.0 ([LICENSE](LICENSE)); the bundled BANKING77 data is CC-BY-4.0 ([NOTICE](NOTICE)). Copyright 2026 Andrii
 Boiko.
+
+Built by [Andrii Boiko](https://boiko.ai/) · [Project overview](https://boiko.ai/work/local-enough/).
