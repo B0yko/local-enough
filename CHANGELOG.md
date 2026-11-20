@@ -5,6 +5,24 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Demo GIF of the mixed-workload router table (`docs/img/demo.gif`), regenerated from real CLI output by
+  `scripts/make_demo_gif.py`.
+- Manual `workflow_dispatch` trigger for CI.
+
+### Fixed
+
+- Dependency advisories found by pip-audit: pillow 12.3.0 → 13.0.0, filelock 4.0.5 → 4.2.12,
+  certifi 2026.7.22 → 2026.10.23.
+
+### Changed
+
+- CI: setup-uv pinned to v10.3.3 with Python 3.12 selected by `uv sync --locked --python 3.12` (the previous
+  pin silently ignored `python-version`); actions/checkout v4.4.0 → v7.0.1.
+
 ## [0.1.0] - 2026-09-28
 
 ### Added
