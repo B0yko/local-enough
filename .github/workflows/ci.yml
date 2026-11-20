@@ -3,6 +3,7 @@ name: CI
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 # No secrets are used anywhere in this workflow and no job calls a paid API. Live benchmark runs
 # (bench, judge calibrate/score, route replay) only ever run locally, from the CLI.
