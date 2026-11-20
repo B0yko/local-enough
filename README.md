@@ -78,6 +78,10 @@ summarisation    served      0.689  frontier          -                    passe
 ```
 <!-- le:plan:end -->
 
+<p align="center">
+  <img src="docs/img/demo.gif" width="860" alt="The mixed-workload router table from local-enough route --simulate --run reference: USD per 1,000 tasks per configuration, with the gated router 76.9% below all-frontier">
+</p>
+
 ## Quickstart
 
 Python 3.12 and [uv](https://docs.astral.sh/uv/). The steps below use
